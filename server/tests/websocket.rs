@@ -23,7 +23,7 @@ async fn start_server(pool: PgPool) -> (TestClient, String) {
         .run(&pool)
         .await
         .expect("migrations apply");
-    let state = AppState::from_pool(pool, false);
+    let state = AppState::from_pool(pool, false, true, true);
     let app = router().with_state(state);
     let client = TestClient::from_router(app.clone());
 

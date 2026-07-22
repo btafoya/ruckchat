@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use ruckchat_common::Result;
 use ruckchat_domain::{Message, MessageRepository};
-use ruckchat_id::MessageId;
+use ruckchat_id::{MessageId, OrganizationId, UserId};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -103,6 +103,64 @@ impl MessageRepository for MessageRepositorySqlx {
         .await
         .map_err(map_sqlx_err)?;
         Ok(())
+    }
+
+    async fn search(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        query: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Message>> {
+        let rows = sqlx::query_as!(
+            MessageRow,
+            r#"SELECT id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at
+             FROM messages
+             WHERE deleted_at IS NULL
+               AND content_tsv @@ plainto_tsquery('english', $1)
+               AND (
+                 (
+                   conversation_type = 'channel'
+                   AND conversation_id IN (
+                     SELECT id FROM channels
+                     WHERE organization_id = $2 AND is_private = false
+                   )
+                 )
+                 OR
+                 (
+                   conversation_type = 'channel'
+                   AND conversation_id IN (
+                     SELECT c.id FROM channels c
+                     JOIN channel_memberships cm ON cm.channel_id = c.id
+                     WHERE c.organization_id = $2 AND c.is_private = true AND cm.user_id = $3
+                   )
+                 )
+                 OR
+                 (
+                   conversation_type = 'dm'
+                   AND conversation_id IN (
+                     SELECT dmc.id FROM direct_message_conversations dmc
+                     JOIN dm_members dmm ON dmm.conversation_id = dmc.id
+                     WHERE dmc.organization_id = $2 AND dmm.user_id = $3
+                   )
+                 )
+               )
+             ORDER BY created_at DESC
+             LIMIT $4 OFFSET $5"#,
+            query,
+            organization_id.as_uuid(),
+            caller_id.as_uuid(),
+            limit,
+            offset
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        rows.into_iter()
+            .map(into_message)
+            .collect::<Result<Vec<_>>>()
     }
 }
 

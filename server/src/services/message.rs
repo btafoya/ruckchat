@@ -8,7 +8,7 @@ use ruckchat_domain::{
     ChannelMembershipRepository, ChannelRepository, ConversationType, Message, MessageRepository,
     OrganizationMembershipRepository,
 };
-use ruckchat_id::{ChannelId, DirectMessageConversationId, MessageId, UserId};
+use ruckchat_id::{ChannelId, DirectMessageConversationId, MessageId, OrganizationId, UserId};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -194,6 +194,72 @@ impl MessageService {
         self.deps.messages.update(&message).await?;
         self.deps.events.publish_message_deleted(&message).await?;
         Ok(())
+    }
+
+    /// Searches message content visible to the caller within an organization.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Forbidden`] when the caller is not an organization member.
+    pub async fn search_messages(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        query: &str,
+        pagination: Pagination,
+    ) -> ruckchat_common::Result<Vec<Message>> {
+        let caller_membership = self
+            .deps
+            .memberships
+            .by_ids(caller_id, organization_id)
+            .await?;
+        if caller_membership.is_none() {
+            return Err(Error::Forbidden("must be an organization member".into()));
+        }
+
+        let pagination = pagination.normalized();
+        if pagination.limit == 0 {
+            return Ok(Vec::new());
+        }
+        self.deps
+            .messages
+            .search(
+                caller_id,
+                organization_id,
+                query,
+                pagination.limit,
+                pagination.offset,
+            )
+            .await
+    }
+
+    /// Loads a single message visible to the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::NotFound`] when the message does not exist or is deleted,
+    /// and [`Error::Forbidden`] when the caller cannot read the conversation.
+    pub async fn get_message(
+        &self,
+        caller_id: UserId,
+        message_id: MessageId,
+    ) -> ruckchat_common::Result<Message> {
+        let message = self
+            .deps
+            .messages
+            .by_id(message_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("message".into()))?;
+        if message.is_deleted() {
+            return Err(Error::NotFound("message".into()));
+        }
+        self.require_can_read(
+            caller_id,
+            message.conversation_id,
+            message.conversation_type,
+        )
+        .await?;
+        Ok(message)
     }
 
     /// Returns message history for a conversation.

@@ -5,7 +5,7 @@ Never change architecture without updating ADRs.
 
 ## Current Status
 
-Phases 1–5 are complete. Phases 6–12 are not yet implemented.
+Phases 1–6 are complete. Phases 7–12 are not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -17,7 +17,10 @@ Phases 1–5 are complete. Phases 6–12 are not yet implemented.
   for all Phase 3 services, and integration tests against PostgreSQL.
 - Phase 5: WebSocket server with authenticated `/websocket`, in-memory connection
   management, real-time event bus, and reaction REST endpoints.
-- MCP, plugin, desktop, and mobile support are added in later phases.
+- Phase 6: MCP server exposed on `/mcp/v1/sse` using the `rmcp` Streamable HTTP
+  transport, with six tools, four `ruckchat://` resources, service-layer
+  authorization, unit tests, integration tests, and OpenAPI documentation.
+- Plugin, desktop, and mobile support are added in later phases.
 
 ## Commands
 
@@ -39,11 +42,12 @@ root/
 │   ├── ruckchat-common/    # Shared error type and validation utilities
 │   ├── ruckchat-config/    # Configuration primitives and `AuthenticatedUser`
 │   └── ruckchat-domain/    # Entities, value objects, and repository traits
-├── server/                 # Service layer, SQLx repositories, HTTP, and WebSocket
+├── server/                 # Service layer, SQLx repositories, HTTP, WebSocket, and MCP
 │   ├── src/handlers/       # Axum route handlers and HTTP DTOs
 │   ├── src/services/       # Business logic, service DTOs, and event bus trait
 │   ├── src/repositories/   # SQLx repository implementations
 │   ├── src/websocket/      # Connection manager, event bus implementation, handler
+│   ├── src/mcp/            # MCP server, tools, resources, and SSE handler
 │   ├── src/testing.rs      # In-memory mock repositories and event bus
 │   └── tests/              # Integration tests against PostgreSQL
 ├── migrations/             # SQLx migration crate and SQL files
@@ -61,12 +65,16 @@ root/
 - `server/src/repositories/` — SQLx implementations of domain repository traits.
 - `server/src/handlers/` — Axum route handlers, authentication extractor, and HTTP DTOs.
 - `server/src/websocket/` — WebSocket connection manager, event bus, and upgrade handler.
+- `server/src/services/mcp.rs` — MCP service bridge that delegates to the existing service layer.
+- `server/src/mcp/` — MCP server handler, tools, resources, and Streamable HTTP handler.
 - `server/src/testing.rs` — In-memory mock repositories and event bus for service unit tests.
 - `server/tests/` — Integration tests against PostgreSQL.
+- `server/tests/mcp.rs` — MCP Streamable HTTP endpoint integration tests.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
-- `server/openapi.yaml` — Full OpenAPI specification for the REST API and WebSocket upgrade.
+- `server/openapi.yaml` — Full OpenAPI specification for the REST API, WebSocket upgrade, and MCP endpoint.
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
-  `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md` — Active ADRs.
+  `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md`,
+  `docs/ADR-007-MCP-Server.md` — Active ADRs.
 
 ## Environment
 
@@ -79,6 +87,8 @@ Optional via `ruckchat.toml` or `RUCKCHAT_*` environment variables:
 - `RUCKCHAT_ENVIRONMENT`
 - `RUCKCHAT_BASE_URL`
 - `RUCKCHAT_LOG_LEVEL`
+- `RUCKCHAT_MCP_ENABLED` — Enable the MCP endpoint (default `true`).
+- `RUCKCHAT_MCP_REQUIRE_CONFIRMATION` — Require confirmation for MCP `post_message` (default `true`).
 
 ## Testing
 
@@ -87,6 +97,8 @@ Optional via `ruckchat.toml` or `RUCKCHAT_*` environment variables:
   `DATABASE_URL`. `connect_database` applies pending migrations on startup.
 - Services are unit-tested against in-memory mocks in `server/src/testing.rs`,
   not against the real database.
+- MCP integration tests exercise the `/mcp/v1/sse` Streamable HTTP endpoint,
+  including initialization, tool calls, and resource reads.
 
 ## CodeGraph and MCP Tooling
 
@@ -205,8 +217,8 @@ Or use the equivalent CodeGraph MCP server action.
   in `Cargo.toml`). `cargo clippy` must pass with `-D warnings`.
 - `cargo nextest` is the default test runner in the implementation loop; install
   with `cargo install cargo-nextest` if it is not present.
-- `server/src/main.rs` starts the full Axum HTTP server with WebSocket support;
-  MCP support is intentionally deferred to later phases.
+- `server/src/main.rs` starts the full Axum HTTP server with WebSocket and MCP
+  support when enabled.
 - `migrations` is a Cargo workspace member, not just a directory of SQL files.
 - Repository traits live in `ruckchat-domain`; SQLx implementations live in
   `server/src/repositories/`.

@@ -6,6 +6,7 @@
 
 pub mod error;
 pub mod handlers;
+pub mod mcp;
 pub mod repositories;
 pub mod services;
 pub mod state;

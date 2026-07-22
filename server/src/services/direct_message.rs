@@ -6,8 +6,9 @@ use ruckchat_domain::{
     DirectMessageConversation, DirectMessageConversationRepository,
     OrganizationMembershipRepository,
 };
-use ruckchat_id::{OrganizationId, UserId};
+use ruckchat_id::{DirectMessageConversationId, OrganizationId, UserId};
 use std::sync::Arc;
+use uuid::Uuid;
 
 /// Dependencies required by [`DirectMessageService`].
 #[derive(Clone)]
@@ -100,5 +101,41 @@ impl DirectMessageService {
             .conversations
             .list_by_user_and_organization(caller_id, organization_id)
             .await
+    }
+
+    /// Loads a DM conversation the caller participates in.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::NotFound`] when the conversation does not exist or the
+    /// caller is not a member, and [`Error::Forbidden`] when the caller is not an
+    /// organization member.
+    pub async fn get_conversation(
+        &self,
+        caller_id: UserId,
+        conversation_id: Uuid,
+    ) -> ruckchat_common::Result<DirectMessageConversation> {
+        let conversation_id = DirectMessageConversationId::from_uuid(conversation_id);
+        let conversation = self
+            .deps
+            .conversations
+            .by_id(conversation_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("conversation".into()))?;
+
+        let caller_membership = self
+            .deps
+            .memberships
+            .by_ids(caller_id, conversation.organization_id)
+            .await?;
+        if caller_membership.is_none() {
+            return Err(Error::Forbidden("must be an organization member".into()));
+        }
+        if !conversation.member_ids.contains(&caller_id) {
+            return Err(Error::Forbidden(
+                "must be a conversation member to read".into(),
+            ));
+        }
+        Ok(conversation)
     }
 }

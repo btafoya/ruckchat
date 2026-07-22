@@ -609,6 +609,27 @@ impl MessageRepository for MockMessageRepository {
         messages[idx] = message.clone();
         Ok(())
     }
+
+    async fn search(
+        &self,
+        _caller_id: UserId,
+        _organization_id: OrganizationId,
+        query: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Message>> {
+        let messages = self.messages.lock().unwrap();
+        let lower_query = query.to_lowercase();
+        let mut filtered: Vec<Message> = messages
+            .iter()
+            .filter(|m| !m.is_deleted() && m.content.to_lowercase().contains(&lower_query))
+            .cloned()
+            .collect();
+        filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        let start = offset.max(0) as usize;
+        let end = (start + limit.max(0) as usize).min(filtered.len());
+        Ok(filtered[start..end].to_vec())
+    }
 }
 
 /// In-memory reaction repository.

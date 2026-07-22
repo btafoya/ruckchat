@@ -20,6 +20,22 @@ pub struct AppConfig {
     pub base_url: String,
     /// Log level directive, e.g. `info`.
     pub log_level: String,
+    /// Whether the MCP endpoint is enabled.
+    #[serde(default = "default_mcp_enabled")]
+    pub mcp_enabled: bool,
+    /// Whether MCP `post_message` requires explicit confirmation.
+    #[serde(default = "default_mcp_require_confirmation")]
+    pub mcp_require_confirmation: bool,
+}
+
+#[must_use]
+fn default_mcp_enabled() -> bool {
+    true
+}
+
+#[must_use]
+fn default_mcp_require_confirmation() -> bool {
+    true
 }
 
 impl AppConfig {
@@ -41,6 +57,8 @@ impl AppConfig {
             .set_default("environment", "development")?
             .set_default("base_url", "http://localhost:3000")?
             .set_default("log_level", "info")?
+            .set_default("mcp_enabled", true)?
+            .set_default("mcp_require_confirmation", true)?
             .build()?;
 
         cfg.try_deserialize()

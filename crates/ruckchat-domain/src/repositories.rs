@@ -193,6 +193,16 @@ pub trait MessageRepository {
 
     /// Updates an existing message.
     async fn update(&self, message: &Message) -> Result<()>;
+
+    /// Searches visible message content using full-text search.
+    async fn search(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        query: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Message>>;
 }
 
 /// Reaction data access.

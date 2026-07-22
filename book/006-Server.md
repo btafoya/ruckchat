@@ -67,6 +67,12 @@ server/src
 │   ├── manager.rs
 │   ├── bus.rs
 │   └── handler.rs
+├── mcp/                 # Model Context Protocol server
+│   ├── mod.rs
+│   ├── server.rs
+│   ├── tools.rs
+│   ├── resources.rs
+│   └── handler.rs
 └── testing.rs           # In-memory mock repositories and event bus for unit tests
 ```
 
@@ -88,6 +94,7 @@ Implemented services:
 - **ReactionService** — add and remove reactions on messages; emits real-time events.
 - **DirectMessageService** — start DM conversations and list conversations for a user.
 - **FileService** — record uploads, list files, and attach files to messages.
+- **McpService** — scoped bridge used by the MCP server; delegates to the other services.
 - **EventBus trait** — `services/events.rs` decouples services from the WebSocket transport.
 
 Real-time delivery is implemented by the `websocket` module:
@@ -108,9 +115,10 @@ type inference issues.
 
 ## HTTP Layer
 
-`server/src/handlers/mod.rs` wires the Axum router. All REST endpoints and the
-`GET /websocket` upgrade endpoint are listed in `server/openapi.yaml` with full
-request/response schemas.
+`server/src/handlers/mod.rs` wires the Axum router. All REST endpoints, the
+`GET /websocket` upgrade endpoint, and the `/mcp/v1/sse` Streamable HTTP
+endpoint are listed in `server/openapi.yaml` with full request/response
+schemas.
 
 ### Authentication
 
@@ -171,7 +179,9 @@ Unit tests exercise the service layer against in-memory mocks in
 to get a fresh PostgreSQL database per test and the `TestClient` helper to
 exercise the Axum router in-process. WebSocket integration tests use
 `tokio-tungstenite` against an in-process server sharing the same `AppState` to
-verify end-to-end event delivery.
+verify end-to-end event delivery. MCP integration tests in `server/tests/mcp.rs`
+open a Streamable HTTP session through the Axum router and exercise tool calls
+and resource reads end-to-end against PostgreSQL.
 
 ```bash
 export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"

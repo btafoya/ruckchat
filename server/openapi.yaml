@@ -21,6 +21,7 @@ tags:
   - name: Files
   - name: Reactions
   - name: Real-Time
+  - name: MCP
 
 paths:
   /auth/register:
@@ -891,6 +892,82 @@ paths:
           description: WebSocket upgrade accepted
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /mcp/v1/sse:
+    post:
+      summary: MCP Streamable HTTP client-message endpoint
+      description: |
+        Accepts JSON-RPC requests for the Model Context Protocol server and
+        returns responses as a Server-Sent Events stream. A successful
+        `initialize` request creates a session and returns a `Mcp-Session-Id`
+        header that must be included on subsequent requests. All requests must
+        accept both `application/json` and `text/event-stream`.
+      tags: [MCP]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: JSON-RPC 2.0 client request or notification
+      responses:
+        '200':
+          description: JSON-RPC response delivered as SSE events
+          headers:
+            Mcp-Session-Id:
+              schema:
+                type: string
+              description: Session ID for stateful requests (present on initialize)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '202':
+          description: Notification accepted (empty body)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          description: Accept header missing required MIME types
+        '415':
+          description: Content-Type must be application/json
+    get:
+      summary: MCP Server-Sent Events stream
+      description: |
+        Opens a long-lived Server-Sent Events stream for server-initiated MCP
+        messages. Requires the `Mcp-Session-Id` header identifying an existing
+        session and an `Accept: text/event-stream` header.
+      tags: [MCP]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: header
+          name: Mcp-Session-Id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          description: Accept header must allow text/event-stream
 
 components:
   securitySchemes:

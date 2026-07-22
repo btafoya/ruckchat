@@ -32,7 +32,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let pool = connect_database(&db_config).await?;
 
     let secure_cookies = matches!(config.environment, ruckchat_config::Environment::Production);
-    let state = AppState::from_pool(pool, secure_cookies);
+    let state = AppState::from_pool(
+        pool,
+        secure_cookies,
+        config.mcp_enabled,
+        config.mcp_require_confirmation,
+    );
 
     let addr = parse_server_addr(&config.base_url)?;
     let listener = TcpListener::bind(&addr).await?;

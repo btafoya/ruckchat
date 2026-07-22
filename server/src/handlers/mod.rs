@@ -13,10 +13,10 @@ pub mod user;
 
 pub use auth::AuthUser;
 
-use crate::{state::AppState, websocket::websocket_handler};
+use crate::{mcp::mcp_handler, state::AppState, websocket::websocket_handler};
 use axum::{
     Router,
-    routing::{delete, get, patch, post},
+    routing::{any, delete, get, patch, post},
 };
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
@@ -24,6 +24,7 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/websocket", get(websocket_handler))
+        .route("/mcp/v1/sse", any(mcp_handler))
         .route("/auth/register", post(auth::register))
         .route("/auth/login", post(auth::login))
         .route("/auth/logout", post(auth::logout))

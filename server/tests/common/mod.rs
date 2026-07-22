@@ -24,7 +24,7 @@ impl TestClient {
             .run(&pool)
             .await
             .expect("migrations apply");
-        let state = AppState::from_pool(pool, false);
+        let state = AppState::from_pool(pool, false, true, true);
         Self::from_router(router().with_state(state))
     }
 

@@ -4,6 +4,7 @@
 //! service layer backed by SQLx repository implementations.
 
 use crate::{
+    mcp::McpHttpService,
     repositories::{
         ChannelMembershipRepositorySqlx, ChannelRepositorySqlx,
         DirectMessageConversationRepositorySqlx, FileRepositorySqlx, MessageRepositorySqlx,
@@ -17,6 +18,7 @@ use crate::{
         channel::{ChannelService, ChannelServiceDeps},
         direct_message::{DirectMessageService, DirectMessageServiceDeps},
         file::{FileService, FileServiceDeps},
+        mcp::{McpService, McpServiceDeps},
         message::{MessageService, MessageServiceDeps},
         organization::{OrganizationService, OrganizationServiceDeps},
         reaction::{ReactionService, ReactionServiceDeps},
@@ -34,6 +36,10 @@ pub struct AppState {
     pub pool: PgPool,
     /// Whether to mark session cookies as `Secure`.
     pub secure_cookies: bool,
+    /// Whether the MCP endpoint is enabled.
+    pub mcp_enabled: bool,
+    /// Whether MCP `post_message` requires explicit confirmation.
+    pub mcp_require_confirmation: bool,
     /// Authentication service.
     pub auth: AuthService,
     /// User service.
@@ -56,6 +62,10 @@ pub struct AppState {
     pub websocket_manager: ConnectionManager,
     /// WebSocket event bus.
     pub events: WebSocketEventBus,
+    /// MCP service.
+    pub mcp: McpService,
+    /// MCP Streamable HTTP service.
+    pub mcp_http: McpHttpService,
 }
 
 impl std::fmt::Debug for AppState {
@@ -63,7 +73,11 @@ impl std::fmt::Debug for AppState {
         f.debug_struct("AppState")
             .field("pool", &self.pool)
             .field("secure_cookies", &self.secure_cookies)
+            .field("mcp_enabled", &self.mcp_enabled)
+            .field("mcp_require_confirmation", &self.mcp_require_confirmation)
             .field("websocket_manager", &self.websocket_manager)
+            .field("mcp", &"McpService")
+            .field("mcp_http", &"McpHttpService")
             .finish_non_exhaustive()
     }
 }
@@ -72,7 +86,12 @@ impl AppState {
     /// Creates state from a connection pool, building services backed by SQLx
     /// repositories.
     #[must_use]
-    pub fn from_pool(pool: PgPool, secure_cookies: bool) -> Self {
+    pub fn from_pool(
+        pool: PgPool,
+        secure_cookies: bool,
+        mcp_enabled: bool,
+        mcp_require_confirmation: bool,
+    ) -> Self {
         let users_repo = Arc::new(UserRepositorySqlx::new(pool.clone()));
         let sessions_repo = Arc::new(SessionRepositorySqlx::new(pool.clone()));
         let organizations_repo = Arc::new(OrganizationRepositorySqlx::new(pool.clone()));
@@ -159,9 +178,24 @@ impl AppState {
             settings: settings_repo.clone(),
         });
 
+        let mcp = McpService::new(
+            McpServiceDeps {
+                channels: channels.clone(),
+                direct_messages: direct_messages.clone(),
+                messages: messages.clone(),
+                users: users.clone(),
+                organizations: organizations.clone(),
+                memberships: memberships_repo.clone(),
+            },
+            mcp_require_confirmation,
+        );
+        let mcp_http = McpHttpService::new(mcp.clone());
+
         Self {
             pool,
             secure_cookies,
+            mcp_enabled,
+            mcp_require_confirmation,
             auth,
             users,
             organizations,
@@ -173,6 +207,8 @@ impl AppState {
             authorization,
             websocket_manager: connection_manager,
             events,
+            mcp,
+            mcp_http,
         }
     }
 
