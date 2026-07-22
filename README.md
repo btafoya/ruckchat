@@ -15,10 +15,12 @@ clients.
 
 ## Current Status
 
-Phases 1–6 are complete. Phase 8 (desktop client) is in progress. The server is
-a working REST API with authentication, organizations, channels, direct messages,
-file metadata, WebSocket real-time events, and an MCP server, with integration
-tests against PostgreSQL.
+Phases 1–6 are complete. Phase 8 (desktop client) is in progress: API client,
+auth flow, core UI shell, and real-time WebSocket sync are done; messaging
+features and native integrations remain. The server is a working REST API with
+authentication, organizations, channels, direct messages, file metadata,
+WebSocket real-time events, and an MCP server, with integration tests against
+PostgreSQL.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -72,16 +74,17 @@ pnpm tauri dev
 ```
 
 The desktop client opens a Tauri WebView pointing at the Vite dev server. It
-expects the server at `http://localhost:8080` by default (configurable in a
+expects the server at `http://localhost:3000` by default (configurable in a
 future settings screen).
 
 ### Run the Tests
 
 ```bash
-# Unit tests (no database required)
-cargo test --workspace
+# All workspace tests (server integration tests require DATABASE_URL)
+export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
+cargo nextest run --workspace
 
-# Server integration tests (requires a migrated PostgreSQL database)
+# Server crate only
 export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
 cargo test -p ruckchat-server
 ```
@@ -90,7 +93,7 @@ If you have a local `.env.testing` file (gitignored), source it first:
 
 ```bash
 export $(grep -v '^#' .env.testing | xargs)
-cargo test -p ruckchat-server
+cargo nextest run --workspace
 ```
 
 Schema/migration tests that create isolated per-test databases read
@@ -139,6 +142,9 @@ root/
 │   ├── src/mcp/            # MCP server
 │   └── tests/              # HTTP integration tests
 ├── desktop/                # Tauri v2 + React desktop client
+│   ├── src/                # React + TypeScript frontend
+│   ├── src-tauri/          # Tauri Rust shell
+│   └── README.md           # Desktop developer guide
 ├── migrations/             # SQLx migrations
 ├── book/                   # Project documentation
 └── docs/                   # ADRs and implementation plans
