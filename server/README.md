@@ -35,6 +35,7 @@ server/src
 │   ├── reaction.rs
 │   ├── direct_message.rs
 │   ├── file.rs
+│   ├── mcp.rs           # MCP service bridge
 │   └── events.rs        # EventBus trait and WebSocket event types
 ├── handlers/            # HTTP route handlers and DTOs
 │   ├── auth.rs
@@ -70,6 +71,16 @@ Integration tests require a running PostgreSQL database and `DATABASE_URL`:
 export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
 cargo test -p ruckchat-server
 ```
+
+If you have a local `.env.testing` file (gitignored), source it first:
+
+```bash
+export $(grep -v '^#' .env.testing | xargs)
+cargo test -p ruckchat-server
+```
+
+Schema/migration tests also require `RUCKCHAT_TEST_ADMIN_DATABASE_URL`
+(default: `postgres://postgres:postgres@localhost:5445/postgres`).
 
 Unit tests run against in-memory mocks and do not require a database:
 

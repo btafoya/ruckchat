@@ -31,7 +31,7 @@ Phases 1–6 are complete. Phases 7–12 are not yet implemented.
 | `cargo test -p ruckchat-server` | Run server tests (requires `DATABASE_URL` for integration tests) |
 | `cargo clippy --workspace -- -D warnings` | Run clippy with workspace lints |
 | `cargo sqlx migrate run --source migrations/migrations` | Apply pending migrations |
-| `cargo run -p ruckchat-server` | Run the placeholder server binary |
+| `cargo run -p ruckchat-server` | Run the server binary (HTTP, WebSocket, MCP) |
 
 ## Architecture
 
@@ -82,6 +82,11 @@ Required for integration tests and the running server:
 - `DATABASE_URL` — PostgreSQL connection string, e.g.
   `postgres://ruckchat:ruckchat@localhost/ruckchat`.
 
+Required for schema/migration tests that create isolated per-test databases:
+- `RUCKCHAT_TEST_ADMIN_DATABASE_URL` — Admin connection string used to create and
+  drop temporary test databases, e.g.
+  `postgres://postgres:postgres@localhost:5445/postgres`.
+
 Optional via `ruckchat.toml` or `RUCKCHAT_*` environment variables:
 - `RUCKCHAT_APP_NAME`
 - `RUCKCHAT_ENVIRONMENT`
@@ -95,6 +100,8 @@ Optional via `ruckchat.toml` or `RUCKCHAT_*` environment variables:
 - `cargo test --workspace` runs unit tests without a database.
 - `ruckchat-server` integration tests require a running PostgreSQL database and
   `DATABASE_URL`. `connect_database` applies pending migrations on startup.
+- Schema/migration tests in `migrations/tests/schema.rs` require
+  `RUCKCHAT_TEST_ADMIN_DATABASE_URL` and create isolated databases for each test.
 - Services are unit-tested against in-memory mocks in `server/src/testing.rs`,
   not against the real database.
 - MCP integration tests exercise the `/mcp/v1/sse` Streamable HTTP endpoint,
@@ -217,6 +224,8 @@ Or use the equivalent CodeGraph MCP server action.
   in `Cargo.toml`). `cargo clippy` must pass with `-D warnings`.
 - `cargo nextest` is the default test runner in the implementation loop; install
   with `cargo install cargo-nextest` if it is not present.
+- `cargo check` and `cargo clippy` require `DATABASE_URL` because the server crate
+  uses SQLx online query macros (`sqlx::query!`).
 - `server/src/main.rs` starts the full Axum HTTP server with WebSocket and MCP
   support when enabled.
 - `migrations` is a Cargo workspace member, not just a directory of SQL files.

@@ -67,10 +67,21 @@ The server binds to `http://localhost:3000` by default.
 # Unit tests (no database required)
 cargo test --workspace
 
-# Server integration tests (requires PostgreSQL)
+# Server integration tests (requires a migrated PostgreSQL database)
 export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
 cargo test -p ruckchat-server
 ```
+
+If you have a local `.env.testing` file (gitignored), source it first:
+
+```bash
+export $(grep -v '^#' .env.testing | xargs)
+cargo test -p ruckchat-server
+```
+
+Schema/migration tests that create isolated per-test databases read
+`RUCKCHAT_TEST_ADMIN_DATABASE_URL` (default:
+`postgres://postgres:postgres@localhost:5445/postgres`).
 
 ## API
 
