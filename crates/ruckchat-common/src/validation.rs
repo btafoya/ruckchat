@@ -1,5 +1,7 @@
 //! Domain validation constraints and helpers.
 
+pub use crate::validate_slug;
+
 /// Minimum display name length in characters.
 pub const DISPLAY_NAME_MIN_LEN: usize = 1;
 /// Maximum display name length in characters.
@@ -31,6 +33,12 @@ pub fn validate_channel_name_length(name: &str) -> bool {
     (CHANNEL_NAME_MIN_LEN..=CHANNEL_NAME_MAX_LEN).contains(&len)
 }
 
+/// Validates that a channel name is URL-safe: lowercase letters, numbers, and
+/// hyphens, with no leading, trailing, or double hyphens.
+pub fn validate_channel_name(name: &str) -> bool {
+    validate_channel_name_length(name) && validate_slug(name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -55,5 +63,17 @@ mod tests {
         assert!(!validate_channel_name_length(
             &"x".repeat(CHANNEL_NAME_MAX_LEN + 1)
         ));
+    }
+
+    #[test]
+    fn channel_name_format() {
+        assert!(validate_channel_name("general"));
+        assert!(validate_channel_name("team-42"));
+        assert!(!validate_channel_name(""));
+        assert!(!validate_channel_name("General"));
+        assert!(!validate_channel_name("-leading"));
+        assert!(!validate_channel_name("trailing-"));
+        assert!(!validate_channel_name("double--hyphen"));
+        assert!(!validate_channel_name("under_score"));
     }
 }

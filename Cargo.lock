@@ -1224,6 +1224,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruckchat-domain"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "ruckchat-common",
+ "ruckchat-id",
+ "serde",
+ "thiserror",
+ "time",
+ "uuid",
+]
+
+[[package]]
 name = "ruckchat-id"
 version = "0.1.0"
 dependencies = [

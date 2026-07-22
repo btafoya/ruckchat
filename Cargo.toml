@@ -1,5 +1,5 @@
 [workspace]
-members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruckchat-common", "migrations"]
+members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruckchat-common", "crates/ruckchat-domain", "migrations"]
 resolver = "2"
 
 [workspace.package]
@@ -25,6 +25,7 @@ config = "0.15"
 secrecy = { version = "0.10", features = ["serde"] }
 regex = "1"
 once_cell = "1"
+async-trait = "0.1"
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
