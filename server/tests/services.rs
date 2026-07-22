@@ -19,22 +19,21 @@ use ruckchat_server::{
         OrganizationSettingsRepositorySqlx, SessionRepositorySqlx, UserRepositorySqlx,
     },
     services::{
+        AuthService, ChannelService, DirectMessageService, FileService, MessageService,
+        OrganizationService, UserService,
         auth::AuthServiceDeps,
         authorization::AuthorizationService,
         channel::ChannelServiceDeps,
         direct_message::DirectMessageServiceDeps,
         dto::{
-            AttachFileRequest, ChangeRoleRequest, CreateChannelRequest,
-            CreateOrganizationRequest, EditMessageRequest, InviteMemberRequest, LoginRequest,
-            PostMessageRequest, RecordUploadRequest, RegisterRequest, StartDmRequest,
-            UpdateProfileRequest,
+            AttachFileRequest, ChangeRoleRequest, CreateChannelRequest, CreateOrganizationRequest,
+            EditMessageRequest, InviteMemberRequest, LoginRequest, PostMessageRequest,
+            RecordUploadRequest, RegisterRequest, StartDmRequest, UpdateProfileRequest,
         },
         file::FileServiceDeps,
         message::MessageServiceDeps,
         organization::OrganizationServiceDeps,
         user::UserServiceDeps,
-        AuthService, ChannelService, DirectMessageService, FileService, MessageService,
-        OrganizationService, UserService,
     },
 };
 use sqlx::PgPool;
@@ -59,7 +58,9 @@ async fn services() -> Services {
     let url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://ruckchat:ruckchat@localhost/ruckchat".into());
     let config = DatabaseConfig::from_url(url);
-    let pool = connect_database(&config).await.expect("connect to postgres");
+    let pool = connect_database(&config)
+        .await
+        .expect("connect to postgres");
 
     let users: Arc<dyn ruckchat_domain::UserRepository + Send + Sync> =
         Arc::new(UserRepositorySqlx::new(pool.clone()));
@@ -144,19 +145,13 @@ fn unique_email(prefix: &str) -> String {
     format!("{}+{}@example.com", prefix, uuid::Uuid::new_v4())
 }
 
-async fn seed_user(
-    repo: &Arc<dyn UserRepository + Send + Sync>,
-    prefix: &str,
-) -> User {
+async fn seed_user(repo: &Arc<dyn UserRepository + Send + Sync>, prefix: &str) -> User {
     let user = User::new(unique_email(prefix), "Test User", "hash").unwrap();
     repo.create(&user).await.unwrap();
     user
 }
 
-async fn register_user(
-    auth: &AuthService,
-    prefix: &str,
-) -> (User, Organization) {
+async fn register_user(auth: &AuthService, prefix: &str) -> (User, Organization) {
     let req = RegisterRequest {
         email: unique_email(prefix),
         display_name: "Owner".into(),

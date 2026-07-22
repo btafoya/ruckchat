@@ -2,30 +2,31 @@
 
 ## Server Crate
 
-The `server` crate is the main Rust application. Phase 3 implemented the service
-layer and SQLx-backed repository implementations. HTTP handlers, WebSocket,
-MCP, plugin loading, and background tasks are added in later phases.
+The `server` crate is the main Rust application. Phases 1–3 laid the
+foundation, and Phase 4 added the Axum REST API. WebSocket, MCP, plugin
+loading, and background tasks are added in later phases.
 
 ## Technology Stack
 
 | Concern | Library |
 |---------|---------|
-| HTTP framework | Axum (future phase) |
+| HTTP framework | Axum |
 | Async runtime | Tokio |
 | Database access | SQLx |
 | Password hashing | argon2 |
 | Serialization | serde + serde_json |
 | Configuration | ruckchat-config |
 | Logging/tracing | tracing + tracing-subscriber |
+| Middleware | tower-http (CORS, trace) |
 
 ## Crate Layout
 
 ```text
 server/src
-├── main.rs              # Entry point stub; full startup in later phases
+├── main.rs              # Entry point: config, tracing, DB, graceful shutdown
 ├── lib.rs               # Crate entry point and database connection helper
 ├── error.rs             # Server-specific error variants
-├── state.rs             # Shared application state
+├── state.rs             # Shared application state and service wiring
 ├── repositories/        # SQLx data access
 │   ├── user.rs
 │   ├── session.rs
@@ -47,8 +48,18 @@ server/src
 │   ├── message.rs
 │   ├── direct_message.rs
 │   └── file.rs
-├── testing.rs           # In-memory mock repositories for unit tests
-└── handlers/            # HTTP route handlers (future phase)
+├── handlers/            # HTTP route handlers and DTOs
+│   ├── auth.rs
+│   ├── channel.rs
+│   ├── direct_message.rs
+│   ├── dto.rs
+│   ├── error.rs
+│   ├── file.rs
+│   ├── message.rs
+│   ├── mod.rs
+│   ├── organization.rs
+│   └── user.rs
+└── testing.rs           # In-memory mock repositories for unit tests
 ```
 
 ## Service Layer
@@ -76,45 +87,75 @@ Repository implementations use SQLx compile-time checked macros where possible.
 The session repository uses runtime queries to work around PostgreSQL `INET`
 type inference issues.
 
-## Request Lifecycle (future)
+## HTTP Layer
+
+`server/src/handlers/mod.rs` wires the Axum router. All endpoints are listed in
+`server/openapi.yaml` with full request/response schemas.
+
+### Authentication
+
+The `AuthUser` extractor (`server/src/handlers/auth.rs`) validates the session
+token from either:
+
+1. The `ruckchat_session` HTTP-only cookie.
+2. The `Authorization: Bearer <token>` header.
+
+On login, the server returns the token in both the JSON body and the cookie.
+Logout deletes the session from the database and the client should clear the
+cookie locally.
+
+### Error Handling
+
+`ruckchat_common::Error` provides shared variants: `NotFound`, `Unauthorized`,
+`Forbidden`, `Validation`, `Conflict`, and `Internal`. `handlers::error::ErrorBody`
+maps every variant to a uniform JSON response and the appropriate HTTP status
+(400, 401, 403, 404, 409, or 500). JSON extraction failures return 422.
+
+## Request Lifecycle
 
 1. Axum receives a request.
-2. Middleware extracts and validates the session cookie.
-3. The matched handler deserializes and validates the request body.
-4. The handler calls a service function with the application state and user context.
-5. The service enforces domain invariants and calls repositories.
-6. The repository executes SQLx queries within the pool.
-7. The service emits side effects (WebSocket events, email jobs, plugin hooks).
+2. `TraceLayer` and `CorsLayer` process it.
+3. The `AuthUser` extractor validates the session cookie or bearer token.
+4. The matched handler deserializes and validates the request body.
+5. The handler calls a service function with the application state and user context.
+6. The service enforces domain invariants and calls repositories.
+7. The repository executes SQLx queries within the pool.
 8. The handler returns a typed response or mapped error.
-
-## Error Handling
-
-- `ruckchat_common::Error` provides shared variants: `NotFound`, `Unauthorized`,
-  `Forbidden`, `Validation`, `Conflict`, and `Internal`.
-- The server crate wraps these in `Error::Domain` and adds its own variants for
-  password hashing and token generation failures.
-- Each service maps SQLx errors to the appropriate domain error.
 
 ## Configuration
 
-Server configuration is loaded from environment variables. The required
-variables for the current phase are:
+Server configuration is loaded from `ruckchat.toml` and environment variables. The
+required variables for the current phase are:
 
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
 
-Additional configuration variables for later phases are documented in the
-configuration crate.
+Additional configuration variables are documented in the configuration crate.
 
-## Startup Sequence (current)
+## Startup Sequence
 
 1. Load configuration.
 2. Initialize tracing.
 3. Connect to PostgreSQL and run pending migrations via `connect_database`.
-4. Build service dependencies backed by SQLx repositories.
+4. Build service dependencies backed by SQLx repositories in `AppState::from_pool`.
+5. Bind the HTTP server to the address derived from `base_url`.
+6. Wait for a shutdown signal and drain open requests.
+
+## Testing
+
+Unit tests exercise the service layer against in-memory mocks in
+`server/src/testing.rs`. Integration tests under `server/tests/` use `sqlx::test`
+to get a fresh PostgreSQL database per test and the `TestClient` helper to
+exercise the Axum router in-process.
+
+```bash
+export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
+cargo test -p ruckchat-server
+```
 
 ## Shutdown
 
-Graceful shutdown, open-request draining, WebSocket close events, and plugin
-shutdown hooks are implemented in later phases.
+The server waits for `ctrl+c` and drains open requests before exiting. WebSocket
+close events, plugin shutdown hooks, and background tasks are implemented in
+later phases.

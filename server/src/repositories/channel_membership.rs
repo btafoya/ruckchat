@@ -55,10 +55,7 @@ impl ChannelMembershipRepository for ChannelMembershipRepositorySqlx {
         Ok(row.map(into_membership))
     }
 
-    async fn list_by_channel(
-        &self,
-        channel_id: ChannelId,
-    ) -> Result<Vec<ChannelMembership>> {
+    async fn list_by_channel(&self, channel_id: ChannelId) -> Result<Vec<ChannelMembership>> {
         let rows = sqlx::query_as!(
             MembershipRow,
             "SELECT user_id, channel_id, joined_at FROM channel_memberships WHERE channel_id = $1 ORDER BY joined_at",

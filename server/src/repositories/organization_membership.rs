@@ -3,9 +3,9 @@
 use async_trait::async_trait;
 use ruckchat_common::Result;
 use ruckchat_domain::{OrganizationMembership, OrganizationMembershipRepository, Role};
-use std::str::FromStr;
 use ruckchat_id::{OrganizationId, UserId};
 use sqlx::PgPool;
+use std::str::FromStr;
 
 /// SQLx-backed organization membership repository.
 #[derive(Debug, Clone)]
@@ -104,8 +104,7 @@ impl OrganizationMembershipRepository for OrganizationMembershipRepositorySqlx {
         Ok(())
     }
 
-    async fn delete(
-        &self, user_id: UserId, organization_id: OrganizationId) -> Result<()> {
+    async fn delete(&self, user_id: UserId, organization_id: OrganizationId) -> Result<()> {
         sqlx::query!(
             "DELETE FROM organization_memberships WHERE user_id = $1 AND organization_id = $2",
             user_id.as_uuid(),
@@ -137,7 +136,9 @@ fn into_membership(row: MembershipRow) -> OrganizationMembership {
 
 fn map_sqlx_err(err: sqlx::Error) -> ruckchat_common::Error {
     match err {
-        sqlx::Error::RowNotFound => ruckchat_common::Error::NotFound("organization membership".into()),
+        sqlx::Error::RowNotFound => {
+            ruckchat_common::Error::NotFound("organization membership".into())
+        }
         _ => ruckchat_common::Error::Internal(err.to_string()),
     }
 }

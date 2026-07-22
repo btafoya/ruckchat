@@ -49,7 +49,9 @@ impl AuthorizationService {
         if self.has_role_permission(role, permission) {
             Ok(())
         } else {
-            Err(Error::Forbidden(format!("missing permission: {permission:?}")))
+            Err(Error::Forbidden(format!(
+                "missing permission: {permission:?}"
+            )))
         }
     }
 
@@ -121,9 +123,8 @@ impl AuthorizationService {
         caller_membership: Option<&OrganizationMembership>,
         channel_membership: Option<&ruckchat_domain::ChannelMembership>,
     ) -> ruckchat_common::Result<()> {
-        caller_membership.ok_or_else(|| Error::Forbidden(
-            "must be an organization member to post".into(),
-        ))?;
+        caller_membership
+            .ok_or_else(|| Error::Forbidden("must be an organization member to post".into()))?;
 
         if channel_membership.is_none() {
             return Err(Error::Forbidden(
@@ -148,9 +149,9 @@ impl AuthorizationService {
         caller_membership: Option<&OrganizationMembership>,
         channel_membership: Option<&ruckchat_domain::ChannelMembership>,
     ) -> ruckchat_common::Result<()> {
-        caller_membership.ok_or_else(|| Error::Forbidden(
-            "must be an organization member to read channels".into(),
-        ))?;
+        caller_membership.ok_or_else(|| {
+            Error::Forbidden("must be an organization member to read channels".into())
+        })?;
 
         if channel.is_private && channel_membership.is_none() {
             return Err(Error::Forbidden(
@@ -194,25 +195,31 @@ mod tests {
 
     #[test]
     fn owner_can_manage_organization() {
-        assert!(authz()
-            .require_role_permission(Role::Owner, Permission::ManageOrganization)
-            .is_ok());
+        assert!(
+            authz()
+                .require_role_permission(Role::Owner, Permission::ManageOrganization)
+                .is_ok()
+        );
     }
 
     #[test]
     fn member_cannot_manage_organization() {
-        assert!(authz()
-            .require_role_permission(Role::Member, Permission::ManageOrganization)
-            .is_err());
+        assert!(
+            authz()
+                .require_role_permission(Role::Member, Permission::ManageOrganization)
+                .is_err()
+        );
     }
 
     #[test]
     fn author_can_edit_own_message() {
         let author = UserId::new();
         let msg = message(author);
-        assert!(authz()
-            .require_can_edit_message(&msg, author, Role::Member)
-            .is_ok());
+        assert!(
+            authz()
+                .require_can_edit_message(&msg, author, Role::Member)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -220,9 +227,11 @@ mod tests {
         let author = UserId::new();
         let other = UserId::new();
         let msg = message(author);
-        assert!(authz()
-            .require_can_edit_message(&msg, other, Role::Member)
-            .is_err());
+        assert!(
+            authz()
+                .require_can_edit_message(&msg, other, Role::Member)
+                .is_err()
+        );
     }
 
     #[test]
@@ -230,26 +239,32 @@ mod tests {
         let author = UserId::new();
         let other = UserId::new();
         let msg = message(author);
-        assert!(authz()
-            .require_can_edit_message(&msg, other, Role::Admin)
-            .is_ok());
+        assert!(
+            authz()
+                .require_can_edit_message(&msg, other, Role::Admin)
+                .is_ok()
+        );
     }
 
     #[test]
     fn public_channel_readable_by_member() {
         let ch = channel(false);
         let membership = membership(Role::Member);
-        assert!(authz()
-            .require_can_read_channel(&ch, Some(&membership), None)
-            .is_ok());
+        assert!(
+            authz()
+                .require_can_read_channel(&ch, Some(&membership), None)
+                .is_ok()
+        );
     }
 
     #[test]
     fn private_channel_not_readable_without_membership() {
         let ch = channel(true);
         let membership = membership(Role::Member);
-        assert!(authz()
-            .require_can_read_channel(&ch, Some(&membership), None)
-            .is_err());
+        assert!(
+            authz()
+                .require_can_read_channel(&ch, Some(&membership), None)
+                .is_err()
+        );
     }
 }

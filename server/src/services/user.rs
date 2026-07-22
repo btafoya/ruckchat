@@ -33,9 +33,7 @@ impl UserService {
     /// # Errors
     ///
     /// Returns [`Error::NotFound`] when the user does not exist.
-    pub async fn get_profile(&self,
-        user_id: UserId,
-    ) -> ruckchat_common::Result<User> {
+    pub async fn get_profile(&self, user_id: UserId) -> ruckchat_common::Result<User> {
         self.deps
             .users
             .by_id(user_id)
@@ -123,9 +121,7 @@ impl UserService {
 mod tests {
     use super::*;
     use crate::services::dto::UpdateProfileRequest;
-    use crate::testing::{
-        MockOrganizationMembershipRepository, MockUserRepository,
-    };
+    use crate::testing::{MockOrganizationMembershipRepository, MockUserRepository};
     use ruckchat_domain::{OrganizationMembership, Role, User};
     use ruckchat_id::OrganizationId;
     use std::sync::Arc;
@@ -182,11 +178,7 @@ mod tests {
         svc.deps.users.create(&outsider).await.unwrap();
 
         let err = svc
-            .list_users_in_organization(
-                outsider.id,
-                org_id,
-                Pagination::default(),
-            )
+            .list_users_in_organization(outsider.id, org_id, Pagination::default())
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Forbidden(_)));

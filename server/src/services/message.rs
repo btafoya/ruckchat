@@ -247,11 +247,7 @@ impl MessageService {
         let pagination = pagination.normalized();
         let offset = pagination.offset as usize;
         let limit = pagination.limit as usize;
-        let paginated = replies
-            .into_iter()
-            .skip(offset)
-            .take(limit)
-            .collect();
+        let paginated = replies.into_iter().skip(offset).take(limit).collect();
         Ok(paginated)
     }
 
@@ -274,7 +270,9 @@ impl MessageService {
                     .memberships
                     .by_ids(caller_id, channel.organization_id)
                     .await?;
-                Ok(membership.map(|m| m.role).unwrap_or(ruckchat_domain::Role::Member))
+                Ok(membership
+                    .map(|m| m.role)
+                    .unwrap_or(ruckchat_domain::Role::Member))
             }
             ConversationType::DirectMessage => {
                 let conversation_id =
@@ -290,7 +288,9 @@ impl MessageService {
                     .memberships
                     .by_ids(caller_id, conversation.organization_id)
                     .await?;
-                Ok(membership.map(|m| m.role).unwrap_or(ruckchat_domain::Role::Member))
+                Ok(membership
+                    .map(|m| m.role)
+                    .unwrap_or(ruckchat_domain::Role::Member))
             }
         }
     }
@@ -327,8 +327,7 @@ impl MessageService {
                 )?;
             }
             ConversationType::DirectMessage => {
-                let conversation_id =
-                    DirectMessageConversationId::from_uuid(conversation_id);
+                let conversation_id = DirectMessageConversationId::from_uuid(conversation_id);
                 let conversation = self
                     .deps
                     .conversations

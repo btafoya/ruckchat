@@ -5,6 +5,7 @@
 //! server are added in later phases.
 
 pub mod error;
+pub mod handlers;
 pub mod repositories;
 pub mod services;
 pub mod state;
@@ -31,9 +32,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Returns an error when the database URL is invalid, the server is
 /// unreachable, or migrations fail.
 #[instrument]
-pub async fn connect_database(
-    config: &DatabaseConfig,
-) -> sqlx::Result<sqlx::Pool<sqlx::Postgres>> {
+pub async fn connect_database(config: &DatabaseConfig) -> sqlx::Result<sqlx::Pool<sqlx::Postgres>> {
     let url = config.url_exposed();
     let pool = PgPoolOptions::new()
         .max_connections(config.max_connections)

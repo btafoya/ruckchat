@@ -44,6 +44,9 @@ pub trait SessionRepository {
 
     /// Deletes all sessions that have expired.
     async fn delete_expired(&self) -> Result<u64>;
+
+    /// Deletes a session by its token hash.
+    async fn delete_by_token_hash(&self, token_hash: &str) -> Result<()>;
 }
 
 /// Organization data access.
@@ -117,6 +120,9 @@ pub trait OrganizationSettingsRepository {
 pub trait ChannelRepository {
     /// Persists a new channel.
     async fn create(&self, channel: &Channel) -> Result<()>;
+
+    /// Updates an existing channel.
+    async fn update(&self, channel: &Channel) -> Result<()>;
 
     /// Loads a channel by id.
     async fn by_id(&self, id: ChannelId) -> Result<Option<Channel>>;
@@ -215,9 +221,5 @@ pub trait FileRepository {
     async fn list_by_organization(&self, organization_id: OrganizationId) -> Result<Vec<File>>;
 
     /// Links a file to a message.
-    async fn attach_to_message(
-        &self,
-        message_id: MessageId,
-        file_id: FileId,
-    ) -> Result<()>;
+    async fn attach_to_message(&self, message_id: MessageId, file_id: FileId) -> Result<()>;
 }

@@ -74,6 +74,14 @@ macro_rules! id_type {
             }
         }
 
+        impl std::str::FromStr for $name {
+            type Err = IdParseError;
+
+            fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+                Self::parse_str(s)
+            }
+        }
+
         impl AsRef<Uuid> for $name {
             fn as_ref(&self) -> &Uuid {
                 &self.0

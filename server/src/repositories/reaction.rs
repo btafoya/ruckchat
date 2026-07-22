@@ -38,10 +38,7 @@ impl ReactionRepository for ReactionRepositorySqlx {
         Ok(())
     }
 
-    async fn list_by_message(
-        &self,
-        message_id: MessageId,
-    ) -> Result<Vec<Reaction>> {
+    async fn list_by_message(&self, message_id: MessageId) -> Result<Vec<Reaction>> {
         let rows = sqlx::query_as!(
             ReactionRow,
             "SELECT message_id, user_id, emoji, created_at FROM reactions WHERE message_id = $1 ORDER BY created_at",
@@ -54,12 +51,7 @@ impl ReactionRepository for ReactionRepositorySqlx {
         Ok(rows.into_iter().map(into_reaction).collect())
     }
 
-    async fn delete(
-        &self,
-        message_id: MessageId,
-        user_id: UserId,
-        emoji: &str,
-    ) -> Result<()> {
+    async fn delete(&self, message_id: MessageId, user_id: UserId, emoji: &str) -> Result<()> {
         sqlx::query!(
             "DELETE FROM reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3",
             message_id.as_uuid(),

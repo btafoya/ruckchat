@@ -1,20 +1,20 @@
 //! Authentication service.
 
 use crate::{
-    services::dto::{LoginRequest, LoginResponse, RegisterRequest},
     Error, Result,
+    services::dto::{LoginRequest, LoginResponse, RegisterRequest},
 };
 use argon2::{
-    password_hash::{rand_core::RngCore, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+    password_hash::{SaltString, rand_core::RngCore},
 };
+use rand::rngs::OsRng;
 use ruckchat_common::time::OffsetDateTime;
 use ruckchat_domain::{
     Channel, ChannelMembership, Organization, OrganizationMembership, OrganizationSettings, Role,
     Session, User,
 };
 use ruckchat_id::{ChannelId, OrganizationId, UserId};
-use rand::rngs::OsRng;
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
@@ -63,7 +63,8 @@ impl AuthService {
     /// Returns [`ruckchat_common::Error::Validation`] for invalid input, [`ruckchat_common::Error::Conflict`] if
     /// the email or organization slug already exists, and [`ruckchat_common::Error::Internal`]
     /// for hashing failures.
-    pub async fn register(&self,
+    pub async fn register(
+        &self,
         request: RegisterRequest,
     ) -> Result<(ruckchat_domain::User, ruckchat_domain::Organization)> {
         if request.password.len() < MIN_PASSWORD_LENGTH {
@@ -79,7 +80,13 @@ impl AuthService {
             ))));
         }
 
-        if self.deps.organizations.by_slug(&request.organization_slug).await?.is_some() {
+        if self
+            .deps
+            .organizations
+            .by_slug(&request.organization_slug)
+            .await?
+            .is_some()
+        {
             return Err(Error::Domain(ruckchat_common::Error::Conflict(
                 "organization slug already exists".into(),
             )));
@@ -111,7 +118,10 @@ impl AuthService {
         self.deps.channels.create(&general).await?;
 
         let general_membership = ChannelMembership::new(user.id, general.id)?;
-        self.deps.channel_memberships.create(&general_membership).await?;
+        self.deps
+            .channel_memberships
+            .create(&general_membership)
+            .await?;
 
         Ok((user, organization))
     }
@@ -122,17 +132,17 @@ impl AuthService {
     ///
     /// Returns [`ruckchat_common::Error::Unauthorized`] for bad credentials and [`ruckchat_common::Error::Internal`]
     /// for hashing failures.
-    pub async fn login(&self,
-        request: LoginRequest,
-    ) -> Result<LoginResponse> {
+    pub async fn login(&self, request: LoginRequest) -> Result<LoginResponse> {
         let user = self
             .deps
             .users
             .by_email(&request.email)
             .await?
-            .ok_or_else(|| Error::Domain(ruckchat_common::Error::Unauthorized(
-                "invalid credentials".into(),
-            )))?;
+            .ok_or_else(|| {
+                Error::Domain(ruckchat_common::Error::Unauthorized(
+                    "invalid credentials".into(),
+                ))
+            })?;
 
         verify_password(&request.password, &user.password_hash)?;
 
@@ -142,7 +152,10 @@ impl AuthService {
 
         self.deps.sessions.create(&session).await?;
 
-        Ok(LoginResponse { token, user_id: user.id })
+        Ok(LoginResponse {
+            token,
+            user_id: user.id,
+        })
     }
 
     /// Invalidates a session by token hash.
@@ -150,18 +163,18 @@ impl AuthService {
     /// # Errors
     ///
     /// Returns [`ruckchat_common::Error::Unauthorized`] when the session does not exist or is expired.
-    pub async fn logout(&self,
-        token: &str,
-    ) -> Result<()> {
+    pub async fn logout(&self, token: &str) -> Result<()> {
         let token_hash = hash_token(token);
         let session = self
             .deps
             .sessions
             .by_token_hash(&token_hash)
             .await?
-            .ok_or_else(|| Error::Domain(ruckchat_common::Error::Unauthorized(
-                "session not found".into(),
-            )))?;
+            .ok_or_else(|| {
+                Error::Domain(ruckchat_common::Error::Unauthorized(
+                    "session not found".into(),
+                ))
+            })?;
 
         if session.is_expired() {
             return Err(Error::Domain(ruckchat_common::Error::Unauthorized(
@@ -169,9 +182,7 @@ impl AuthService {
             )));
         }
 
-        // Sessions are deleted by token hash via a future repository addition.
-        // For now, expired-session cleanup runs periodically.
-        self.deps.sessions.delete_expired().await?;
+        self.deps.sessions.delete_by_token_hash(&token_hash).await?;
         Ok(())
     }
 
@@ -180,18 +191,18 @@ impl AuthService {
     /// # Errors
     ///
     /// Returns [`ruckchat_common::Error::Unauthorized`] when the session is missing or expired.
-    pub async fn authenticate(&self,
-        token: &str,
-    ) -> Result<UserId> {
+    pub async fn authenticate(&self, token: &str) -> Result<UserId> {
         let token_hash = hash_token(token);
         let session = self
             .deps
             .sessions
             .by_token_hash(&token_hash)
             .await?
-            .ok_or_else(|| Error::Domain(ruckchat_common::Error::Unauthorized(
-                "session not found".into(),
-            )))?;
+            .ok_or_else(|| {
+                Error::Domain(ruckchat_common::Error::Unauthorized(
+                    "session not found".into(),
+                ))
+            })?;
 
         if session.is_expired() {
             return Err(Error::Domain(ruckchat_common::Error::Unauthorized(
@@ -207,8 +218,7 @@ impl AuthService {
     /// # Errors
     ///
     /// Returns [`ruckchat_common::Error::Internal`] for database failures.
-    pub async fn cleanup_expired_sessions(&self,
-    ) -> Result<u64> {
+    pub async fn cleanup_expired_sessions(&self) -> Result<u64> {
         let count = self.deps.sessions.delete_expired().await?;
         Ok(count)
     }
@@ -229,7 +239,9 @@ fn verify_password(password: &str, hash: &str) -> Result<()> {
     argon2
         .verify_password(password.as_bytes(), &parsed_hash)
         .map_err(|_| {
-            Error::Domain(ruckchat_common::Error::Unauthorized("invalid credentials".into()))
+            Error::Domain(ruckchat_common::Error::Unauthorized(
+                "invalid credentials".into(),
+            ))
         })
 }
 
@@ -257,12 +269,12 @@ const _: fn() = || {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{
-        MockChannelMembershipRepository, MockChannelRepository, MockOrganizationMembershipRepository,
-        MockOrganizationRepository, MockOrganizationSettingsRepository, MockSessionRepository,
-        MockUserRepository,
-    };
     use crate::services::dto::{LoginRequest, RegisterRequest};
+    use crate::testing::{
+        MockChannelMembershipRepository, MockChannelRepository,
+        MockOrganizationMembershipRepository, MockOrganizationRepository,
+        MockOrganizationSettingsRepository, MockSessionRepository, MockUserRepository,
+    };
 
     fn auth_service() -> AuthService {
         AuthService::new(AuthServiceDeps {
@@ -304,7 +316,10 @@ mod tests {
         };
 
         let err = service.register(req).await.unwrap_err();
-        assert!(matches!(err, Error::Domain(ruckchat_common::Error::Validation { .. })));
+        assert!(matches!(
+            err,
+            Error::Domain(ruckchat_common::Error::Validation { .. })
+        ));
     }
 
     #[tokio::test]
@@ -319,7 +334,10 @@ mod tests {
         };
         service.register(req.clone()).await.expect("first register");
         let err = service.register(req).await.unwrap_err();
-        assert!(matches!(err, Error::Domain(ruckchat_common::Error::Conflict { .. })));
+        assert!(matches!(
+            err,
+            Error::Domain(ruckchat_common::Error::Conflict { .. })
+        ));
     }
 
     #[tokio::test]
@@ -364,6 +382,9 @@ mod tests {
             })
             .await
             .unwrap_err();
-        assert!(matches!(err, Error::Domain(ruckchat_common::Error::Unauthorized { .. })));
+        assert!(matches!(
+            err,
+            Error::Domain(ruckchat_common::Error::Unauthorized { .. })
+        ));
     }
 }

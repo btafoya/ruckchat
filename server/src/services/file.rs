@@ -94,10 +94,7 @@ impl FileService {
     /// # Errors
     ///
     /// Returns [`Error::NotFound`] when the file does not exist.
-    pub async fn get_file_metadata(
-        &self,
-        file_id: FileId,
-    ) -> ruckchat_common::Result<File> {
+    pub async fn get_file_metadata(&self, file_id: FileId) -> ruckchat_common::Result<File> {
         self.deps
             .files
             .by_id(file_id)
@@ -188,9 +185,7 @@ mod tests {
         })
     }
 
-    async fn seed_user_and_org(
-        svc: &FileService,
-    ) -> (UserId, OrganizationId) {
+    async fn seed_user_and_org(svc: &FileService) -> (UserId, OrganizationId) {
         let user = User::new("uploader@example.com", "Uploader", "hash").unwrap();
         let org_id = OrganizationId::new();
         svc.deps

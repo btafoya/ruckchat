@@ -1,7 +1,7 @@
 //! Organization service.
 
-use crate::services::dto::{ChangeRoleRequest, CreateOrganizationRequest, InviteMemberRequest};
 use crate::services::authorization::{AuthorizationService, Permission};
+use crate::services::dto::{ChangeRoleRequest, CreateOrganizationRequest, InviteMemberRequest};
 use ruckchat_common::Error;
 use ruckchat_domain::{
     Organization, OrganizationMembership, OrganizationRepository, OrganizationSettings, Role,
@@ -49,7 +49,13 @@ impl OrganizationService {
         caller_id: UserId,
         request: CreateOrganizationRequest,
     ) -> ruckchat_common::Result<Organization> {
-        if self.deps.organizations.by_slug(&request.slug).await?.is_some() {
+        if self
+            .deps
+            .organizations
+            .by_slug(&request.slug)
+            .await?
+            .is_some()
+        {
             return Err(Error::Conflict("organization slug already exists".into()));
         }
 
@@ -82,10 +88,7 @@ impl OrganizationService {
     /// # Errors
     ///
     /// Returns [`Error::NotFound`] when the organization does not exist.
-    pub async fn get_by_slug(
-        &self,
-        slug: &str,
-    ) -> ruckchat_common::Result<Organization> {
+    pub async fn get_by_slug(&self, slug: &str) -> ruckchat_common::Result<Organization> {
         self.deps
             .organizations
             .by_slug(slug)
@@ -106,9 +109,7 @@ impl OrganizationService {
         organization_id: OrganizationId,
         request: InviteMemberRequest,
     ) -> ruckchat_common::Result<OrganizationMembership> {
-        let caller_membership = self
-            .require_membership(caller_id, organization_id)
-            .await?;
+        let caller_membership = self.require_membership(caller_id, organization_id).await?;
         self.deps
             .authorization
             .require_role_permission(caller_membership.role, Permission::ManageOrganization)?;
@@ -130,7 +131,8 @@ impl OrganizationService {
             return Err(Error::Conflict("user is already a member".into()));
         }
 
-        let membership = OrganizationMembership::new(target_user.id, organization_id, request.role)?;
+        let membership =
+            OrganizationMembership::new(target_user.id, organization_id, request.role)?;
         self.deps.memberships.create(&membership).await?;
         Ok(membership)
     }
@@ -147,9 +149,7 @@ impl OrganizationService {
         organization_id: OrganizationId,
         request: ChangeRoleRequest,
     ) -> ruckchat_common::Result<()> {
-        let caller_membership = self
-            .require_membership(caller_id, organization_id)
-            .await?;
+        let caller_membership = self.require_membership(caller_id, organization_id).await?;
         self.deps
             .authorization
             .require_role_permission(caller_membership.role, Permission::ManageOrganization)?;
@@ -183,9 +183,7 @@ impl OrganizationService {
         organization_id: OrganizationId,
         user_id: UserId,
     ) -> ruckchat_common::Result<()> {
-        let caller_membership = self
-            .require_membership(caller_id, organization_id)
-            .await?;
+        let caller_membership = self.require_membership(caller_id, organization_id).await?;
         self.deps
             .authorization
             .require_role_permission(caller_membership.role, Permission::ManageOrganization)?;
@@ -210,9 +208,7 @@ impl OrganizationService {
             .memberships
             .by_ids(user_id, organization_id)
             .await?
-            .ok_or_else(|| {
-                Error::Forbidden("must be an organization member".into())
-            })
+            .ok_or_else(|| Error::Forbidden("must be an organization member".into()))
     }
 }
 
@@ -220,9 +216,7 @@ impl OrganizationService {
 mod tests {
     use super::*;
     use crate::services::authorization::AuthorizationService;
-    use crate::services::dto::{
-        ChangeRoleRequest, CreateOrganizationRequest, InviteMemberRequest,
-    };
+    use crate::services::dto::{ChangeRoleRequest, CreateOrganizationRequest, InviteMemberRequest};
     use crate::testing::{
         MockOrganizationMembershipRepository, MockOrganizationRepository,
         MockOrganizationSettingsRepository, MockUserRepository,
@@ -241,9 +235,7 @@ mod tests {
         })
     }
 
-    async fn seed_user_and_org(
-        svc: &OrganizationService,
-    ) -> (UserId, OrganizationId) {
+    async fn seed_user_and_org(svc: &OrganizationService) -> (UserId, OrganizationId) {
         let user = User::new("owner@example.com", "Owner", "hash").unwrap();
         svc.deps.users.create(&user).await.unwrap();
         let org = svc

@@ -72,6 +72,18 @@ impl SessionRepository for SessionRepositorySqlx {
             .map_err(map_sqlx_err)?;
         Ok(result.rows_affected())
     }
+
+    async fn delete_by_token_hash(&self, token_hash: &str) -> Result<()> {
+        let result = sqlx::query("DELETE FROM sessions WHERE token_hash = $1")
+            .bind(token_hash)
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+        if result.rows_affected() == 0 {
+            return Err(ruckchat_common::Error::NotFound("session".into()));
+        }
+        Ok(())
+    }
 }
 
 #[derive(sqlx::FromRow)]

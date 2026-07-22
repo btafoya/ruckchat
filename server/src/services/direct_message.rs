@@ -3,7 +3,8 @@
 use crate::services::dto::StartDmRequest;
 use ruckchat_common::Error;
 use ruckchat_domain::{
-    DirectMessageConversation, DirectMessageConversationRepository, OrganizationMembershipRepository,
+    DirectMessageConversation, DirectMessageConversationRepository,
+    OrganizationMembershipRepository,
 };
 use ruckchat_id::{OrganizationId, UserId};
 use std::sync::Arc;
@@ -71,8 +72,7 @@ impl DirectMessageService {
             }
         }
 
-        let conversation =
-            DirectMessageConversation::new(request.organization_id, member_ids)?;
+        let conversation = DirectMessageConversation::new(request.organization_id, member_ids)?;
         self.deps.conversations.create(&conversation).await?;
         Ok(conversation)
     }

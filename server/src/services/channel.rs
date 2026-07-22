@@ -65,7 +65,10 @@ impl ChannelService {
         self.deps.channels.create(&channel).await?;
 
         let channel_membership = ChannelMembership::new(caller_id, channel.id)?;
-        self.deps.channel_memberships.create(&channel_membership).await?;
+        self.deps
+            .channel_memberships
+            .create(&channel_membership)
+            .await?;
 
         Ok(channel)
     }
@@ -89,13 +92,21 @@ impl ChannelService {
             return Err(Error::Forbidden("must be an organization member".into()));
         }
 
-        let channel_memberships = self.deps.channel_memberships.list_by_user(caller_id).await?;
+        let channel_memberships = self
+            .deps
+            .channel_memberships
+            .list_by_user(caller_id)
+            .await?;
         let channel_member_ids: std::collections::HashSet<ChannelId> = channel_memberships
             .into_iter()
             .map(|m| m.channel_id)
             .collect();
 
-        let all_channels = self.deps.channels.list_by_organization(organization_id).await?;
+        let all_channels = self
+            .deps
+            .channels
+            .list_by_organization(organization_id)
+            .await?;
         let visible: Vec<Channel> = all_channels
             .into_iter()
             .filter(|c| !c.is_private || channel_member_ids.contains(&c.id))
@@ -133,12 +144,11 @@ impl ChannelService {
             .by_ids(caller_id, channel_id)
             .await?;
 
-        self.deps
-            .authorization
-            .require_can_read_channel(&channel,
-                caller_membership.as_ref(),
-                channel_membership.as_ref(),
-            )?;
+        self.deps.authorization.require_can_read_channel(
+            &channel,
+            caller_membership.as_ref(),
+            channel_membership.as_ref(),
+        )?;
 
         Ok(channel)
     }
@@ -179,8 +189,7 @@ impl ChannelService {
         channel.set_topic(request.topic);
         channel.set_purpose(request.purpose);
 
-        // Channel repository does not have an update method, so we recreate via create with ON CONFLICT.
-        self.deps.channels.create(&channel).await?;
+        self.deps.channels.update(&channel).await?;
         Ok(channel)
     }
 
@@ -216,7 +225,7 @@ impl ChannelService {
             .require_role_permission(membership.role, Permission::ManageChannels)?;
 
         channel.archive();
-        self.deps.channels.create(&channel).await?;
+        self.deps.channels.update(&channel).await?;
         Ok(channel)
     }
 
@@ -252,7 +261,7 @@ impl ChannelService {
             .require_role_permission(membership.role, Permission::ManageChannels)?;
 
         channel.unarchive();
-        self.deps.channels.create(&channel).await?;
+        self.deps.channels.update(&channel).await?;
         Ok(channel)
     }
 
@@ -300,7 +309,10 @@ impl ChannelService {
         }
 
         let channel_membership = ChannelMembership::new(user_id, channel_id)?;
-        self.deps.channel_memberships.create(&channel_membership).await?;
+        self.deps
+            .channel_memberships
+            .create(&channel_membership)
+            .await?;
         Ok(channel_membership)
     }
 
@@ -366,9 +378,7 @@ mod tests {
         })
     }
 
-    async fn seed_owner_and_org(
-        svc: &ChannelService,
-    ) -> (UserId, OrganizationId) {
+    async fn seed_owner_and_org(svc: &ChannelService) -> (UserId, OrganizationId) {
         let user = User::new("owner@example.com", "Owner", "hash").unwrap();
         let org_id = OrganizationId::new();
         svc.deps

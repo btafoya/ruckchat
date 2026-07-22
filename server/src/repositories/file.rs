@@ -56,10 +56,7 @@ impl FileRepository for FileRepositorySqlx {
         Ok(row.map(into_file))
     }
 
-    async fn list_by_organization(
-        &self,
-        organization_id: OrganizationId,
-    ) -> Result<Vec<File>> {
+    async fn list_by_organization(&self, organization_id: OrganizationId) -> Result<Vec<File>> {
         let rows = sqlx::query_as!(
             FileRow,
             "SELECT id, organization_id, uploaded_by, file_name, mime_type, size_bytes, storage_path, thumbnail_path, created_at FROM files WHERE organization_id = $1 ORDER BY created_at DESC",

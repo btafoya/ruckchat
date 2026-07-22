@@ -5,7 +5,7 @@ Never change architecture without updating ADRs.
 
 ## Current Status
 
-Phases 1–3 are complete. Phases 4–12 are not yet implemented.
+Phases 1–4 are complete. Phases 5–12 are not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -13,8 +13,9 @@ Phases 1–3 are complete. Phases 4–12 are not yet implemented.
   and repository traits.
 - Phase 3: Service layer and SQLx repositories in `ruckchat-server`, plus
   unit-tested service logic using in-memory mocks.
-- `server/src/main.rs` is currently a placeholder binary. The full REST API,
-  WebSocket, and MCP server will be added in later phases.
+- Phase 4: Axum REST API, authentication middleware/extractor, route handlers
+  for all Phase 3 services, and integration tests against PostgreSQL.
+- WebSocket, MCP, and plugin support are added in later phases.
 
 ## Commands
 
@@ -36,12 +37,17 @@ root/
 │   ├── ruckchat-common/    # Shared error type and validation utilities
 │   ├── ruckchat-config/    # Configuration primitives and `AuthenticatedUser`
 │   └── ruckchat-domain/    # Entities, value objects, and repository traits
-├── server/                 # Service layer and SQLx repository implementations
+├── server/                 # Service layer, SQLx repositories, and HTTP handlers
+│   ├── src/handlers/       # Axum route handlers and HTTP DTOs
+│   ├── src/services/       # Business logic and service DTOs
+│   ├── src/repositories/   # SQLx repository implementations
+│   ├── src/testing.rs      # In-memory mock repositories
+│   └── tests/              # Integration tests against PostgreSQL
 ├── migrations/             # SQLx migration crate and SQL files
 ├── book/                   # mdBook-style project documentation
 ├── docs/
 │   └── ADR-*.md            # Architecture Decision Records
-└── server/openapi.yaml     # REST API stub for Phase 3 use cases
+└── server/openapi.yaml     # Full REST API specification
 ```
 
 ## Key Files
@@ -50,9 +56,11 @@ root/
 - `server/src/lib.rs` — Server crate entry point and `connect_database` helper.
 - `server/src/services/` — Business logic and DTOs.
 - `server/src/repositories/` — SQLx implementations of domain repository traits.
+- `server/src/handlers/` — Axum route handlers, authentication extractor, and HTTP DTOs.
 - `server/src/testing.rs` — In-memory mock repositories for service unit tests.
+- `server/tests/` — Integration tests against PostgreSQL.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
-- `server/openapi.yaml` — Stub OpenAPI document for implemented use cases.
+- `server/openapi.yaml` — Full OpenAPI specification for the REST API.
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
   `docs/ADR-005-Domain-Crate.md` — Active ADRs.
 
@@ -193,8 +201,8 @@ Or use the equivalent CodeGraph MCP server action.
   in `Cargo.toml`). `cargo clippy` must pass with `-D warnings`.
 - `cargo nextest` is the default test runner in the implementation loop; install
   with `cargo install cargo-nextest` if it is not present.
-- The binary in `server/src/main.rs` is a stub; the full HTTP/WebSocket/MCP
-  server implementation is intentionally deferred.
+- `server/src/main.rs` now starts the full Axum HTTP server; WebSocket and MCP
+  support are intentionally deferred to later phases.
 - `migrations` is a Cargo workspace member, not just a directory of SQL files.
 - Repository traits live in `ruckchat-domain`; SQLx implementations live in
   `server/src/repositories/`.

@@ -90,7 +90,9 @@ fn into_settings(row: SettingsRow) -> OrganizationSettings {
 
 fn map_sqlx_err(err: sqlx::Error) -> ruckchat_common::Error {
     match err {
-        sqlx::Error::RowNotFound => ruckchat_common::Error::NotFound("organization settings".into()),
+        sqlx::Error::RowNotFound => {
+            ruckchat_common::Error::NotFound("organization settings".into())
+        }
         _ => ruckchat_common::Error::Internal(err.to_string()),
     }
 }

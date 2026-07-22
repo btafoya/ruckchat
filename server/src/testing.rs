@@ -38,14 +38,22 @@ impl UserRepository for MockUserRepository {
     async fn create(&self, user: &User) -> Result<()> {
         let mut users = self.users.lock().unwrap();
         if users.iter().any(|u| u.email == user.email) {
-            return Err(ruckchat_common::Error::Conflict("email already exists".into()));
+            return Err(ruckchat_common::Error::Conflict(
+                "email already exists".into(),
+            ));
         }
         users.push(user.clone());
         Ok(())
     }
 
     async fn by_id(&self, id: UserId) -> Result<Option<User>> {
-        Ok(self.users.lock().unwrap().iter().find(|u| u.id == id).cloned())
+        Ok(self
+            .users
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|u| u.id == id)
+            .cloned())
     }
 
     async fn by_email(&self, email: &str) -> Result<Option<User>> {
@@ -123,6 +131,16 @@ impl SessionRepository for MockSessionRepository {
         let before = sessions.len();
         sessions.retain(|s| !s.is_expired());
         Ok((before - sessions.len()) as u64)
+    }
+
+    async fn delete_by_token_hash(&self, token_hash: &str) -> Result<()> {
+        let mut sessions = self.sessions.lock().unwrap();
+        let before = sessions.len();
+        sessions.retain(|s| s.token_hash != token_hash);
+        if sessions.len() == before {
+            return Err(ruckchat_common::Error::NotFound("session".into()));
+        }
+        Ok(())
     }
 }
 
@@ -277,8 +295,7 @@ impl OrganizationMembershipRepository for MockOrganizationMembershipRepository {
         Ok(())
     }
 
-    async fn delete(
-        &self, user_id: UserId, organization_id: OrganizationId) -> Result<()> {
+    async fn delete(&self, user_id: UserId, organization_id: OrganizationId) -> Result<()> {
         let mut memberships = self.memberships.lock().unwrap();
         let idx = memberships
             .iter()
@@ -362,11 +379,17 @@ impl ChannelRepository for MockChannelRepository {
                 "channel name already exists".into(),
             ));
         }
-        if let Some(existing) = channels.iter_mut().find(|c| c.id == channel.id) {
-            *existing = channel.clone();
-            return Ok(());
-        }
         channels.push(channel.clone());
+        Ok(())
+    }
+
+    async fn update(&self, channel: &Channel) -> Result<()> {
+        let mut channels = self.channels.lock().unwrap();
+        let existing = channels
+            .iter_mut()
+            .find(|c| c.id == channel.id)
+            .ok_or_else(|| ruckchat_common::Error::NotFound("channel".into()))?;
+        *existing = channel.clone();
         Ok(())
     }
 
@@ -380,10 +403,7 @@ impl ChannelRepository for MockChannelRepository {
             .cloned())
     }
 
-    async fn list_by_organization(
-        &self,
-        organization_id: OrganizationId,
-    ) -> Result<Vec<Channel>> {
+    async fn list_by_organization(&self, organization_id: OrganizationId) -> Result<Vec<Channel>> {
         Ok(self
             .channels
             .lock()
@@ -439,10 +459,7 @@ impl ChannelMembershipRepository for MockChannelMembershipRepository {
             .cloned())
     }
 
-    async fn list_by_channel(
-        &self,
-        channel_id: ChannelId,
-    ) -> Result<Vec<ChannelMembership>> {
+    async fn list_by_channel(&self, channel_id: ChannelId) -> Result<Vec<ChannelMembership>> {
         Ok(self
             .memberships
             .lock()
@@ -492,7 +509,10 @@ impl MockDirectMessageConversationRepository {
 #[async_trait]
 impl DirectMessageConversationRepository for MockDirectMessageConversationRepository {
     async fn create(&self, conversation: &DirectMessageConversation) -> Result<()> {
-        self.conversations.lock().unwrap().push(conversation.clone());
+        self.conversations
+            .lock()
+            .unwrap()
+            .push(conversation.clone());
         Ok(())
     }
 
@@ -519,9 +539,7 @@ impl DirectMessageConversationRepository for MockDirectMessageConversationReposi
             .lock()
             .unwrap()
             .iter()
-            .filter(|c| {
-                c.organization_id == organization_id && c.member_ids.contains(&user_id)
-            })
+            .filter(|c| c.organization_id == organization_id && c.member_ids.contains(&user_id))
             .cloned()
             .collect())
     }
@@ -613,10 +631,7 @@ impl ReactionRepository for MockReactionRepository {
         Ok(())
     }
 
-    async fn list_by_message(
-        &self,
-        message_id: MessageId,
-    ) -> Result<Vec<Reaction>> {
+    async fn list_by_message(&self, message_id: MessageId) -> Result<Vec<Reaction>> {
         Ok(self
             .reactions
             .lock()
@@ -627,12 +642,7 @@ impl ReactionRepository for MockReactionRepository {
             .collect())
     }
 
-    async fn delete(
-        &self,
-        message_id: MessageId,
-        user_id: UserId,
-        emoji: &str,
-    ) -> Result<()> {
+    async fn delete(&self, message_id: MessageId, user_id: UserId, emoji: &str) -> Result<()> {
         let mut reactions = self.reactions.lock().unwrap();
         let idx = reactions
             .iter()
@@ -671,13 +681,16 @@ impl FileRepository for MockFileRepository {
     }
 
     async fn by_id(&self, id: FileId) -> Result<Option<File>> {
-        Ok(self.files.lock().unwrap().iter().find(|f| f.id == id).cloned())
+        Ok(self
+            .files
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|f| f.id == id)
+            .cloned())
     }
 
-    async fn list_by_organization(
-        &self,
-        organization_id: OrganizationId,
-    ) -> Result<Vec<File>> {
+    async fn list_by_organization(&self, organization_id: OrganizationId) -> Result<Vec<File>> {
         Ok(self
             .files
             .lock()
@@ -688,11 +701,7 @@ impl FileRepository for MockFileRepository {
             .collect())
     }
 
-    async fn attach_to_message(
-        &self,
-        message_id: MessageId,
-        file_id: FileId,
-    ) -> Result<()> {
+    async fn attach_to_message(&self, message_id: MessageId, file_id: FileId) -> Result<()> {
         self.attachments.lock().unwrap().push((message_id, file_id));
         Ok(())
     }
