@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Shell } from './Shell';
 import {
   ChannelProvider,
+  DirectMessageProvider,
   MessageProvider,
   OrganizationProvider,
   PresenceProvider,
@@ -13,7 +14,14 @@ import {
 } from '../context';
 import { mockSession } from '../test/mocks';
 import { AuthScreen } from './AuthScreen';
-import { useMessages, useOrganizations, useChannels, usePresence, useTyping } from '../hooks';
+import {
+  useMessages,
+  useOrganizations,
+  useChannels,
+  usePresence,
+  useTyping,
+  useDirectMessages,
+} from '../hooks';
 
 const mockListOrganizations = vi.fn().mockResolvedValue([]);
 const mockListChannels = vi.fn().mockResolvedValue([]);
@@ -30,9 +38,21 @@ vi.mock('../api', async () => {
       },
       channels: {
         listMessages: mockListMessages,
+        listReplies: vi.fn().mockResolvedValue([]),
+        postMessage: vi.fn().mockResolvedValue({}),
       },
       directMessages: {
+        list: vi.fn().mockResolvedValue([]),
         listMessages: vi.fn().mockResolvedValue([]),
+        postMessage: vi.fn().mockResolvedValue({}),
+      },
+      reactions: {
+        add: vi.fn().mockResolvedValue({}),
+        remove: vi.fn().mockResolvedValue(undefined),
+      },
+      files: {
+        recordUpload: vi.fn().mockResolvedValue({ id: 'file-1', file_name: 'test.txt' }),
+        attachToMessage: vi.fn().mockResolvedValue(undefined),
       },
       auth: {
         getProfile: vi.fn().mockResolvedValue(mockSession.user),
@@ -53,7 +73,8 @@ vi.mock('../hooks/useWebsocket', () => ({
 function Wrapper({ session, children }: { session: import('../hooks/useSession').Session | null; children: React.ReactNode }) {
   const organizationsState = useOrganizations(session?.token);
   const channelsState = useChannels(session?.token, undefined);
-  const messagesState = useMessages(session?.token, undefined, undefined);
+  const directMessagesState = useDirectMessages(session?.token, undefined);
+  const messagesState = useMessages(session?.token, undefined, undefined, session?.user.id);
   const presenceState = usePresence();
   const typingState = useTyping();
 
@@ -70,15 +91,17 @@ function Wrapper({ session, children }: { session: import('../hooks/useSession')
     >
       <OrganizationProvider value={organizationsState}>
         <ChannelProvider value={channelsState}>
-          <MessageProvider value={messagesState}>
-            <PresenceProvider value={presenceState}>
-              <TypingProvider value={typingState}>
-                <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
-                  {children}
-                </RealtimeProvider>
-              </TypingProvider>
-            </PresenceProvider>
-          </MessageProvider>
+          <DirectMessageProvider value={directMessagesState}>
+            <MessageProvider value={messagesState}>
+              <PresenceProvider value={presenceState}>
+                <TypingProvider value={typingState}>
+                  <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
+                    {children}
+                  </RealtimeProvider>
+                </TypingProvider>
+              </PresenceProvider>
+            </MessageProvider>
+          </DirectMessageProvider>
         </ChannelProvider>
       </OrganizationProvider>
     </SessionProvider>

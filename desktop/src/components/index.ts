@@ -1,5 +1,7 @@
 export { AuthForm } from './AuthForm';
 export { AuthScreen } from './AuthScreen';
+export { Composer } from './Composer';
 export { MessagePane } from './MessagePane';
 export { Shell } from './Shell';
 export { Sidebar } from './Sidebar';
+export { ThreadPane } from './ThreadPane';

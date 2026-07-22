@@ -1,4 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+const TYPING_TIMEOUT_MS = 3000;
 
 export interface TypingState {
   typingUsers: Record<string, string[]>;
@@ -8,16 +10,7 @@ export interface TypingState {
 
 export function useTyping(): TypingState {
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
-
-  const addTypingUser = useCallback((conversationId: string, userId: string) => {
-    setTypingUsers((prev) => {
-      const users = prev[conversationId] ?? [];
-      if (users.includes(userId)) {
-        return prev;
-      }
-      return { ...prev, [conversationId]: [...users, userId] };
-    });
-  }, []);
+  const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const removeTypingUser = useCallback((conversationId: string, userId: string) => {
     setTypingUsers((prev) => {
@@ -32,6 +25,37 @@ export function useTyping(): TypingState {
       }
       return next;
     });
+  }, []);
+
+  const addTypingUser = useCallback(
+    (conversationId: string, userId: string) => {
+      setTypingUsers((prev) => {
+        const users = prev[conversationId] ?? [];
+        if (users.includes(userId)) {
+          return prev;
+        }
+        return { ...prev, [conversationId]: [...users, userId] };
+      });
+
+      const key = `${conversationId}:${userId}`;
+      const existing = timersRef.current[key];
+      if (existing) {
+        clearTimeout(existing);
+      }
+      timersRef.current[key] = setTimeout(() => {
+        removeTypingUser(conversationId, userId);
+        delete timersRef.current[key];
+      }, TYPING_TIMEOUT_MS);
+    },
+    [removeTypingUser],
+  );
+
+  useEffect(() => {
+    return () => {
+      for (const timer of Object.values(timersRef.current)) {
+        clearTimeout(timer);
+      }
+    };
   }, []);
 
   return useMemo(

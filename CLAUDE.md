@@ -30,9 +30,11 @@ Phases 9–12 are not yet implemented.
 - Phase 8 (in progress): Desktop client in `desktop/` with Tauri v2, React 19,
   TypeScript, Tailwind CSS v4, and React Router v7. The `desktop/src-tauri`
   crate is part of the Cargo workspace. Completed so far: API client + auth
-  flow, core UI shell and navigation, and state stores with real-time WebSocket
-  sync. Remaining: messaging features (composer, reactions, attachments,
-  threads), native integrations, offline behavior, packaging, and docs.
+  flow, core UI shell and navigation, state stores with real-time WebSocket
+  sync, and messaging features (message history with pagination, composer with
+  markdown preview and @mention autocomplete, typing indicators, reactions,
+  file metadata attachments, thread replies, and unread badges). Remaining:
+  native integrations, offline behavior, packaging, and further docs.
 - Plugin and mobile support are added in later phases.
 
 ## Commands
@@ -72,9 +74,10 @@ root/
 ├── desktop/                # Tauri v2 + React desktop client
 │   ├── src/                # React + TypeScript frontend
 │   │   ├── api/            # OpenAPI types, fetch client, API modules
-│   │   ├── components/     # UI components (Shell, Sidebar, MessagePane, etc.)
+│   │   ├── components/     # UI components (Shell, Sidebar, MessagePane,
+│   │   │                     Composer, MessageItem, ThreadPane, etc.)
 │   │   ├── context/        # React context providers for state stores
-│   │   ├── hooks/          # State hooks and WebSocket connection manager
+│   │   ├── hooks/          # State hooks, unread tracking, and WebSocket manager
 │   │   ├── App.tsx         # Router and provider tree
 │   │   └── main.tsx        # Vite/Tauri entry point
 │   ├── src-tauri/          # Tauri Rust shell
@@ -98,6 +101,17 @@ root/
 - `server/src/testing.rs` — In-memory mock repositories and event bus for service unit tests.
 - `desktop/src-tauri/` — Tauri v2 Rust shell and native integrations.
 - `desktop/src/` — React + TypeScript desktop UI.
+- `desktop/src/components/MessagePane.tsx` — Message list, reactions, typing
+  indicator, and thread pane host.
+- `desktop/src/components/Composer.tsx` — Message composer with markdown preview,
+  @mention autocomplete, file attachments, and typing WebSocket messages.
+- `desktop/src/components/ThreadPane.tsx` — Thread reply detail pane.
+- `desktop/src/components/MessageItem.tsx` — Individual message with reactions
+  and reply action.
+- `desktop/src/hooks/useMessages.ts` — Message history, send, reactions cache,
+  and thread reply loading.
+- `desktop/src/hooks/useUnread.ts` — Local unread counts driven by WebSocket
+  events.
 - `server/tests/` — Integration tests against PostgreSQL.
 - `server/tests/mcp.rs` — MCP Streamable HTTP endpoint integration tests.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.

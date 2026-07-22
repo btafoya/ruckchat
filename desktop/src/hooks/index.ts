@@ -1,9 +1,11 @@
 export { useChannels } from './useChannels';
+export { useDirectMessages } from './useDirectMessages';
 export { useMessages } from './useMessages';
 export { useOrganizations } from './useOrganizations';
 export { usePresence } from './usePresence';
 export { useRealtimeStore } from './useRealtimeStore';
 export { useTyping } from './useTyping';
+export { useUnread, type UnreadState } from './useUnread';
 export { useWebSocket } from './useWebsocket';
 export { useSession, type Session, type SessionState } from './useSession';
 export { SessionProvider } from '../context/SessionContext';

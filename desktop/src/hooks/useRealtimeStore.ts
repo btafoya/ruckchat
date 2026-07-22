@@ -3,6 +3,7 @@ import type { ServerEvent } from '../api/events';
 import type { MessagesState } from './useMessages';
 import type { PresenceState } from './usePresence';
 import type { TypingState } from './useTyping';
+import type { UnreadState } from './useUnread';
 
 export interface RealtimeStore {
   onEvent: (event: ServerEvent) => void;
@@ -12,12 +13,14 @@ export function useRealtimeStore(
   messages: MessagesState,
   presence: PresenceState,
   typing: TypingState,
+  unread: UnreadState,
 ): RealtimeStore {
   const onEvent = useCallback(
     (event: ServerEvent) => {
       switch (event.type) {
         case 'message.created':
           messages.appendMessage(event.message);
+          unread.increment(event.message.conversation_id);
           break;
         case 'message.updated':
           messages.updateMessage(event.message);
@@ -26,10 +29,15 @@ export function useRealtimeStore(
           messages.removeMessage(event.message.id);
           break;
         case 'reaction.added':
-          // Reactions are applied to messages in the messaging task.
+          messages.addReaction(event.message_id, {
+            message_id: event.message_id,
+            user_id: event.user_id,
+            emoji: event.emoji,
+            created_at: new Date().toISOString(),
+          });
           break;
         case 'reaction.removed':
-          // Reactions are applied to messages in the messaging task.
+          messages.removeReaction(event.message_id, event.user_id, event.emoji);
           break;
         case 'typing.updated':
           typing.addTypingUser(event.conversation_id, event.user_id);
@@ -42,7 +50,7 @@ export function useRealtimeStore(
           break;
       }
     },
-    [messages, presence, typing],
+    [messages, presence, typing, unread],
   );
 
   return useMemo(
