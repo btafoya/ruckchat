@@ -92,9 +92,9 @@ pub fn run() {
                 let _ = app.deep_link().register_all();
             }
 
-            app.deep_link().on_open_url(|event| {
+            app.deep_link().on_open_url(|_event| {
                 #[cfg(debug_assertions)]
-                eprintln!("deep-link opened: {:?}", event.urls());
+                eprintln!("deep-link opened: {:?}", _event.urls());
             });
 
             Ok(())
