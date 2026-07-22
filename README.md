@@ -25,7 +25,7 @@ against PostgreSQL.
 | 2 | ✅ Complete | Domain layer: entities, value objects, repository traits |
 | 3 | ✅ Complete | Service layer and SQLx repository implementations |
 | 4 | ✅ Complete | Axum REST API, auth extractor, integration tests |
-| 5 | Planned | WebSocket server for realtime messaging |
+| 5 | ✅ Complete | WebSocket server for realtime messaging |
 | 6 | Planned | MCP server integration |
 | 7 | Planned | Plugin SDK |
 | 8 | Planned | Desktop client (Tauri) |
