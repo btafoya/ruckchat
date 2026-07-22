@@ -35,7 +35,7 @@
       "icons/icon.ico"
     ],
     "copyright": "Copyright © 2026 Brian Tafoya",
-    "category": "Network",
+    "category": "DeveloperTool",
     "shortDescription": "RuckChat desktop client",
     "longDescription": "RuckChat is a real-time team messaging desktop client built with Tauri and React."
   }

@@ -89,27 +89,30 @@ Desktop artifact:
 
 ### Linux bundling note
 
-On this Linux environment, full installer bundling (`pnpm tauri build`) fails at
-the packaging stage with:
-
-```
-Can't detect any appindicator library
-```
-
-Install the development headers and rerun the full build to produce installers:
+After installing the indicator development headers:
 
 ```bash
 sudo apt-get install -y libayatana-appindicator3-dev
-cd desktop
-pnpm tauri build
 ```
+
+you can build platform-specific installers. On this environment, the `.deb`
+bundle works directly:
+
+```bash
+cd desktop
+pnpm tauri build --bundles deb
+```
+
+The AppImage target may still fail with a `failed to run linuxdeploy` error
+unless `linuxdeploy` and its dependencies are available. If you only need a
+single Linux installer for alpha testing, the `.deb` bundle is sufficient.
 
 Full bundling produces platform-specific installers under:
 
-- `target/release/bundle/deb/`
-- `target/release/bundle/appimage/`
-- `target/release/bundle/dmg/` (macOS)
-- `target/release/bundle/msi/` / `target/release/bundle/nsis/` (Windows)
+- `target/release/bundle/deb/` — Linux `.deb`
+- `target/release/bundle/appimage/` — Linux AppImage
+- `target/release/bundle/dmg/` — macOS
+- `target/release/bundle/msi/` / `target/release/bundle/nsis/` — Windows
 
 ## Alpha packaging checklist
 
@@ -118,5 +121,5 @@ Full bundling produces platform-specific installers under:
 - [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes
 - [ ] `pnpm typecheck` and `pnpm test` pass
 - [ ] Desktop release binary builds (`pnpm tauri build --no-bundle`)
-- [ ] Linux installer bundles built after installing `libayatana-appindicator3-dev`
+- [ ] Linux `.deb` installer bundles (`pnpm tauri build --bundles deb`)
 - [ ] `.env` files and secrets are not committed (verify `.gitignore`)
