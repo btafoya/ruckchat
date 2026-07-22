@@ -27,10 +27,12 @@ Phases 9–12 are not yet implemented.
 - Phase 6: MCP server exposed on `/mcp/v1/sse` using the `rmcp` Streamable HTTP
   transport, with six tools, four `ruckchat://` resources, service-layer
   authorization, unit tests, integration tests, and OpenAPI documentation.
-- Phase 8 (in progress): Desktop client scaffold in `desktop/` with Tauri v2,
-  React 19, TypeScript, Tailwind CSS v4, and React Router v7. The
-  `desktop/src-tauri` crate is part of the Cargo workspace. Native integrations,
-  messaging UI, and release packaging follow in subsequent tasks.
+- Phase 8 (in progress): Desktop client in `desktop/` with Tauri v2, React 19,
+  TypeScript, Tailwind CSS v4, and React Router v7. The `desktop/src-tauri`
+  crate is part of the Cargo workspace. Completed so far: API client + auth
+  flow, core UI shell and navigation, and state stores with real-time WebSocket
+  sync. Remaining: messaging features (composer, reactions, attachments,
+  threads), native integrations, offline behavior, packaging, and docs.
 - Plugin and mobile support are added in later phases.
 
 ## Commands
@@ -69,6 +71,12 @@ root/
 ├── migrations/             # SQLx migration crate and SQL files
 ├── desktop/                # Tauri v2 + React desktop client
 │   ├── src/                # React + TypeScript frontend
+│   │   ├── api/            # OpenAPI types, fetch client, API modules
+│   │   ├── components/     # UI components (Shell, Sidebar, MessagePane, etc.)
+│   │   ├── context/        # React context providers for state stores
+│   │   ├── hooks/          # State hooks and WebSocket connection manager
+│   │   ├── App.tsx         # Router and provider tree
+│   │   └── main.tsx        # Vite/Tauri entry point
 │   ├── src-tauri/          # Tauri Rust shell
 │   └── README.md           # Desktop developer guide
 ├── book/                   # mdBook-style project documentation
@@ -103,6 +111,9 @@ root/
 Required for integration tests and the running server:
 - `DATABASE_URL` — PostgreSQL connection string, e.g.
   `postgres://ruckchat:ruckchat@localhost/ruckchat`.
+
+A local `.env.testing` file is provided at the repo root with these values.
+Source it before workspace checks: `export $(grep -v '^#' .env.testing | xargs)`.
 
 Required for schema/migration tests that create isolated per-test databases:
 - `RUCKCHAT_TEST_ADMIN_DATABASE_URL` — Admin connection string used to create and
@@ -240,7 +251,7 @@ After the code passes all checks, update the relevant documentation:
 After committing, refresh the CodeGraph index so future structural queries reflect the new code:
 
 ```bash
-codegraph refresh
+codegraph index
 ```
 
 Or use the equivalent CodeGraph MCP server action.
@@ -258,6 +269,10 @@ Or use the equivalent CodeGraph MCP server action.
 - `migrations` is a Cargo workspace member, not just a directory of SQL files.
 - Repository traits live in `ruckchat-domain`; SQLx implementations live in
   `server/src/repositories/`.
+
+- The desktop client hard-codes `http://localhost:3000` for development.
+  WebSocket authentication relies on the HTTP-only `ruckchat_session` cookie
+  set at login; restoring from `localStorage` alone is not sufficient.
 
 ## Implementation Order
 
