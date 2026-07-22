@@ -8,11 +8,12 @@ pub mod error;
 pub mod file;
 pub mod message;
 pub mod organization;
+pub mod reaction;
 pub mod user;
 
 pub use auth::AuthUser;
 
-use crate::state::AppState;
+use crate::{state::AppState, websocket::websocket_handler};
 use axum::{
     Router,
     routing::{delete, get, patch, post},
@@ -22,6 +23,7 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 /// Builds the full HTTP router for the RuckChat API.
 pub fn router() -> Router<AppState> {
     Router::new()
+        .route("/websocket", get(websocket_handler))
         .route("/auth/register", post(auth::register))
         .route("/auth/login", post(auth::login))
         .route("/auth/logout", post(auth::logout))
@@ -65,6 +67,11 @@ pub fn router() -> Router<AppState> {
         .route("/messages/{message_id}", patch(message::edit))
         .route("/messages/{message_id}", delete(message::delete))
         .route("/messages/{message_id}/replies", get(message::list_replies))
+        .route("/messages/{message_id}/reactions", post(reaction::add))
+        .route(
+            "/messages/{message_id}/reactions/{emoji}",
+            delete(reaction::remove),
+        )
         .route("/direct_messages", get(direct_message::list_conversations))
         .route("/direct_messages", post(direct_message::start))
         .route(

@@ -70,6 +70,14 @@ impl UserService {
         Ok(user)
     }
 
+    /// Lists all organization memberships for a user.
+    pub async fn list_memberships_for_user(
+        &self,
+        user_id: UserId,
+    ) -> ruckchat_common::Result<Vec<ruckchat_domain::OrganizationMembership>> {
+        self.deps.memberships.list_by_user(user_id).await
+    }
+
     /// Lists users in an organization. The caller must be a member.
     ///
     /// # Errors

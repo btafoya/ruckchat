@@ -9,6 +9,7 @@ pub mod handlers;
 pub mod repositories;
 pub mod services;
 pub mod state;
+pub mod websocket;
 
 #[cfg(test)]
 pub mod testing;

@@ -10,6 +10,7 @@
 
 use ruckchat_config::DatabaseConfig;
 use ruckchat_domain::{ConversationType, Organization, Role, User, UserRepository};
+use ruckchat_server::services::events::EventBus;
 use ruckchat_server::{
     connect_database,
     repositories::{
@@ -38,6 +39,67 @@ use ruckchat_server::{
 };
 use sqlx::PgPool;
 use std::sync::Arc;
+
+/// No-op event bus for integration tests.
+#[derive(Debug, Clone, Default)]
+struct NoOpEventBus;
+
+#[async_trait::async_trait]
+impl EventBus for NoOpEventBus {
+    async fn publish_message_created(
+        &self,
+        _message: &ruckchat_domain::Message,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
+
+    async fn publish_message_updated(
+        &self,
+        _message: &ruckchat_domain::Message,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
+
+    async fn publish_message_deleted(
+        &self,
+        _message: &ruckchat_domain::Message,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
+
+    async fn publish_reaction_added(
+        &self,
+        _reaction: &ruckchat_domain::Reaction,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
+
+    async fn publish_reaction_removed(
+        &self,
+        _message_id: ruckchat_id::MessageId,
+        _user_id: ruckchat_id::UserId,
+        _emoji: &str,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
+
+    async fn publish_typing(
+        &self,
+        _user_id: ruckchat_id::UserId,
+        _conversation_id: uuid::Uuid,
+        _conversation_type: ruckchat_domain::ConversationType,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
+
+    async fn publish_presence(
+        &self,
+        _user_id: ruckchat_id::UserId,
+        _status: ruckchat_server::services::events::PresenceStatus,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
+}
 
 /// All services wired with SQLx repositories for a single test.
 struct Services {
@@ -120,6 +182,7 @@ async fn services() -> Services {
             memberships: memberships.clone(),
             conversations: conversations.clone(),
             authorization: authz.clone(),
+            events: Arc::new(NoOpEventBus),
         }),
         direct_messages: DirectMessageService::new(DirectMessageServiceDeps {
             conversations: conversations.clone(),

@@ -4,6 +4,7 @@
 //! are not thread-safe for concurrent mutation, but they are sufficient for
 //! single-threaded async tests using `tokio::test` with `current_thread`.
 
+use crate::services::events::{EventBus, PresenceStatus, ServerEvent};
 use async_trait::async_trait;
 use ruckchat_common::Result;
 use ruckchat_domain::{
@@ -649,6 +650,117 @@ impl ReactionRepository for MockReactionRepository {
             .position(|r| r.message_id == message_id && r.user_id == user_id && r.emoji == emoji)
             .ok_or_else(|| ruckchat_common::Error::NotFound("reaction".into()))?;
         reactions.remove(idx);
+        Ok(())
+    }
+}
+
+/// In-memory event bus that records published events for tests.
+#[derive(Debug, Default, Clone)]
+pub struct MockEventBus {
+    events: Arc<Mutex<Vec<ServerEvent>>>,
+}
+
+impl MockEventBus {
+    /// Creates an empty event bus.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Returns all events published so far.
+    #[must_use]
+    pub fn events(&self) -> Vec<ServerEvent> {
+        self.events.lock().unwrap().clone()
+    }
+
+    /// Clears recorded events.
+    pub fn clear(&self) {
+        self.events.lock().unwrap().clear();
+    }
+}
+
+#[async_trait]
+impl EventBus for MockEventBus {
+    async fn publish_message_created(&self, message: &Message) -> ruckchat_common::Result<()> {
+        self.events
+            .lock()
+            .unwrap()
+            .push(ServerEvent::MessageCreated {
+                message: message.clone(),
+            });
+        Ok(())
+    }
+
+    async fn publish_message_updated(&self, message: &Message) -> ruckchat_common::Result<()> {
+        self.events
+            .lock()
+            .unwrap()
+            .push(ServerEvent::MessageUpdated {
+                message: message.clone(),
+            });
+        Ok(())
+    }
+
+    async fn publish_message_deleted(&self, message: &Message) -> ruckchat_common::Result<()> {
+        self.events
+            .lock()
+            .unwrap()
+            .push(ServerEvent::MessageDeleted {
+                message: message.clone(),
+            });
+        Ok(())
+    }
+
+    async fn publish_reaction_added(&self, reaction: &Reaction) -> ruckchat_common::Result<()> {
+        self.events
+            .lock()
+            .unwrap()
+            .push(ServerEvent::ReactionAdded {
+                reaction: reaction.clone(),
+            });
+        Ok(())
+    }
+
+    async fn publish_reaction_removed(
+        &self,
+        message_id: ruckchat_id::MessageId,
+        user_id: ruckchat_id::UserId,
+        emoji: &str,
+    ) -> ruckchat_common::Result<()> {
+        self.events
+            .lock()
+            .unwrap()
+            .push(ServerEvent::ReactionRemoved {
+                message_id,
+                user_id,
+                emoji: emoji.into(),
+            });
+        Ok(())
+    }
+
+    async fn publish_typing(
+        &self,
+        user_id: ruckchat_id::UserId,
+        conversation_id: uuid::Uuid,
+        conversation_type: ruckchat_domain::ConversationType,
+    ) -> ruckchat_common::Result<()> {
+        self.events.lock().unwrap().push(ServerEvent::Typing {
+            user_id,
+            conversation_id,
+            conversation_type,
+        });
+        Ok(())
+    }
+
+    async fn publish_presence(
+        &self,
+        user_id: ruckchat_id::UserId,
+        status: PresenceStatus,
+    ) -> ruckchat_common::Result<()> {
+        self.events
+            .lock()
+            .unwrap()
+            .push(ServerEvent::Presence { user_id, status });
         Ok(())
     }
 }

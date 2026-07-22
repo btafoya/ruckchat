@@ -46,8 +46,10 @@ server/src
 │   ├── organization.rs
 │   ├── channel.rs
 │   ├── message.rs
+│   ├── reaction.rs
 │   ├── direct_message.rs
-│   └── file.rs
+│   ├── file.rs
+│   └── events.rs       # EventBus trait and event types
 ├── handlers/            # HTTP route handlers and DTOs
 │   ├── auth.rs
 │   ├── channel.rs
@@ -58,8 +60,14 @@ server/src
 │   ├── message.rs
 │   ├── mod.rs
 │   ├── organization.rs
+│   ├── reaction.rs
 │   └── user.rs
-└── testing.rs           # In-memory mock repositories for unit tests
+├── websocket/           # WebSocket connection registry and event bus
+│   ├── mod.rs
+│   ├── manager.rs
+│   ├── bus.rs
+│   └── handler.rs
+└── testing.rs           # In-memory mock repositories and event bus for unit tests
 ```
 
 ## Service Layer
@@ -76,9 +84,20 @@ Implemented services:
 - **UserService** — profile retrieval/updates and organization member listing.
 - **OrganizationService** — create, list, invite, role changes, and member removal.
 - **ChannelService** — create, list, update, archive/unarchive, and membership management.
-- **MessageService** — post, edit, delete, history, and thread replies.
+- **MessageService** — post, edit, delete, history, and thread replies; emits real-time events.
+- **ReactionService** — add and remove reactions on messages; emits real-time events.
 - **DirectMessageService** — start DM conversations and list conversations for a user.
 - **FileService** — record uploads, list files, and attach files to messages.
+- **EventBus trait** — `services/events.rs` decouples services from the WebSocket transport.
+
+Real-time delivery is implemented by the `websocket` module:
+
+- **ConnectionManager** — in-memory registry of active sockets by user and
+  subscribed organization.
+- **WebSocketEventBus** — implements `EventBus`, resolves recipients from
+  repository data, and dispatches events.
+- **websocket_handler** — Axum WebSocket upgrade handler; auto-subscribes
+  connections to the user's organizations and forwards client messages.
 
 ## Repository Layer
 
@@ -89,8 +108,9 @@ type inference issues.
 
 ## HTTP Layer
 
-`server/src/handlers/mod.rs` wires the Axum router. All endpoints are listed in
-`server/openapi.yaml` with full request/response schemas.
+`server/src/handlers/mod.rs` wires the Axum router. All REST endpoints and the
+`GET /websocket` upgrade endpoint are listed in `server/openapi.yaml` with full
+request/response schemas.
 
 ### Authentication
 
@@ -138,8 +158,10 @@ Additional configuration variables are documented in the configuration crate.
 1. Load configuration.
 2. Initialize tracing.
 3. Connect to PostgreSQL and run pending migrations via `connect_database`.
-4. Build service dependencies backed by SQLx repositories in `AppState::from_pool`.
-5. Bind the HTTP server to the address derived from `base_url`.
+4. Build service dependencies backed by SQLx repositories and the WebSocket
+   event bus in `AppState::from_pool`.
+5. Bind the HTTP server to the address derived from `base_url`; WebSocket
+   upgrades share the same listener and router.
 6. Wait for a shutdown signal and drain open requests.
 
 ## Testing
@@ -147,7 +169,9 @@ Additional configuration variables are documented in the configuration crate.
 Unit tests exercise the service layer against in-memory mocks in
 `server/src/testing.rs`. Integration tests under `server/tests/` use `sqlx::test`
 to get a fresh PostgreSQL database per test and the `TestClient` helper to
-exercise the Axum router in-process.
+exercise the Axum router in-process. WebSocket integration tests use
+`tokio-tungstenite` against an in-process server sharing the same `AppState` to
+verify end-to-end event delivery.
 
 ```bash
 export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
@@ -156,6 +180,7 @@ cargo test -p ruckchat-server
 
 ## Shutdown
 
-The server waits for `ctrl+c` and drains open requests before exiting. WebSocket
-close events, plugin shutdown hooks, and background tasks are implemented in
-later phases.
+The server waits for `ctrl+c` and drains open requests before exiting. The
+WebSocket handler unregisters closed sockets and emits `presence.updated`
+`offline` when a user no longer has any connections. Plugin shutdown hooks and
+background tasks are implemented in later phases.

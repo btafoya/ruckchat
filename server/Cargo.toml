@@ -36,13 +36,15 @@ rand_core = "0.6"
 sha2 = "0.10"
 thiserror = { workspace = true }
 url = "2"
-axum = "0.8"
+axum = { version = "0.8", features = ["ws"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 
 [dev-dependencies]
 tokio = { workspace = true }
 uuid = { workspace = true }
+tokio-tungstenite = { version = "0.26", features = ["connect"] }
+futures-util = { version = "0.3.33", default-features = false, features = ["std", "sink"] }
 
 [lints]
 workspace = true

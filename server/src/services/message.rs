@@ -2,6 +2,7 @@
 
 use crate::services::authorization::AuthorizationService;
 use crate::services::dto::{EditMessageRequest, Pagination, PostMessageRequest};
+use crate::services::events::EventBus;
 use ruckchat_common::Error;
 use ruckchat_domain::{
     ChannelMembershipRepository, ChannelRepository, ConversationType, Message, MessageRepository,
@@ -26,6 +27,8 @@ pub struct MessageServiceDeps {
     pub conversations: Arc<dyn ruckchat_domain::DirectMessageConversationRepository + Send + Sync>,
     /// Authorization service.
     pub authorization: AuthorizationService,
+    /// Event bus for real-time updates.
+    pub events: Arc<dyn EventBus + Send + Sync>,
 }
 
 /// Message posting, editing, deletion, and history.
@@ -88,6 +91,7 @@ impl MessageService {
                     request.parent_id,
                 )?;
                 self.deps.messages.create(&message).await?;
+                self.deps.events.publish_message_created(&message).await?;
                 Ok(message)
             }
             ConversationType::DirectMessage => {
@@ -122,6 +126,7 @@ impl MessageService {
                     request.parent_id,
                 )?;
                 self.deps.messages.create(&message).await?;
+                self.deps.events.publish_message_created(&message).await?;
                 Ok(message)
             }
         }
@@ -158,6 +163,7 @@ impl MessageService {
 
         message.edit(request.content)?;
         self.deps.messages.update(&message).await?;
+        self.deps.events.publish_message_updated(&message).await?;
         Ok(message)
     }
 
@@ -186,6 +192,7 @@ impl MessageService {
 
         message.delete();
         self.deps.messages.update(&message).await?;
+        self.deps.events.publish_message_deleted(&message).await?;
         Ok(())
     }
 
@@ -360,7 +367,7 @@ mod tests {
     use crate::services::dto::{EditMessageRequest, PostMessageRequest};
     use crate::testing::{
         MockChannelMembershipRepository, MockChannelRepository,
-        MockDirectMessageConversationRepository, MockMessageRepository,
+        MockDirectMessageConversationRepository, MockEventBus, MockMessageRepository,
         MockOrganizationMembershipRepository,
     };
     use ruckchat_domain::{
@@ -370,15 +377,18 @@ mod tests {
     use ruckchat_id::{ChannelId, OrganizationId, UserId};
     use std::sync::Arc;
 
-    fn service() -> MessageService {
-        MessageService::new(MessageServiceDeps {
+    fn service() -> (MessageService, Arc<MockEventBus>) {
+        let events = Arc::new(MockEventBus::new());
+        let svc = MessageService::new(MessageServiceDeps {
             messages: Arc::new(MockMessageRepository::new()),
             channels: Arc::new(MockChannelRepository::new()),
             channel_memberships: Arc::new(MockChannelMembershipRepository::new()),
             memberships: Arc::new(MockOrganizationMembershipRepository::new()),
             conversations: Arc::new(MockDirectMessageConversationRepository::new()),
             authorization: AuthorizationService::new(),
-        })
+            events: events.clone(),
+        });
+        (svc, events)
     }
 
     async fn seed_channel(
@@ -404,7 +414,7 @@ mod tests {
 
     #[tokio::test]
     async fn post_message_in_public_channel() {
-        let svc = service();
+        let (svc, _events) = service();
         let (author_id, _, channel_id) = seed_channel(&svc, false).await;
         let msg = svc
             .post_message(
@@ -422,8 +432,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn posting_message_emits_created_event() {
+        let (svc, events) = service();
+        let (author_id, _, channel_id) = seed_channel(&svc, false).await;
+        let msg = svc
+            .post_message(
+                author_id,
+                PostMessageRequest {
+                    conversation_id: channel_id.as_uuid(),
+                    conversation_type: ConversationType::Channel,
+                    parent_id: None,
+                    content: "hello".into(),
+                },
+            )
+            .await
+            .unwrap();
+
+        assert!(events.events().iter().any(|e| matches!(
+            e,
+            crate::services::events::ServerEvent::MessageCreated { message } if message.id == msg.id
+        )));
+    }
+
+    #[tokio::test]
     async fn non_member_cannot_post_in_channel() {
-        let svc = service();
+        let (svc, _events) = service();
         let (_author_id, org_id, channel_id) = seed_channel(&svc, false).await;
         let outsider = User::new("outsider@example.com", "Outsider", "hash").unwrap();
         svc.deps
@@ -449,7 +482,7 @@ mod tests {
 
     #[tokio::test]
     async fn author_can_edit_message() {
-        let svc = service();
+        let (svc, _events) = service();
         let (author_id, _, channel_id) = seed_channel(&svc, false).await;
         let msg = svc
             .post_message(
@@ -479,7 +512,7 @@ mod tests {
 
     #[tokio::test]
     async fn outsider_cannot_edit_message() {
-        let svc = service();
+        let (svc, _events) = service();
         let (author_id, org_id, channel_id) = seed_channel(&svc, false).await;
         let msg = svc
             .post_message(
@@ -516,7 +549,7 @@ mod tests {
 
     #[tokio::test]
     async fn post_message_in_dm_requires_membership() {
-        let svc = service();
+        let (svc, _events) = service();
         let a = User::new("a@example.com", "A", "hash").unwrap();
         let b = User::new("b@example.com", "B", "hash").unwrap();
         let org_id = OrganizationId::new();

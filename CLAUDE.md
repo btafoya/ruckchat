@@ -5,7 +5,7 @@ Never change architecture without updating ADRs.
 
 ## Current Status
 
-Phases 1–4 are complete. Phases 5–12 are not yet implemented.
+Phases 1–5 are complete. Phases 6–12 are not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -15,7 +15,9 @@ Phases 1–4 are complete. Phases 5–12 are not yet implemented.
   unit-tested service logic using in-memory mocks.
 - Phase 4: Axum REST API, authentication middleware/extractor, route handlers
   for all Phase 3 services, and integration tests against PostgreSQL.
-- WebSocket, MCP, and plugin support are added in later phases.
+- Phase 5: WebSocket server with authenticated `/websocket`, in-memory connection
+  management, real-time event bus, and reaction REST endpoints.
+- MCP, plugin, desktop, and mobile support are added in later phases.
 
 ## Commands
 
@@ -37,11 +39,12 @@ root/
 │   ├── ruckchat-common/    # Shared error type and validation utilities
 │   ├── ruckchat-config/    # Configuration primitives and `AuthenticatedUser`
 │   └── ruckchat-domain/    # Entities, value objects, and repository traits
-├── server/                 # Service layer, SQLx repositories, and HTTP handlers
+├── server/                 # Service layer, SQLx repositories, HTTP, and WebSocket
 │   ├── src/handlers/       # Axum route handlers and HTTP DTOs
-│   ├── src/services/       # Business logic and service DTOs
+│   ├── src/services/       # Business logic, service DTOs, and event bus trait
 │   ├── src/repositories/   # SQLx repository implementations
-│   ├── src/testing.rs      # In-memory mock repositories
+│   ├── src/websocket/      # Connection manager, event bus implementation, handler
+│   ├── src/testing.rs      # In-memory mock repositories and event bus
 │   └── tests/              # Integration tests against PostgreSQL
 ├── migrations/             # SQLx migration crate and SQL files
 ├── book/                   # mdBook-style project documentation
@@ -57,12 +60,13 @@ root/
 - `server/src/services/` — Business logic and DTOs.
 - `server/src/repositories/` — SQLx implementations of domain repository traits.
 - `server/src/handlers/` — Axum route handlers, authentication extractor, and HTTP DTOs.
-- `server/src/testing.rs` — In-memory mock repositories for service unit tests.
+- `server/src/websocket/` — WebSocket connection manager, event bus, and upgrade handler.
+- `server/src/testing.rs` — In-memory mock repositories and event bus for service unit tests.
 - `server/tests/` — Integration tests against PostgreSQL.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
-- `server/openapi.yaml` — Full OpenAPI specification for the REST API.
+- `server/openapi.yaml` — Full OpenAPI specification for the REST API and WebSocket upgrade.
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
-  `docs/ADR-005-Domain-Crate.md` — Active ADRs.
+  `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md` — Active ADRs.
 
 ## Environment
 
@@ -201,8 +205,8 @@ Or use the equivalent CodeGraph MCP server action.
   in `Cargo.toml`). `cargo clippy` must pass with `-D warnings`.
 - `cargo nextest` is the default test runner in the implementation loop; install
   with `cargo install cargo-nextest` if it is not present.
-- `server/src/main.rs` now starts the full Axum HTTP server; WebSocket and MCP
-  support are intentionally deferred to later phases.
+- `server/src/main.rs` starts the full Axum HTTP server with WebSocket support;
+  MCP support is intentionally deferred to later phases.
 - `migrations` is a Cargo workspace member, not just a directory of SQL files.
 - Repository traits live in `ruckchat-domain`; SQLx implementations live in
   `server/src/repositories/`.

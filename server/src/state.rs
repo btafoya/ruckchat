@@ -8,7 +8,8 @@ use crate::{
         ChannelMembershipRepositorySqlx, ChannelRepositorySqlx,
         DirectMessageConversationRepositorySqlx, FileRepositorySqlx, MessageRepositorySqlx,
         OrganizationMembershipRepositorySqlx, OrganizationRepositorySqlx,
-        OrganizationSettingsRepositorySqlx, SessionRepositorySqlx, UserRepositorySqlx,
+        OrganizationSettingsRepositorySqlx, ReactionRepositorySqlx, SessionRepositorySqlx,
+        UserRepositorySqlx,
     },
     services::{
         auth::{AuthService, AuthServiceDeps},
@@ -18,8 +19,10 @@ use crate::{
         file::{FileService, FileServiceDeps},
         message::{MessageService, MessageServiceDeps},
         organization::{OrganizationService, OrganizationServiceDeps},
+        reaction::{ReactionService, ReactionServiceDeps},
         user::{UserService, UserServiceDeps},
     },
+    websocket::{ConnectionManager, WebSocketEventBus, WebSocketEventBusDeps},
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -45,8 +48,14 @@ pub struct AppState {
     pub direct_messages: DirectMessageService,
     /// File service.
     pub files: FileService,
+    /// Reaction service.
+    pub reactions: ReactionService,
     /// Authorization service.
     pub authorization: AuthorizationService,
+    /// WebSocket connection manager.
+    pub websocket_manager: ConnectionManager,
+    /// WebSocket event bus.
+    pub events: WebSocketEventBus,
 }
 
 impl std::fmt::Debug for AppState {
@@ -54,6 +63,7 @@ impl std::fmt::Debug for AppState {
         f.debug_struct("AppState")
             .field("pool", &self.pool)
             .field("secure_cookies", &self.secure_cookies)
+            .field("websocket_manager", &self.websocket_manager)
             .finish_non_exhaustive()
     }
 }
@@ -73,9 +83,19 @@ impl AppState {
         let conversations_repo =
             Arc::new(DirectMessageConversationRepositorySqlx::new(pool.clone()));
         let messages_repo = Arc::new(MessageRepositorySqlx::new(pool.clone()));
+        let reactions_repo = Arc::new(ReactionRepositorySqlx::new(pool.clone()));
         let files_repo = Arc::new(FileRepositorySqlx::new(pool.clone()));
 
         let authorization = AuthorizationService::new();
+        let connection_manager = ConnectionManager::new();
+        let events = WebSocketEventBus::new(WebSocketEventBusDeps {
+            manager: connection_manager.clone(),
+            messages: messages_repo.clone(),
+            channels: channels_repo.clone(),
+            channel_memberships: channel_memberships_repo.clone(),
+            conversations: conversations_repo.clone(),
+            memberships: memberships_repo.clone(),
+        });
 
         let auth = AuthService::new(AuthServiceDeps {
             users: users_repo.clone(),
@@ -114,6 +134,17 @@ impl AppState {
             memberships: memberships_repo.clone(),
             conversations: conversations_repo.clone(),
             authorization: authorization.clone(),
+            events: Arc::new(events.clone()),
+        });
+
+        let reactions = ReactionService::new(ReactionServiceDeps {
+            reactions: reactions_repo.clone(),
+            messages: messages_repo.clone(),
+            channels: channels_repo.clone(),
+            channel_memberships: channel_memberships_repo.clone(),
+            memberships: memberships_repo.clone(),
+            conversations: conversations_repo.clone(),
+            events: Arc::new(events.clone()),
         });
 
         let direct_messages = DirectMessageService::new(DirectMessageServiceDeps {
@@ -138,7 +169,10 @@ impl AppState {
             messages,
             direct_messages,
             files,
+            reactions,
             authorization,
+            websocket_manager: connection_manager,
+            events,
         }
     }
 

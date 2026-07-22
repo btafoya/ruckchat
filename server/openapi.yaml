@@ -19,6 +19,8 @@ tags:
   - name: Messages
   - name: Direct Messages
   - name: Files
+  - name: Reactions
+  - name: Real-Time
 
 paths:
   /auth/register:
@@ -809,6 +811,87 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /messages/{message_id}/reactions:
+    parameters:
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    post:
+      summary: Add a reaction to a message
+      tags: [Reactions]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddReactionRequest'
+      responses:
+        '201':
+          description: Reaction added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /messages/{message_id}/reactions/{emoji}:
+    parameters:
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: emoji
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Remove the caller's reaction from a message
+      tags: [Reactions]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Reaction removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /websocket:
+    get:
+      summary: Establish an authenticated WebSocket connection
+      description: |
+        Upgrades the HTTP connection to a WebSocket and starts delivering
+        real-time events. The connection is automatically subscribed to all
+        organizations the authenticated user belongs to. Send and receive
+        JSON envelopes as described in the WebSocket protocol documentation.
+      tags: [Real-Time]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '101':
+          description: WebSocket upgrade accepted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1278,3 +1361,24 @@ components:
       properties:
         file_id:
           $ref: '#/components/schemas/Uuid'
+
+    Reaction:
+      type: object
+      required: [message_id, user_id, emoji, created_at]
+      properties:
+        message_id:
+          $ref: '#/components/schemas/Uuid'
+        user_id:
+          $ref: '#/components/schemas/Uuid'
+        emoji:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AddReactionRequest:
+      type: object
+      required: [emoji]
+      properties:
+        emoji:
+          type: string

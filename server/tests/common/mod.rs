@@ -25,9 +25,13 @@ impl TestClient {
             .await
             .expect("migrations apply");
         let state = AppState::from_pool(pool, false);
-        Self {
-            router: router().with_state(state),
-        }
+        Self::from_router(router().with_state(state))
+    }
+
+    /// Creates a test client from an already-built router.
+    #[must_use]
+    pub fn from_router(router: Router) -> Self {
+        Self { router }
     }
 
     /// Sends a request without authentication.

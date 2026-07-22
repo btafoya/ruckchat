@@ -44,14 +44,17 @@ HTTP / WebSocket (Axum)
 - One repository per aggregate (users, organizations, channels, messages, files).
 - Queries are written as plain SQL; compile-time checking via `sqlx::query_as!` macros.
 
-### Shared Crate
+### Shared Crates
 
-The `shared` crate contains:
+The workspace shared crates (`ruckchat-common`, `ruckchat-config`, `ruckchat-id`,
+and `ruckchat-domain`) contain:
 
-- Request and response DTOs used by the server and clients.
-- WebSocket event types.
-- Common validation utilities.
-- Constants and error codes.
+- Common error types and validation utilities.
+- Strongly-typed identifiers and configuration primitives.
+- Domain entities and repository traits.
+
+WebSocket event types and the event bus trait live in the `ruckchat-server`
+crate so that transport concerns do not leak into shared code.
 
 ## Client Architecture
 
@@ -71,13 +74,20 @@ The `shared` crate contains:
 
 ## Real-Time Events
 
-- WebSocket connections are authenticated using the same session cookie as REST requests.
-- A connection manager tracks active sockets per user and organization.
+- WebSocket connections are authenticated using the same session cookie or bearer
+  token as REST requests.
+- `server/src/websocket/manager.rs` tracks active sockets per user and
+  organization in memory.
+- `server/src/services/events.rs` defines the `EventBus` trait and event
+  envelopes, keeping services decoupled from transport.
+- `server/src/websocket/bus.rs` implements the bus, resolves recipients using
+  repository data, and dispatches through the connection manager.
 - Events are broadcast to relevant recipients:
   - `message.created`
   - `message.updated`
   - `message.deleted`
-  - `reaction.updated`
+  - `reaction.added`
+  - `reaction.removed`
   - `presence.updated`
   - `typing.updated`
 
