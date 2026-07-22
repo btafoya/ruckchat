@@ -3,6 +3,24 @@
 
 Never change architecture without updating ADRs.
 
+## Quick start
+
+```bash
+set -a
+source .env.testing
+set +a
+cargo sqlx migrate run --source migrations/migrations
+cargo run -p ruckchat-server
+```
+
+Then in another terminal, run the desktop client:
+
+```bash
+cd desktop
+pnpm install
+pnpm tauri dev
+```
+
 ## Rules
 
 - Always fully complete the task.
@@ -70,7 +88,7 @@ Phases 9–12 are not yet implemented.
 | `cargo build --workspace` | Build all crates |
 | `cargo test --workspace` | Run unit tests across all crates |
 | `cargo test -p ruckchat-server` | Run server tests (requires `DATABASE_URL` for integration tests) |
-| `cargo clippy --workspace -- -D warnings` | Run clippy with workspace lints |
+| `cargo clippy --workspace --all-targets --all-features -- -D warnings` | Run clippy with workspace lints |
 | `cargo sqlx migrate run --source migrations/migrations` | Apply pending migrations |
 | `cargo run -p ruckchat-server` | Run the server binary (HTTP, WebSocket, MCP) |
 | `cd desktop && pnpm install` | Install desktop client dependencies |
@@ -283,8 +301,8 @@ Or use the equivalent CodeGraph MCP server action.
   in `Cargo.toml`). `cargo clippy` must pass with `-D warnings`.
 - `cargo nextest` is the default test runner in the implementation loop; install
   with `cargo install cargo-nextest` if it is not present.
-- `cargo check` and `cargo clippy` require `DATABASE_URL` because the server crate
-  uses SQLx online query macros (`sqlx::query!`).
+- `cargo build`, `cargo check`, and `cargo clippy` require `DATABASE_URL` because
+  the server crate uses SQLx online query macros (`sqlx::query!`).
 - `server/src/main.rs` starts the full Axum HTTP server with WebSocket and MCP
   support when enabled.
 - `migrations` is a Cargo workspace member, not just a directory of SQL files.
