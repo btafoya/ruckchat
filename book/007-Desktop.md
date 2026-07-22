@@ -8,13 +8,15 @@ The desktop client is a Tauri application with a React front end. It targets Lin
 
 | Layer | Technology |
 |-------|------------|
-| Shell | Tauri (Rust) |
-| UI | React + TypeScript |
-| Styling | Tailwind CSS |
+| Shell | Tauri v2 (Rust) |
+| UI | React 19 + TypeScript 5 |
+| Bundler | Vite 6 |
+| Styling | Tailwind CSS v4 |
 | State | React hooks + context |
-| Routing | React Router or TanStack Router |
+| Routing | React Router v7 |
 | HTTP | Native `fetch` |
 | WebSocket | Native `WebSocket` |
+| Tests | Vitest + React Testing Library |
 
 ## Window Layout
 
@@ -53,11 +55,42 @@ Tauri exposes these native capabilities:
 - Failed sends show a retry affordance and remain editable.
 - Read positions are cached locally and reconciled on reconnect.
 
+## Project Layout
+
+```text
+desktop/
+├── package.json              # pnpm scripts and dependencies
+├── vite.config.ts           # Vite + Tailwind + Vitest configuration
+├── tsconfig.json            # TypeScript project settings
+├── index.html               # Vite entry point
+├── src/                     # React + TypeScript frontend
+│   ├── main.tsx
+│   ├── App.tsx
+│   ├── App.test.tsx
+│   ├── index.css
+│   └── test/setup.ts
+└── src-tauri/               # Tauri Rust shell
+    ├── Cargo.toml
+    ├── tauri.conf.json
+    ├── build.rs
+    ├── src/lib.rs
+    ├── src/main.rs
+    ├── capabilities/default.json
+    └── icons/
+```
+
 ## Build and Release
 
-- Development: `pnpm dev` starts the Vite dev server with Tauri in dev mode.
+- Development: `pnpm tauri dev` starts the Vite dev server and opens a Tauri
+  WebView in dev mode.
+- Type check: `pnpm typecheck`
+- Unit tests: `pnpm test`
 - Production: `pnpm tauri build` produces platform-specific installers.
 - Releases are packaged as `.dmg`, `.AppImage`, `.deb`, `.msi`, and `.exe` where appropriate.
+
+The desktop crate is included in the top-level Cargo workspace, so
+`cargo check --workspace` and `cargo clippy --workspace` also cover
+`desktop/src-tauri`.
 
 ## Security
 

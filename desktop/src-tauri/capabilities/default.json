@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/schemas/capability.schema.json",
+  "identifier": "default",
+  "description": "Default capability for the RuckChat desktop app.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open"
+  ]
+}

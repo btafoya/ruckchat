@@ -1,5 +1,5 @@
 [workspace]
-members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruckchat-common", "crates/ruckchat-domain", "migrations"]
+members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruckchat-common", "crates/ruckchat-domain", "migrations", "desktop/src-tauri"]
 resolver = "2"
 
 [workspace.package]

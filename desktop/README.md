@@ -1,1 +1,48 @@
-Tauri desktop application.
+# RuckChat Desktop
+
+Tauri v2 + React + TypeScript desktop client for RuckChat.
+
+## Development
+
+```bash
+cd desktop
+pnpm install
+pnpm tauri dev
+```
+
+The frontend dev server runs on `http://localhost:5173` and Tauri opens a
+WebView pointing to it. The Rust side rebuilds automatically when
+`src-tauri/src` changes.
+
+## Build
+
+```bash
+pnpm tauri build
+```
+
+Installers are produced under `src-tauri/target/release/bundle/`.
+
+## Project Layout
+
+- `src/` — React + TypeScript frontend.
+- `src-tauri/` — Tauri Rust shell and native integrations.
+- `index.html` — Vite entry point.
+- `vite.config.ts` — Vite + Tailwind + Vitest configuration.
+
+## Technology Choices
+
+- **Shell:** Tauri v2
+- **UI:** React 19, TypeScript, Tailwind CSS v4
+- **Routing:** React Router v7
+- **State:** React hooks + context
+- **HTTP:** Native `fetch`
+- **WebSocket:** Native `WebSocket`
+- **Tests:** Vitest + React Testing Library
+
+## Notes
+
+- The backend URL is currently hard-coded to `http://localhost:8080` for
+  development. A settings screen will make this configurable in the messaging
+  feature task.
+- Application icons must be generated with `pnpm tauri icon <source.png>` before
+  producing release installers.

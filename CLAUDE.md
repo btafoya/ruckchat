@@ -5,7 +5,8 @@ Never change architecture without updating ADRs.
 
 ## Current Status
 
-Phases 1–6 are complete. Phases 7–12 are not yet implemented.
+Phases 1–6 are complete. Phase 8 (Desktop client) is in progress; Phase 7 and
+Phases 9–12 are not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -20,7 +21,11 @@ Phases 1–6 are complete. Phases 7–12 are not yet implemented.
 - Phase 6: MCP server exposed on `/mcp/v1/sse` using the `rmcp` Streamable HTTP
   transport, with six tools, four `ruckchat://` resources, service-layer
   authorization, unit tests, integration tests, and OpenAPI documentation.
-- Plugin, desktop, and mobile support are added in later phases.
+- Phase 8 (in progress): Desktop client scaffold in `desktop/` with Tauri v2,
+  React 19, TypeScript, Tailwind CSS v4, and React Router v7. The
+  `desktop/src-tauri` crate is part of the Cargo workspace. Native integrations,
+  messaging UI, and release packaging follow in subsequent tasks.
+- Plugin and mobile support are added in later phases.
 
 ## Commands
 
@@ -51,6 +56,10 @@ root/
 │   ├── src/testing.rs      # In-memory mock repositories and event bus
 │   └── tests/              # Integration tests against PostgreSQL
 ├── migrations/             # SQLx migration crate and SQL files
+├── desktop/                # Tauri v2 + React desktop client
+│   ├── src/                # React + TypeScript frontend
+│   ├── src-tauri/          # Tauri Rust shell
+│   └── README.md           # Desktop developer guide
 ├── book/                   # mdBook-style project documentation
 ├── docs/
 │   └── ADR-*.md            # Architecture Decision Records
@@ -68,6 +77,8 @@ root/
 - `server/src/services/mcp.rs` — MCP service bridge that delegates to the existing service layer.
 - `server/src/mcp/` — MCP server handler, tools, resources, and Streamable HTTP handler.
 - `server/src/testing.rs` — In-memory mock repositories and event bus for service unit tests.
+- `desktop/src-tauri/` — Tauri v2 Rust shell and native integrations.
+- `desktop/src/` — React + TypeScript desktop UI.
 - `server/tests/` — Integration tests against PostgreSQL.
 - `server/tests/mcp.rs` — MCP Streamable HTTP endpoint integration tests.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
