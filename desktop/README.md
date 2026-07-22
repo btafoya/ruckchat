@@ -41,8 +41,11 @@ Installers are produced under `src-tauri/target/release/bundle/`.
 
 ## Notes
 
-- The backend URL is currently hard-coded to `http://localhost:8080` for
-  development. A settings screen will make this configurable in the messaging
-  feature task.
+- The backend URL is currently hard-coded to `http://localhost:3000` for
+  development (matching the server default in `ruckchat-config`). A settings
+  screen will make this configurable in the native integrations task.
+- TypeScript API types are generated from `../server/openapi.yaml` into
+  `src/api/schema.ts`. Regenerate with `pnpm dlx openapi-typescript
+  ../server/openapi.yaml -o src/api/schema.ts` when the server contract changes.
 - Application icons must be generated with `pnpm tauri icon <source.png>` before
   producing release installers.

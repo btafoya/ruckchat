@@ -1,9 +1,22 @@
 import type { JSX } from 'react';
+import { Route, Routes, Navigate } from 'react-router-dom';
+import { SessionProvider, useSession } from './hooks';
+import { AuthScreen, Shell } from './components';
 
 export default function App(): JSX.Element {
+  const sessionState = useSession();
+
   return (
-    <main className="flex h-screen w-screen items-center justify-center bg-gray-900 text-white">
-      <h1 className="text-2xl font-bold">RuckChat Desktop</h1>
-    </main>
+    <SessionProvider value={sessionState}>
+      <Routes>
+        <Route path="/login" element={<AuthScreen />} />
+        <Route path="/*" element={<Shell />}>
+          <Route index element={<Navigate to="/org" replace />} />
+          <Route path="org" element={<div />} />
+          <Route path="org/:organizationId/channel" element={<div />} />
+          <Route path="org/:organizationId/channel/:channelId" element={<div />} />
+        </Route>
+      </Routes>
+    </SessionProvider>
   );
 }
