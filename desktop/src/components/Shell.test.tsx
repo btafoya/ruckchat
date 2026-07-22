@@ -2,12 +2,22 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { Shell } from './Shell';
-import { SessionProvider } from '../context';
+import {
+  ChannelProvider,
+  MessageProvider,
+  OrganizationProvider,
+  PresenceProvider,
+  RealtimeProvider,
+  SessionProvider,
+  TypingProvider,
+} from '../context';
 import { mockSession } from '../test/mocks';
 import { AuthScreen } from './AuthScreen';
+import { useMessages, useOrganizations, useChannels, usePresence, useTyping } from '../hooks';
 
 const mockListOrganizations = vi.fn().mockResolvedValue([]);
 const mockListChannels = vi.fn().mockResolvedValue([]);
+const mockListMessages = vi.fn().mockResolvedValue([]);
 
 vi.mock('../api', async () => {
   const actual = await import('../api');
@@ -18,6 +28,12 @@ vi.mock('../api', async () => {
         list: mockListOrganizations,
         listChannels: mockListChannels,
       },
+      channels: {
+        listMessages: mockListMessages,
+      },
+      directMessages: {
+        listMessages: vi.fn().mockResolvedValue([]),
+      },
       auth: {
         getProfile: vi.fn().mockResolvedValue(mockSession.user),
         login: vi.fn(),
@@ -27,24 +43,60 @@ vi.mock('../api', async () => {
   };
 });
 
-function renderWithSession(session: import('../hooks/useSession').Session | null = mockSession, initialEntries = ['/']) {
+vi.mock('../hooks/useWebsocket', () => ({
+  useWebSocket: () => ({
+    status: 'closed' as const,
+    send: vi.fn().mockReturnValue(true),
+  }),
+}));
+
+function Wrapper({ session, children }: { session: import('../hooks/useSession').Session | null; children: React.ReactNode }) {
+  const organizationsState = useOrganizations(session?.token);
+  const channelsState = useChannels(session?.token, undefined);
+  const messagesState = useMessages(session?.token, undefined, undefined);
+  const presenceState = usePresence();
+  const typingState = useTyping();
+
+  return (
+    <SessionProvider
+      value={{
+        session,
+        isLoading: false,
+        error: null,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+      }}
+    >
+      <OrganizationProvider value={organizationsState}>
+        <ChannelProvider value={channelsState}>
+          <MessageProvider value={messagesState}>
+            <PresenceProvider value={presenceState}>
+              <TypingProvider value={typingState}>
+                <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
+                  {children}
+                </RealtimeProvider>
+              </TypingProvider>
+            </PresenceProvider>
+          </MessageProvider>
+        </ChannelProvider>
+      </OrganizationProvider>
+    </SessionProvider>
+  );
+}
+
+function renderWithSession(
+  session: import('../hooks/useSession').Session | null = mockSession,
+  initialEntries = ['/'],
+) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
-      <SessionProvider
-        value={{
-          session,
-          isLoading: false,
-          error: null,
-          login: vi.fn(),
-          register: vi.fn(),
-          logout: vi.fn(),
-        }}
-      >
+      <Wrapper session={session}>
         <Routes>
           <Route path="/login" element={<AuthScreen />} />
           <Route path="/*" element={<Shell />} />
         </Routes>
-      </SessionProvider>
+      </Wrapper>
     </MemoryRouter>,
   );
 }
@@ -65,3 +117,4 @@ describe('Shell', () => {
     expect(screen.getByText(mockSession.user.display_name)).toBeInTheDocument();
   });
 });
+

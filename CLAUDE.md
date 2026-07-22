@@ -3,6 +3,12 @@
 
 Never change architecture without updating ADRs.
 
+## Rules
+
+- Always fully complete the task.
+- Never create stubs.
+- Always build for production use.
+
 ## Current Status
 
 Phases 1–6 are complete. Phase 8 (Desktop client) is in progress; Phase 7 and

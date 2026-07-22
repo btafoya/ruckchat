@@ -1,11 +1,12 @@
 import type { JSX } from 'react';
 import { useParams } from 'react-router-dom';
-import { useChannelContext, useOrganizationContext } from '../context';
+import { useChannelContext, useMessageContext, useOrganizationContext } from '../context';
 
 export function MessagePane(): JSX.Element {
   const params = useParams();
   const { organizations } = useOrganizationContext();
   const { channels } = useChannelContext();
+  const { messages, isLoading } = useMessageContext();
 
   const organization = organizations.find((o) => o.id === params.organizationId);
   const channel = channels.find((c) => c.id === params.channelId);
@@ -32,8 +33,18 @@ export function MessagePane(): JSX.Element {
         <h1 className="text-lg font-semibold text-white"># {channel.name}</h1>
         {channel.topic && <p className="text-sm text-gray-400">{channel.topic}</p>}
       </header>
-      <div className="flex flex-1 flex-col items-center justify-center text-gray-400">
-        Message list will appear here.
+      <div className="flex flex-1 flex-col overflow-y-auto p-4">
+        {isLoading && <div className="text-gray-400">Loading messages...</div>}
+        {messages.length === 0 && !isLoading && (
+          <div className="text-gray-500">No messages yet.</div>
+        )}
+        <ul className="flex flex-col gap-3">
+          {messages.map((message) => (
+            <li key={message.id} className="text-sm text-gray-200">
+              <span className="font-semibold text-green-400">{message.author_id}</span>: {message.content}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

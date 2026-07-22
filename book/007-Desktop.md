@@ -37,17 +37,29 @@ Tauri exposes these native capabilities:
 
 ## Application State
 
-- `OrganizationStore` — current organization, list of organizations.
-- `ChannelStore` — channels and DMs for the active organization.
-- `MessageStore` — message history and drafts per conversation.
-- `PresenceStore` — online status and typing indicators.
-- `NotificationStore` — unread counts and in-app notifications.
+State is managed through React context providers backed by custom hooks:
+
+- `SessionContext` — authenticated user, access token, and session actions.
+- `OrganizationContext` — current organization and list of organizations.
+- `ChannelContext` — channels and direct messages for the active organization.
+- `MessageContext` — message history and drafts per conversation.
+- `PresenceContext` — online status for organization members.
+- `TypingContext` — active typing indicators per conversation.
+- `RealtimeContext` — WebSocket connection status and server event dispatch.
+
+Each store exposes refresh actions that call the REST API and update local state.
 
 ## Communication with Server
 
 - REST API for state-changing operations and initial data loads.
-- WebSocket for real-time events and presence.
-- The WebSocket connection is kept open while the app is running; it reconnects automatically.
+- Native `WebSocket` for real-time events and presence.
+- The WebSocket connection is kept open while the app is running and reconnects
+  automatically with exponential backoff (500 ms to 30 s).
+- Server events are dispatched into the appropriate React stores:
+  - `message.created`, `message.updated`, `message.deleted` → `MessageContext`
+  - `reaction.added`, `reaction.removed` → `MessageContext`
+  - `presence.changed` → `PresenceContext`
+  - `typing.started`, `typing.stopped` → `TypingContext`
 
 ## Offline Behavior
 
@@ -64,6 +76,29 @@ desktop/
 ├── tsconfig.json            # TypeScript project settings
 ├── index.html               # Vite entry point
 ├── src/                     # React + TypeScript frontend
+│   ├── api/                 # OpenAPI-generated types, fetch client, and API modules
+│   │   ├── schema.ts
+│   │   ├── client.ts
+│   │   ├── events.ts
+│   │   └── ...
+│   ├── components/          # UI components (Shell, Sidebar, MessagePane, etc.)
+│   ├── context/             # React context providers for state stores
+│   │   ├── SessionContext.tsx
+│   │   ├── OrganizationContext.tsx
+│   │   ├── ChannelContext.tsx
+│   │   ├── MessageContext.tsx
+│   │   ├── PresenceContext.tsx
+│   │   ├── TypingContext.tsx
+│   │   └── RealtimeContext.tsx
+│   ├── hooks/               # State hooks and real-time sync
+│   │   ├── useSession.ts
+│   │   ├── useOrganizations.ts
+│   │   ├── useChannels.ts
+│   │   ├── useMessages.ts
+│   │   ├── usePresence.ts
+│   │   ├── useTyping.ts
+│   │   ├── useWebSocket.ts
+│   │   └── useRealtimeStore.ts
 │   ├── main.tsx
 │   ├── App.tsx
 │   ├── App.test.tsx

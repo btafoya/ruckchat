@@ -24,7 +24,11 @@ Installers are produced under `src-tauri/target/release/bundle/`.
 
 ## Project Layout
 
-- `src/` — React + TypeScript frontend.
+- `src/api/` — OpenAPI-generated schema, fetch client, and API modules.
+- `src/components/` — UI components.
+- `src/context/` — React context providers for session, organizations, channels,
+  messages, presence, typing, and real-time sync.
+- `src/hooks/` — State hooks and the WebSocket connection manager.
 - `src-tauri/` — Tauri Rust shell and native integrations.
 - `index.html` — Vite entry point.
 - `vite.config.ts` — Vite + Tailwind + Vitest configuration.
