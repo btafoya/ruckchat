@@ -9,6 +9,9 @@ Never change architecture without updating ADRs.
 - Never create stubs.
 - Always build for production use.
 - Always follow the `Implementation Loop` below.
+- Apply the `ponytail` skill: prefer deletion over addition, reuse existing code,
+  prefer stdlib/native/installed dependencies, and question whether speculative
+  features need to exist at all.
 
 ## Current Status
 
