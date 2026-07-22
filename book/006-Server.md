@@ -2,87 +2,81 @@
 
 ## Server Crate
 
-The `server` crate is the main Rust application. It exposes HTTP and WebSocket endpoints, runs background tasks, and loads plugins.
+The `server` crate is the main Rust application. Phase 3 implemented the service
+layer and SQLx-backed repository implementations. HTTP handlers, WebSocket,
+MCP, plugin loading, and background tasks are added in later phases.
 
 ## Technology Stack
 
 | Concern | Library |
 |---------|---------|
-| HTTP framework | Axum |
+| HTTP framework | Axum (future phase) |
 | Async runtime | Tokio |
 | Database access | SQLx |
 | Password hashing | argon2 |
 | Serialization | serde + serde_json |
-| Configuration | figment or envy |
-| Validation | validator |
+| Configuration | ruckchat-config |
 | Logging/tracing | tracing + tracing-subscriber |
 
 ## Crate Layout
 
-```
+```text
 server/src
-├── main.rs              # Entry point, configuration, startup
-├── config.rs            # Configuration structs and env mapping
-├── error.rs             # Application error type and HTTP mapping
+├── main.rs              # Entry point stub; full startup in later phases
+├── lib.rs               # Crate entry point and database connection helper
+├── error.rs             # Server-specific error variants
 ├── state.rs             # Shared application state
-├── router.rs            # Axum router composition
-├── handlers/            # HTTP route handlers
-│   ├── auth.rs
-│   ├── users.rs
-│   ├── organizations.rs
-│   ├── channels.rs
-│   ├── messages.rs
-│   ├── files.rs
-│   └── search.rs
-├── services/            # Business logic
-│   ├── auth_service.rs
-│   ├── organization_service.rs
-│   ├── channel_service.rs
-│   ├── message_service.rs
-│   ├── file_service.rs
-│   └── notification_service.rs
 ├── repositories/        # SQLx data access
-│   ├── user_repository.rs
-│   ├── organization_repository.rs
-│   ├── channel_repository.rs
-│   ├── message_repository.rs
-│   └── file_repository.rs
-├── websocket/           # WebSocket manager and event routing
-│   ├── manager.rs
-│   ├── connection.rs
-│   └── events.rs
-├── plugins/             # Plugin loader and SDK bindings
-│   ├── loader.rs
-│   └── host.rs
-└── tasks/               # Background tasks
-    └── email_notifications.rs
+│   ├── user.rs
+│   ├── session.rs
+│   ├── organization.rs
+│   ├── organization_membership.rs
+│   ├── organization_settings.rs
+│   ├── channel.rs
+│   ├── channel_membership.rs
+│   ├── message.rs
+│   ├── direct_message_conversation.rs
+│   ├── reaction.rs
+│   └── file.rs
+├── services/            # Business logic
+│   ├── auth.rs
+│   ├── authorization.rs
+│   ├── user.rs
+│   ├── organization.rs
+│   ├── channel.rs
+│   ├── message.rs
+│   ├── direct_message.rs
+│   └── file.rs
+├── testing.rs           # In-memory mock repositories for unit tests
+└── handlers/            # HTTP route handlers (future phase)
 ```
 
-## Configuration
+## Service Layer
 
-Server configuration is loaded from environment variables with sensible defaults:
+Services orchestrate domain aggregates and repository traits. They are
+independent of HTTP/WebSocket infrastructure and are covered by unit tests with
+mock repositories and integration tests against PostgreSQL.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RUCKCHAT_HOST` | `0.0.0.0` | Bind address |
-| `RUCKCHAT_PORT` | `3000` | HTTP port |
-| `DATABASE_URL` | — | PostgreSQL connection string |
-| `DATABASE_MAX_CONNECTIONS` | `10` | Connection pool size |
-| `SESSION_SECRET` | — | Secret for cookie signing |
-| `SESSION_MAX_AGE_DAYS` | `30` | Session cookie lifetime |
-| `PASSWORD_MIN_LENGTH` | `10` | Minimum password length |
-| `FILE_STORAGE_BACKEND` | `filesystem` | `filesystem` or `s3` |
-| `FILE_STORAGE_PATH` | `./uploads` | Local storage path |
-| `S3_ENDPOINT` | — | S3-compatible endpoint |
-| `S3_BUCKET` | — | S3 bucket name |
-| `S3_ACCESS_KEY` | — | S3 access key |
-| `S3_SECRET_KEY` | — | S3 secret key |
-| `SMTP_HOST` | — | SMTP server for email notifications |
-| `SMTP_PORT` | `587` | SMTP port |
-| `SMTP_FROM` | — | From address for emails |
-| `PLUGIN_DIR` | `./plugins` | Directory to scan for plugins |
+Implemented services:
 
-## Request Lifecycle
+- **AuthService** — registration, login, logout, session authentication, and
+  expired-session cleanup.
+- **AuthorizationService** — role-based and ownership-based permission checks.
+- **UserService** — profile retrieval/updates and organization member listing.
+- **OrganizationService** — create, list, invite, role changes, and member removal.
+- **ChannelService** — create, list, update, archive/unarchive, and membership management.
+- **MessageService** — post, edit, delete, history, and thread replies.
+- **DirectMessageService** — start DM conversations and list conversations for a user.
+- **FileService** — record uploads, list files, and attach files to messages.
+
+## Repository Layer
+
+Each domain repository trait has a SQLx implementation in `server/src/repositories`.
+Repository implementations use SQLx compile-time checked macros where possible.
+The session repository uses runtime queries to work around PostgreSQL `INET`
+type inference issues.
+
+## Request Lifecycle (future)
 
 1. Axum receives a request.
 2. Middleware extracts and validates the session cookie.
@@ -95,36 +89,32 @@ Server configuration is loaded from environment variables with sensible defaults
 
 ## Error Handling
 
-- Application errors are represented by a single `AppError` enum.
-- Common variants: `NotFound`, `Unauthorized`, `Forbidden`, `Validation`, `Conflict`, `Internal`.
-- Each variant maps to a stable JSON error body and HTTP status code.
-- Unexpected errors are logged and returned as `Internal` without leaking internals.
+- `ruckchat_common::Error` provides shared variants: `NotFound`, `Unauthorized`,
+  `Forbidden`, `Validation`, `Conflict`, and `Internal`.
+- The server crate wraps these in `Error::Domain` and adds its own variants for
+  password hashing and token generation failures.
+- Each service maps SQLx errors to the appropriate domain error.
 
-## Background Tasks
+## Configuration
 
-- Email notification task runs on an interval and sends queued emails.
-- File cleanup task removes orphan file records and storage objects.
-- Tasks are spawned as Tokio tasks and share the application state.
+Server configuration is loaded from environment variables. The required
+variables for the current phase are:
 
-## Plugin Loading
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
 
-- On startup the server scans `PLUGIN_DIR` for native libraries that export the plugin entry point.
-- Each plugin is initialized with a host API for logging, configuration, and event subscription.
-- Plugin failures are isolated; a crashing plugin does not terminate the server.
+Additional configuration variables for later phases are documented in the
+configuration crate.
 
-## Startup Sequence
+## Startup Sequence (current)
 
 1. Load configuration.
 2. Initialize tracing.
-3. Connect to PostgreSQL and run pending migrations.
-4. Load plugins.
-5. Build the Axum router and WebSocket manager.
-6. Bind to the configured address.
-7. Spawn background tasks.
+3. Connect to PostgreSQL and run pending migrations via `connect_database`.
+4. Build service dependencies backed by SQLx repositories.
 
 ## Shutdown
 
-- SIGTERM triggers a graceful shutdown.
-- Open HTTP requests are allowed to complete within a timeout.
-- WebSocket connections are closed with a `server_restart` event.
-- Plugins receive a shutdown hook before the process exits.
+Graceful shutdown, open-request draining, WebSocket close events, and plugin
+shutdown hooks are implemented in later phases.

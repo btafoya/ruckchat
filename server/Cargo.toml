@@ -15,12 +15,30 @@ categories = ["web-programming"]
 ruckchat-id = { path = "../crates/ruckchat-id" }
 ruckchat-common = { path = "../crates/ruckchat-common" }
 ruckchat-config = { path = "../crates/ruckchat-config" }
+ruckchat-domain = { path = "../crates/ruckchat-domain" }
 ruckchat-migrations = { path = "../migrations" }
+async-trait = { workspace = true }
+config = { workspace = true }
+secrecy = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true, features = ["ipnetwork"] }
+time = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+argon2 = "0.5"
+hex = "0.4"
+ipnetwork = "0.21"
+rand = "0.8"
+rand_core = "0.6"
+sha2 = "0.10"
+thiserror = { workspace = true }
 
 [dev-dependencies]
+tokio = { workspace = true }
+uuid = { workspace = true }
 
 [lints]
 workspace = true

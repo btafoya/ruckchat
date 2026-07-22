@@ -25,6 +25,9 @@ pub trait UserRepository {
 
     /// Loads a user by email address.
     async fn by_email(&self, email: &str) -> Result<Option<User>>;
+
+    /// Updates an existing user.
+    async fn update(&self, user: &User) -> Result<()>;
 }
 
 /// Session data access.
@@ -210,4 +213,11 @@ pub trait FileRepository {
 
     /// Lists files uploaded to an organization.
     async fn list_by_organization(&self, organization_id: OrganizationId) -> Result<Vec<File>>;
+
+    /// Links a file to a message.
+    async fn attach_to_message(
+        &self,
+        message_id: MessageId,
+        file_id: FileId,
+    ) -> Result<()>;
 }

@@ -23,7 +23,7 @@ impl OrganizationMembership {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::Validation`] if user or organization ids are invalid.
+    /// Returns [`ruckchat_common::Error::Validation`] if user or organization ids are invalid.
     /// Currently all UUIDs are accepted; this hook exists for future rules.
     pub fn new(user_id: UserId, organization_id: OrganizationId, role: Role) -> Result<Self> {
         Ok(Self {
