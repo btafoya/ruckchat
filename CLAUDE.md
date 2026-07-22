@@ -132,7 +132,7 @@ Update docs
     ↓
 Commit
     ↓
-Update codegraph
+Update codegraph `codegraph index`
 ```
 
 ### Read docs
