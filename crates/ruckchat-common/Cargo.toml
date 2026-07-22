@@ -1,0 +1,25 @@
+[package]
+name = "ruckchat-common"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Shared errors, validation, and time helpers for RuckChat."
+readme = "README.md"
+keywords = ["ruckchat", "chat", "domain"]
+categories = ["data-structures"]
+
+[dependencies]
+thiserror = { workspace = true }
+serde = { workspace = true }
+time = { workspace = true }
+uuid = { workspace = true }
+regex = { workspace = true }
+once_cell = { workspace = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

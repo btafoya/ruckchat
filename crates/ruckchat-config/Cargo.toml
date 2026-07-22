@@ -1,0 +1,26 @@
+[package]
+name = "ruckchat-config"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Configuration primitives and validation for RuckChat applications."
+readme = "README.md"
+keywords = ["ruckchat", "chat", "domain"]
+categories = ["data-structures"]
+
+[dependencies]
+ruckchat-id = { path = "../ruckchat-id" }
+ruckchat-common = { path = "../ruckchat-common" }
+serde = { workspace = true }
+config = { workspace = true }
+secrecy = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

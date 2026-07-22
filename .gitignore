@@ -1,0 +1,12 @@
+/target/
+**/*.rs.bk
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.codegraph/
+.claude/

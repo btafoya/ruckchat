@@ -1,0 +1,7 @@
+[build]
+rustdocflags = ["-D", "missing_docs"]
+
+[alias]
+test-all = "test --workspace"
+check-all = "check --workspace"
+lint = "clippy --workspace --all-targets --all-features"

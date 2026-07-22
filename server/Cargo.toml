@@ -1,0 +1,26 @@
+[package]
+name = "ruckchat-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "RuckChat REST API, WebSocket, and MCP server."
+readme = "README.md"
+keywords = ["ruckchat", "chat", "server"]
+categories = ["web-programming"]
+
+[dependencies]
+ruckchat-id = { path = "../crates/ruckchat-id" }
+ruckchat-common = { path = "../crates/ruckchat-common" }
+ruckchat-config = { path = "../crates/ruckchat-config" }
+ruckchat-migrations = { path = "../migrations" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

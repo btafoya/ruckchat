@@ -1,0 +1,22 @@
+[package]
+name = "ruckchat-migrations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "SQLx migrations and schema integration tests for RuckChat."
+readme = "README.md"
+keywords = ["ruckchat", "chat", "database"]
+categories = ["database"]
+
+[dependencies]
+sqlx = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

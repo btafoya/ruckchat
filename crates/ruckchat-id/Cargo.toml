@@ -1,0 +1,23 @@
+[package]
+name = "ruckchat-id"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Strongly-typed identifiers for RuckChat domain entities."
+readme = "README.md"
+keywords = ["ruckchat", "chat", "domain"]
+categories = ["data-structures"]
+
+[dependencies]
+uuid = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
