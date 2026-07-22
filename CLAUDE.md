@@ -79,6 +79,22 @@ Phases 9–12 are not yet implemented.
 | `cd desktop && pnpm typecheck` | Type-check the desktop client |
 | `cd desktop && pnpm test` | Run desktop client unit tests |
 
+### Desktop schema regeneration
+
+When `server/openapi.yaml` changes, regenerate the TypeScript API types:
+
+```bash
+cd desktop
+pnpm dlx openapi-typescript ../server/openapi.yaml -o src/api/schema.ts
+```
+
+Generate application icons before release builds:
+
+```bash
+cd desktop
+pnpm tauri icon <source.png>
+```
+
 ## Architecture
 
 ```text
@@ -141,7 +157,13 @@ Required for integration tests and the running server:
   `postgres://ruckchat:ruckchat@localhost/ruckchat`.
 
 A local `.env.testing` file is provided at the repo root with these values.
-Source it before workspace checks: `export $(grep -v '^#' .env.testing | xargs)`.
+Source it before workspace checks:
+
+```bash
+set -a
+source .env.testing
+set +a
+```
 
 Required for schema/migration tests that create isolated per-test databases:
 - `RUCKCHAT_TEST_ADMIN_DATABASE_URL` — Admin connection string used to create and
