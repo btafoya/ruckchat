@@ -39,7 +39,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         config.mcp_require_confirmation,
     );
 
-    let addr = parse_server_addr(&config.base_url)?;
+    let addr = parse_server_addr(&config.base_url).await?;
     let listener = TcpListener::bind(&addr).await?;
     info!("listening on http://{addr}");
 
@@ -58,13 +58,16 @@ fn init_tracing(log_level: &str) {
     tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
-fn parse_server_addr(base_url: &str) -> Result<SocketAddr, String> {
+async fn parse_server_addr(base_url: &str) -> Result<SocketAddr, String> {
     let url = url::Url::parse(base_url).map_err(|e| format!("invalid base_url: {e}"))?;
-    let host = url.host_str().unwrap_or("127.0.0.1");
+    let host = url.host_str().unwrap_or("127.0.0.1").to_string();
     let port = url.port().unwrap_or(3000);
-    format!("{host}:{port}")
-        .parse()
-        .map_err(|e| format!("invalid server address: {e}"))
+
+    tokio::net::lookup_host((host, port))
+        .await
+        .map_err(|e| format!("invalid server address: {e}"))?
+        .next()
+        .ok_or_else(|| "invalid server address: no addresses found".to_string())
 }
 
 async fn shutdown_signal() {

@@ -61,6 +61,12 @@ Run the server:
 The server serves HTTP (REST + WebSocket + MCP) on the configured address
 (`RUCKCHAT_BASE_URL`, default `http://localhost:3000`).
 
+To use a different address (e.g., when port 3000 is already in use):
+
+```bash
+RUCKCHAT_BASE_URL=http://127.0.0.1:3001 ./target/release/ruckchat-server
+```
+
 ## Desktop build
 
 Install dependencies:

@@ -48,11 +48,7 @@ impl AppConfig {
     pub fn load() -> Result<Self, config::ConfigError> {
         let cfg = config::Config::builder()
             .add_source(config::File::with_name("ruckchat").required(false))
-            .add_source(
-                config::Environment::with_prefix("RUCKCHAT")
-                    .separator("__")
-                    .try_parsing(true),
-            )
+            .add_source(config::Environment::with_prefix("RUCKCHAT").try_parsing(true))
             .set_default("app_name", "RuckChat")?
             .set_default("environment", "development")?
             .set_default("base_url", "http://localhost:3000")?
@@ -167,6 +163,18 @@ mod tests {
         let cfg = AppConfig::load().expect("load default config");
         assert_eq!(cfg.environment, Environment::Development);
         assert!(!cfg.app_name.is_empty());
+    }
+
+    #[test]
+    fn base_url_env_override() {
+        unsafe {
+            std::env::set_var("RUCKCHAT_BASE_URL", "http://127.0.0.1:3900");
+        }
+        let cfg = AppConfig::load().expect("load config with env override");
+        assert_eq!(cfg.base_url, "http://127.0.0.1:3900");
+        unsafe {
+            std::env::remove_var("RUCKCHAT_BASE_URL");
+        }
     }
 
     #[test]
