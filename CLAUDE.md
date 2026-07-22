@@ -57,8 +57,8 @@ Never reason from assumptions, always reason from the actual data. You need to r
 
 ## Current Status
 
-Phases 1–6 are complete. Phase 8 (Desktop client) is in progress; Phase 7 and
-Phases 9–12 are not yet implemented.
+Phases 1–6 and Phase 8 (Desktop client) are complete. Phase 7 and Phases 9–12
+are not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.

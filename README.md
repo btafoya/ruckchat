@@ -15,12 +15,12 @@ clients.
 
 ## Current Status
 
-Phases 1–6 are complete. Phase 8 (desktop client) is in progress: API client,
-auth flow, core UI shell, and real-time WebSocket sync are done; messaging
-features and native integrations remain. The server is a working REST API with
-authentication, organizations, channels, direct messages, file metadata,
-WebSocket real-time events, and an MCP server, with integration tests against
-PostgreSQL.
+Phases 1–6 and Phase 8 (desktop client) are complete. The server is a working
+REST API with authentication, organizations, channels, direct messages, file
+metadata, WebSocket real-time events, and an MCP server, with integration tests
+against PostgreSQL. The desktop client provides a Tauri + React UI with messaging,
+native OS notifications, a system tray icon with unread count, `ruckchat://`
+deep links, configurable backend URL, draft persistence, and failed-send retry.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -31,7 +31,7 @@ PostgreSQL.
 | 5 | ✅ Complete | WebSocket server for realtime messaging |
 | 6 | ✅ Complete | MCP server integration |
 | 7 | Planned | Plugin SDK |
-| 8 | 🚧 In Progress | Desktop client (Tauri + React) |
+| 8 | ✅ Complete | Desktop client (Tauri + React) |
 | 9 | Planned | Mobile client (Flutter) |
 | 10 | Planned | Migration and packaging tools |
 
@@ -74,8 +74,8 @@ pnpm tauri dev
 ```
 
 The desktop client opens a Tauri WebView pointing at the Vite dev server. It
-expects the server at `http://localhost:3000` by default (configurable in a
-future settings screen).
+expects the server at `http://localhost:3000` by default; change this from the
+`/settings` screen in the app.
 
 ### Run the Tests
 
@@ -167,8 +167,8 @@ Repository traits live in `ruckchat-domain`; SQLx implementations live in
 ## Roadmap
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full
-sprint breakdown. Upcoming milestones include completing the Tauri desktop
-client, a plugin SDK, a Flutter mobile client, and migration/packaging tools.
+sprint breakdown. Upcoming milestones include a plugin SDK, a Flutter mobile
+client, and migration/packaging tools.
 
 ## Contributing
 
