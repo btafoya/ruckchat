@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { Route, Routes, Navigate, useParams } from 'react-router-dom';
 import {
   ChannelProvider,
+  DirectMessageProvider,
   MessageProvider,
   OrganizationProvider,
   PresenceProvider,
@@ -12,12 +13,14 @@ import {
 } from './context';
 import {
   useChannels,
+  useDirectMessages,
   useMessages,
   useOrganizations,
   usePresence,
   useRealtimeStore,
   useSession,
   useTyping,
+  useUnread,
   useWebSocket,
 } from './hooks';
 import { AuthScreen, Shell } from './components';
@@ -25,32 +28,45 @@ import { AuthScreen, Shell } from './components';
 function AuthenticatedShell(): JSX.Element {
   const { session } = useSessionContext();
   const organizationsState = useOrganizations(session?.token);
-  const params = useParams();
+  const params = useParams<{
+    organizationId?: string;
+    channelId?: string;
+    dmId?: string;
+    messageId?: string;
+  }>();
   const organizationId = params.organizationId;
   const channelId = params.channelId;
+  const dmId = params.dmId;
+  const conversationType = channelId ? 'channel' : dmId ? 'direct_message' : undefined;
+  const conversationId = channelId ?? dmId;
   const channelsState = useChannels(session?.token, organizationId);
+  const directMessagesState = useDirectMessages(session?.token, organizationId);
   const messagesState = useMessages(
     session?.token,
-    channelId ? 'channel' : undefined,
-    channelId,
+    conversationType,
+    conversationId,
+    session?.user.id,
   );
   const presenceState = usePresence();
   const typingState = useTyping();
-  const realtimeStore = useRealtimeStore(messagesState, presenceState, typingState);
+  const unreadState = useUnread(conversationId);
+  const realtimeStore = useRealtimeStore(messagesState, presenceState, typingState, unreadState);
   const websocketState = useWebSocket(session?.token, realtimeStore.onEvent);
 
   return (
     <OrganizationProvider value={organizationsState}>
       <ChannelProvider value={channelsState}>
-        <MessageProvider value={messagesState}>
-          <PresenceProvider value={presenceState}>
-            <TypingProvider value={typingState}>
-              <RealtimeProvider value={websocketState}>
-                <Shell />
-              </RealtimeProvider>
-            </TypingProvider>
-          </PresenceProvider>
-        </MessageProvider>
+        <DirectMessageProvider value={directMessagesState}>
+          <MessageProvider value={messagesState}>
+            <PresenceProvider value={presenceState}>
+              <TypingProvider value={typingState}>
+                <RealtimeProvider value={websocketState}>
+                  <Shell />
+                </RealtimeProvider>
+              </TypingProvider>
+            </PresenceProvider>
+          </MessageProvider>
+        </DirectMessageProvider>
       </ChannelProvider>
     </OrganizationProvider>
   );
@@ -68,6 +84,11 @@ export default function App(): JSX.Element {
           <Route path="org" element={<div />} />
           <Route path="org/:organizationId/channel" element={<div />} />
           <Route path="org/:organizationId/channel/:channelId" element={<div />} />
+          <Route
+            path="org/:organizationId/channel/:channelId/thread/:messageId"
+            element={<div />}
+          />
+          <Route path="org/:organizationId/dm/:dmId" element={<div />} />
         </Route>
       </Routes>
     </SessionProvider>

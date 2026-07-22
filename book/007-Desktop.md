@@ -41,8 +41,9 @@ State is managed through React context providers backed by custom hooks:
 
 - `SessionContext` — authenticated user, access token, and session actions.
 - `OrganizationContext` — current organization and list of organizations.
-- `ChannelContext` — channels and direct messages for the active organization.
-- `MessageContext` — message history and drafts per conversation.
+- `ChannelContext` — channels for the active organization.
+- `DirectMessageContext` — direct-message conversations for the active organization.
+- `MessageContext` — message history, reactions, and thread replies per conversation.
 - `PresenceContext` — online status for organization members.
 - `TypingContext` — active typing indicators per conversation.
 - `RealtimeContext` — WebSocket connection status and server event dispatch.
@@ -57,9 +58,11 @@ Each store exposes refresh actions that call the REST API and update local state
   automatically with exponential backoff (500 ms to 30 s).
 - Server events are dispatched into the appropriate React stores:
   - `message.created`, `message.updated`, `message.deleted` → `MessageContext`
-  - `reaction.added`, `reaction.removed` → `MessageContext`
-  - `presence.changed` → `PresenceContext`
-  - `typing.started`, `typing.stopped` → `TypingContext`
+  - `reaction.added`, `reaction.removed` → `MessageContext` (reactions are cached
+    locally because the `Message` schema does not include them)
+  - `presence.updated` → `PresenceContext`
+  - `typing.updated` → `TypingContext` (the server emits a single typing pulse;
+    the client clears typing users after a short timeout)
 
 ## Offline Behavior
 
@@ -81,11 +84,13 @@ desktop/
 │   │   ├── client.ts
 │   │   ├── events.ts
 │   │   └── ...
-│   ├── components/          # UI components (Shell, Sidebar, MessagePane, etc.)
+│   ├── components/          # UI components (Shell, Sidebar, MessagePane,
+│   │   │                     Composer, MessageItem, ThreadPane, etc.)
 │   ├── context/             # React context providers for state stores
 │   │   ├── SessionContext.tsx
 │   │   ├── OrganizationContext.tsx
 │   │   ├── ChannelContext.tsx
+│   │   ├── DirectMessageContext.tsx
 │   │   ├── MessageContext.tsx
 │   │   ├── PresenceContext.tsx
 │   │   ├── TypingContext.tsx
@@ -94,9 +99,11 @@ desktop/
 │   │   ├── useSession.ts
 │   │   ├── useOrganizations.ts
 │   │   ├── useChannels.ts
+│   │   ├── useDirectMessages.ts
 │   │   ├── useMessages.ts
 │   │   ├── usePresence.ts
 │   │   ├── useTyping.ts
+│   │   ├── useUnread.ts
 │   │   ├── useWebSocket.ts
 │   │   └── useRealtimeStore.ts
 │   ├── main.tsx

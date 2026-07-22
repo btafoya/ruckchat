@@ -7,6 +7,8 @@ export type DirectMessageConversation = components['schemas']['DirectMessageConv
 export type Message = components['schemas']['Message'];
 export type MessageList = components['schemas']['MessageList'];
 export type File = components['schemas']['File'];
+export type FileResponse = components['schemas']['FileResponse'];
+export type Reaction = components['schemas']['Reaction'];
 export type ErrorBody = components['schemas']['Error'];
 export type Role = components['schemas']['Role'];
 
@@ -21,3 +23,6 @@ export type PostChannelMessageRequest = components['schemas']['PostChannelMessag
 export type PostDmMessageRequest = components['schemas']['PostDmMessageRequest'];
 export type StartDmRequest = components['schemas']['StartDmRequest'];
 export type UpdateProfileRequest = components['schemas']['UpdateProfileRequest'];
+export type AddReactionRequest = components['schemas']['AddReactionRequest'];
+export type RecordUploadRequest = components['schemas']['RecordUploadRequest'];
+export type AttachFileRequest = components['schemas']['AttachFileRequest'];

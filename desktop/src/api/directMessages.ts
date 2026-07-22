@@ -4,8 +4,10 @@ import type { DirectMessageConversation, Message, MessageList, PostDmMessageRequ
 export class DirectMessagesApi {
   constructor(private readonly client: ApiClient) {}
 
-  async list(token: string): Promise<DirectMessageConversation[]> {
-    const response = await this.client.request<{ items: DirectMessageConversation[] }>('/direct_messages', {
+  async list(token: string, organizationId: string): Promise<DirectMessageConversation[]> {
+    const params = new URLSearchParams();
+    params.set('organization_id', organizationId);
+    const response = await this.client.request<{ items: DirectMessageConversation[] }>(`/direct_messages?${params.toString()}`, {
       token,
     });
     return response.items;
@@ -19,9 +21,17 @@ export class DirectMessagesApi {
     });
   }
 
-  async listMessages(token: string, conversationId: string): Promise<Message[]> {
+  async listMessages(
+    token: string,
+    conversationId: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<Message[]> {
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    params.set('offset', String(offset));
     const response = await this.client.request<MessageList>(
-      `/direct_messages/${conversationId}/messages`,
+      `/direct_messages/${conversationId}/messages?${params.toString()}`,
       {
         token,
       },
