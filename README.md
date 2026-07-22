@@ -15,9 +15,9 @@ clients.
 
 ## Current Status
 
-Phases 1–4 are complete. The server is a working REST API with authentication,
-organizations, channels, direct messages, file metadata, and integration tests
-against PostgreSQL.
+Phases 1–6 are complete. The server is a working REST API with authentication,
+organizations, channels, direct messages, file metadata, WebSocket real-time
+events, and an MCP server, with integration tests against PostgreSQL.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -26,7 +26,7 @@ against PostgreSQL.
 | 3 | ✅ Complete | Service layer and SQLx repository implementations |
 | 4 | ✅ Complete | Axum REST API, auth extractor, integration tests |
 | 5 | ✅ Complete | WebSocket server for realtime messaging |
-| 6 | Planned | MCP server integration |
+| 6 | ✅ Complete | MCP server integration |
 | 7 | Planned | Plugin SDK |
 | 8 | Planned | Desktop client (Tauri) |
 | 9 | Planned | Mobile client (Flutter) |
@@ -39,6 +39,8 @@ against PostgreSQL.
 - **Authentication**: Argon2 password hashing, SHA-256 session tokens
 - **Validation**: Custom domain validators in `ruckchat-common`
 - **Configuration**: `ruckchat-config` (TOML + environment variables)
+- **Real-time**: WebSocket with in-memory connection manager
+- **MCP**: `rmcp` Streamable HTTP transport at `/mcp/v1/sse`
 - **Tracing**: `tracing` + `tracing-subscriber`
 
 ## Quick Start
@@ -92,6 +94,8 @@ Key endpoints:
 | GET  | `/channels/{id}/messages` | Get channel history |
 | POST | `/channels/{id}/messages` | Post a message |
 | POST | `/direct_messages` | Start a DM conversation |
+| POST | `/mcp/v1/sse` | MCP Streamable HTTP client messages |
+| GET  | `/mcp/v1/sse` | MCP Server-Sent Events stream |
 
 ## Architecture
 
@@ -106,6 +110,8 @@ root/
 │   ├── src/handlers/       # Axum routes
 │   ├── src/services/       # Business logic
 │   ├── src/repositories/   # SQLx implementations
+│   ├── src/websocket/      # WebSocket real-time events
+│   ├── src/mcp/            # MCP server
 │   └── tests/              # HTTP integration tests
 ├── migrations/             # SQLx migrations
 ├── book/                   # Project documentation
@@ -127,8 +133,8 @@ Repository traits live in `ruckchat-domain`; SQLx implementations live in
 ## Roadmap
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full
-sprint breakdown. Upcoming milestones include WebSocket realtime messaging,
-a Tauri desktop client, a Flutter mobile client, and a plugin SDK.
+sprint breakdown. Upcoming milestones include a plugin SDK, a Tauri desktop
+client, a Flutter mobile client, and migration/packaging tools.
 
 ## Contributing
 

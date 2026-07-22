@@ -1,9 +1,9 @@
 # ruckchat-server
 
 RuckChat server crate. It implements the service layer, SQLx repository
-implementations, the Axum REST API, and the WebSocket real-time event layer on
-top of the `ruckchat-domain` crate. MCP and plugin support are added in later
-phases.
+implementations, the Axum REST API, the WebSocket real-time event layer, and the
+MCP server on top of the `ruckchat-domain` crate. Plugin support is added in a
+later phase.
 
 ## Crate layout
 
@@ -53,6 +53,12 @@ server/src
 │   ├── manager.rs
 │   ├── bus.rs
 │   └── handler.rs
+├── mcp/                 # Model Context Protocol server
+│   ├── mod.rs
+│   ├── server.rs
+│   ├── tools.rs
+│   ├── resources.rs
+│   └── handler.rs
 └── testing.rs          # In-memory mock repositories and event bus for unit tests
 ```
 
@@ -87,9 +93,11 @@ requests.
 
 ## API documentation
 
-The REST API and WebSocket upgrade endpoint are documented in
-`server/openapi.yaml`. The WebSocket protocol is documented in
-`docs/007-WebSocket-Protocol.md` and `book/010-WebSockets.md`.
+The REST API, WebSocket upgrade endpoint, and MCP Streamable HTTP endpoint are
+documented in `server/openapi.yaml`. The WebSocket protocol is documented in
+`docs/007-WebSocket-Protocol.md` and `book/010-WebSockets.md`. The MCP server is
+documented in `docs/ADR-007-MCP-Server.md`, `docs/008-MCP-Server.md`, and
+`book/011-MCP.md`.
 
 ## Service layer
 
@@ -105,6 +113,7 @@ traits defined in `ruckchat-domain`. The current services cover:
 - **Reaction** — add and remove message reactions; emits real-time events.
 - **DirectMessage** — start conversations and list conversations for a user.
 - **File** — record uploads, list files, and attach files to messages.
+- **McpService** — scoped bridge used by the MCP server; delegates to the other services.
 
 Real-time delivery is implemented in `server/src/websocket`:
 
@@ -119,3 +128,9 @@ Real-time delivery is implemented in `server/src/websocket`:
 by the `AuthUser` extractor, which accepts either an HTTP-only `ruckchat_session`
 cookie or an `Authorization: Bearer <token>` header. Errors are mapped to a
 uniform JSON body by `server/src/handlers/error.rs`.
+
+The `/mcp/v1/sse` endpoint is mounted for Streamable HTTP MCP traffic. The
+`AuthUser` extractor authenticates the request before the `mcp_handler` injects
+the caller's `UserId` into the request extensions; the `RuckChatMcpServer`
+handler reads it from the `http::request::Parts` extensions passed through the
+JSON-RPC request context.
