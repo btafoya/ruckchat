@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://localhost:3000 ws://localhost:3000; img-src 'self' blob: data:; style-src 'self'; script-src 'self';"
+      "csp": "default-src 'self'; connect-src 'self' http://localhost:3000 ws://localhost:3000 http: ws:; img-src 'self' blob: data:; style-src 'self'; script-src 'self';"
     }
   },
   "bundle": {
@@ -33,6 +33,10 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "copyright": "Copyright © 2026 Brian Tafoya",
+    "category": "Network",
+    "shortDescription": "RuckChat desktop client",
+    "longDescription": "RuckChat is a real-time team messaging desktop client built with Tauri and React."
   }
 }

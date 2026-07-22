@@ -42,6 +42,7 @@ const mockMessageState: MessagesState = {
   refresh: vi.fn(),
   loadMore: vi.fn(),
   sendMessage: mockSendMessage,
+  retryMessage: vi.fn(),
   loadThreadReplies: vi.fn(),
   threadReplies: [],
   threadRepliesLoading: false,

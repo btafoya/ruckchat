@@ -14,6 +14,7 @@ export interface MessagesState {
   refresh: () => Promise<void>;
   loadMore: () => Promise<void>;
   sendMessage: (content: string, parentId?: string, fileIds?: string[]) => Promise<Message | undefined>;
+  retryMessage: (messageId: string) => Promise<void>;
   loadThreadReplies: (messageId: string) => Promise<void>;
   threadReplies: Message[];
   threadRepliesLoading: boolean;
@@ -25,11 +26,16 @@ export interface MessagesState {
   removeMessage: (messageId: string) => void;
 }
 
+export interface UseMessagesOptions {
+  apiUrl?: string;
+}
+
 export function useMessages(
   token: string | undefined,
   conversationType: 'channel' | 'direct_message' | undefined,
   conversationId: string | undefined,
   userId: string | undefined,
+  options: UseMessagesOptions = {},
 ): MessagesState {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,8 +46,9 @@ export function useMessages(
   const [threadReplies, setThreadReplies] = useState<Message[]>([]);
   const [threadRepliesLoading, setThreadRepliesLoading] = useState(false);
   const [reactions, setReactions] = useState<Record<string, Reaction[]>>({});
-  const api = useMemo(() => createApi(), []);
+  const api = useMemo(() => createApi(options.apiUrl), [options.apiUrl]);
   const pendingSendRef = useRef<Set<string>>(new Set());
+  const pendingContentRef = useRef<Record<string, string>>({});
 
   const loadPage = useCallback(
     async (pageOffset: number, append: boolean) => {
@@ -107,6 +114,7 @@ export function useMessages(
       }
 
       const tempId = `pending-${Date.now()}`;
+      pendingContentRef.current[tempId] = trimmed;
       const now = new Date().toISOString();
       const optimistic: Message = {
         id: tempId,
@@ -139,15 +147,34 @@ export function useMessages(
 
         setMessages((prev) => prev.map((m) => (m.id === tempId ? posted : m)));
         pendingSendRef.current.delete(tempId);
+        delete pendingContentRef.current[tempId];
         return posted;
       } catch (err) {
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
         pendingSendRef.current.delete(tempId);
         setError(err instanceof Error ? err.message : 'Failed to send message');
         return undefined;
       }
     },
     [api, token, conversationType, conversationId, userId],
+  );
+
+  const retryMessage = useCallback(
+    async (messageId: string) => {
+      if (!token || !conversationType || !conversationId || !userId) {
+        return;
+      }
+      const content = pendingContentRef.current[messageId];
+      if (!content) {
+        return;
+      }
+      const message = messages.find((m) => m.id === messageId);
+      const parentId = message?.parent_id ?? undefined;
+
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      delete pendingContentRef.current[messageId];
+      await sendMessage(content, parentId);
+    },
+    [messages, sendMessage, token, conversationType, conversationId, userId],
   );
 
   const loadThreadReplies = useCallback(
@@ -231,6 +258,7 @@ export function useMessages(
       refresh,
       loadMore,
       sendMessage,
+      retryMessage,
       loadThreadReplies,
       threadReplies,
       threadRepliesLoading,
@@ -250,6 +278,7 @@ export function useMessages(
       refresh,
       loadMore,
       sendMessage,
+      retryMessage,
       loadThreadReplies,
       threadReplies,
       threadRepliesLoading,

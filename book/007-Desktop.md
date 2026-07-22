@@ -29,11 +29,17 @@ The desktop client is a Tauri application with a React front end. It targets Lin
 
 Tauri exposes these native capabilities:
 
-- **Notifications:** OS-native toast notifications for mentions and DMs.
-- **File open/save:** Native dialogs for downloading attachments.
-- **Deep links:** `ruckchat://` scheme for organization invitations.
+- **Notifications:** OS-native toast notifications for mentions and DMs, gated by
+  a user toggle in the settings screen.
+- **File open:** Native multi-select dialog via `@tauri-apps/plugin-dialog` for
+  choosing file metadata attachments in the composer.
+- **Deep links:** `ruckchat://` scheme for organization invitations. The Tauri
+  shell registers the scheme, emits open events while running, and exposes a
+  `get_deep_link_url` command so the React front end can read the startup URL.
 - **Auto-updater:** Check for updates on startup (optional; disabled by default).
-- **Tray icon:** Show unread badge and quick status.
+- **Tray icon:** System tray icon with a Show/Quit context menu and a tooltip that
+  reflects the unread count. The unread badge is updated from a `set_unread_count`
+  Tauri command called whenever the total unread count changes.
 
 ## Application State
 
@@ -47,6 +53,9 @@ State is managed through React context providers backed by custom hooks:
 - `PresenceContext` — online status for organization members.
 - `TypingContext` — active typing indicators per conversation.
 - `RealtimeContext` — WebSocket connection status and server event dispatch.
+- **Settings** — `useSettings` hook (not a context) persisting the backend URL and
+  notification preference to `localStorage`. API hooks and the WebSocket hook
+  read this URL and pass it to the fetch/WebSocket clients.
 
 Each store exposes refresh actions that call the REST API and update local state.
 
@@ -66,8 +75,13 @@ Each store exposes refresh actions that call the REST API and update local state
 
 ## Offline Behavior
 
-- Draft messages are preserved in `localStorage` until sent.
-- Failed sends show a retry affordance and remain editable.
+- Draft messages are preserved per conversation in `localStorage`
+  (`ruckchat_draft_${conversationId}`) and restored when the conversation is
+  selected.
+- Sends optimistically add a pending message with a `pending-` prefixed ID. If the
+  request fails, the pending message stays in place with a retry affordance in
+  `MessageItem`. `useMessages` exposes `retryMessage` to resend the original
+  content once the connection or server is healthy again.
 - Read positions are cached locally and reconciled on reconnect.
 
 ## Project Layout
@@ -85,7 +99,7 @@ desktop/
 │   │   ├── events.ts
 │   │   └── ...
 │   ├── components/          # UI components (Shell, Sidebar, MessagePane,
-│   │   │                     Composer, MessageItem, ThreadPane, etc.)
+│   │   │                     Composer, MessageItem, ThreadPane, Settings, etc.)
 │   ├── context/             # React context providers for state stores
 │   │   ├── SessionContext.tsx
 │   │   ├── OrganizationContext.tsx
@@ -105,7 +119,11 @@ desktop/
 │   │   ├── useTyping.ts
 │   │   ├── useUnread.ts
 │   │   ├── useWebSocket.ts
-│   │   └── useRealtimeStore.ts
+│   │   ├── useRealtimeStore.ts
+│   │   ├── useSettings.ts
+│   │   ├── useNotifications.ts
+│   │   ├── useTray.ts
+│   │   └── useDeepLink.ts
 │   ├── main.tsx
 │   ├── App.tsx
 │   ├── App.test.tsx
@@ -120,6 +138,17 @@ desktop/
     ├── capabilities/default.json
     └── icons/
 ```
+
+## Settings
+
+The `/settings` route displays a settings screen where users can:
+
+- Change the backend URL used by REST and WebSocket connections. An empty value
+  falls back to `http://localhost:3000`.
+- Enable or disable OS notifications for mentions and DMs.
+
+The settings object is stored under `ruckchat_settings` in `localStorage` and
+read by `useSession`, the API hooks, and `useWebSocket` at runtime.
 
 ## Build and Release
 

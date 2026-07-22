@@ -1,9 +1,13 @@
 export { useChannels } from './useChannels';
+export { useDeepLink } from './useDeepLink';
 export { useDirectMessages } from './useDirectMessages';
 export { useMessages } from './useMessages';
+export { useNotifications, type NotificationState } from './useNotifications';
 export { useOrganizations } from './useOrganizations';
 export { usePresence } from './usePresence';
 export { useRealtimeStore } from './useRealtimeStore';
+export { useSettings, type Settings, type SettingsState } from './useSettings';
+export { useTray } from './useTray';
 export { useTyping } from './useTyping';
 export { useUnread, type UnreadState } from './useUnread';
 export { useWebSocket } from './useWebsocket';

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DEFAULT_API_URL } from '../config';
 import type { ClientMessage, EventEnvelope, ServerEvent } from '../api/events';
 
 export type EventHandler = (event: ServerEvent) => void;
@@ -20,9 +19,14 @@ export interface WebSocketState {
   send: (message: ClientMessage) => boolean;
 }
 
+export interface UseWebSocketOptions {
+  apiUrl?: string;
+}
+
 export function useWebSocket(
   token: string | undefined,
   onEvent: EventHandler,
+  options: UseWebSocketOptions = {},
 ): WebSocketState {
   const [status, setStatus] = useState<ConnectionStatus>('closed');
   const socketRef = useRef<WebSocket | null>(null);
@@ -45,7 +49,8 @@ export function useWebSocket(
     }
 
     setStatus('connecting');
-    const url = buildWebSocketUrl(DEFAULT_API_URL);
+    const baseUrl = options.apiUrl ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    const url = buildWebSocketUrl(baseUrl);
     const socket = new WebSocket(url);
     socketRef.current = socket;
 
@@ -80,7 +85,7 @@ export function useWebSocket(
     socket.onerror = () => {
       setStatus('error');
     };
-  }, [token]);
+  }, [token, options.apiUrl]);
 
   const send = useCallback((message: ClientMessage): boolean => {
     const socket = socketRef.current;
@@ -117,7 +122,7 @@ export function useWebSocket(
         socketRef.current = null;
       }
     };
-  }, [token, connect]);
+  }, [token, connect, options.apiUrl]);
 
   return useMemo(
     () => ({

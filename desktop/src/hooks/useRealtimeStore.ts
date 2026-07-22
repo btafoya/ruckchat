@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import type { ServerEvent } from '../api/events';
 import type { MessagesState } from './useMessages';
+import type { NotificationState } from './useNotifications';
 import type { PresenceState } from './usePresence';
 import type { TypingState } from './useTyping';
 import type { UnreadState } from './useUnread';
@@ -14,6 +15,7 @@ export function useRealtimeStore(
   presence: PresenceState,
   typing: TypingState,
   unread: UnreadState,
+  notifications?: NotificationState,
 ): RealtimeStore {
   const onEvent = useCallback(
     (event: ServerEvent) => {
@@ -21,6 +23,7 @@ export function useRealtimeStore(
         case 'message.created':
           messages.appendMessage(event.message);
           unread.increment(event.message.conversation_id);
+          void notifications?.maybeNotify(event);
           break;
         case 'message.updated':
           messages.updateMessage(event.message);
@@ -50,7 +53,7 @@ export function useRealtimeStore(
           break;
       }
     },
-    [messages, presence, typing, unread],
+    [messages, presence, typing, unread, notifications],
   );
 
   return useMemo(

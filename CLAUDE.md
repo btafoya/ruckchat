@@ -73,14 +73,16 @@ Phases 9–12 are not yet implemented.
 - Phase 6: MCP server exposed on `/mcp/v1/sse` using the `rmcp` Streamable HTTP
   transport, with six tools, four `ruckchat://` resources, service-layer
   authorization, unit tests, integration tests, and OpenAPI documentation.
-- Phase 8 (in progress): Desktop client in `desktop/` with Tauri v2, React 19,
+- Phase 8 (complete): Desktop client in `desktop/` with Tauri v2, React 19,
   TypeScript, Tailwind CSS v4, and React Router v7. The `desktop/src-tauri`
-  crate is part of the Cargo workspace. Completed so far: API client + auth
-  flow, core UI shell and navigation, state stores with real-time WebSocket
-  sync, and messaging features (message history with pagination, composer with
-  markdown preview and @mention autocomplete, typing indicators, reactions,
-  file metadata attachments, thread replies, and unread badges). Remaining:
-  native integrations, offline behavior, packaging, and further docs.
+  crate is part of the Cargo workspace. Features include API client + auth flow,
+  core UI shell and navigation, state stores with real-time WebSocket sync,
+  messaging (message history with pagination, composer with markdown preview and
+  @mention autocomplete, typing indicators, reactions, file metadata attachments,
+  thread replies, and unread badges), native integrations (OS notifications,
+  tray icon with unread count, file dialogs, deep links for `ruckchat://`),
+  offline resilience (draft persistence and failed-send retry), a configurable
+  backend URL settings screen, packaging metadata, tests, and docs.
 - Plugin and mobile support are added in later phases.
 
 ## Commands
@@ -170,10 +172,22 @@ root/
 - `desktop/src/components/ThreadPane.tsx` — Thread reply detail pane.
 - `desktop/src/components/MessageItem.tsx` — Individual message with reactions
   and reply action.
-- `desktop/src/hooks/useMessages.ts` — Message history, send, reactions cache,
-  and thread reply loading.
+- `desktop/src/hooks/useMessages.ts` — Message history, send, failed-send retry,
+  reactions cache, and thread reply loading.
 - `desktop/src/hooks/useUnread.ts` — Local unread counts driven by WebSocket
   events.
+- `desktop/src/hooks/useSettings.ts` — Configurable backend URL and notification
+  preference, persisted in `localStorage`.
+- `desktop/src/hooks/useNotifications.ts` — OS notification permission and
+  delivery for mentions and DMs.
+- `desktop/src/hooks/useTray.ts` — Reflects the total unread count in the tray
+  tooltip.
+- `desktop/src/hooks/useDeepLink.ts` — Reads the current `ruckchat://` deep-link
+  URL on startup.
+- `desktop/src/components/Settings.tsx` — Backend URL and notification settings
+  screen.
+- `desktop/src-tauri/src/lib.rs` — Tray setup, `set_unread_count`,
+  `get_deep_link_url`, and plugin initialization.
 - `server/tests/` — Integration tests against PostgreSQL.
 - `server/tests/mcp.rs` — MCP Streamable HTTP endpoint integration tests.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
@@ -323,7 +337,9 @@ Or use the equivalent CodeGraph MCP server action.
 - Repository traits live in `ruckchat-domain`; SQLx implementations live in
   `server/src/repositories/`.
 
-- The desktop client hard-codes `http://localhost:3000` for development.
+- The desktop client defaults to `http://localhost:3000` for development and
+  exposes a settings screen to change the backend URL. The chosen URL is stored
+  in `localStorage` and used by all API calls and the WebSocket connection.
   WebSocket authentication relies on the HTTP-only `ruckchat_session` cookie
   set at login; restoring from `localStorage` alone is not sufficient.
 

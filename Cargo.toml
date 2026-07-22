@@ -27,6 +27,9 @@ regex = "1"
 once_cell = "1"
 async-trait = "0.1"
 rmcp = { version = "2.2.0", features = ["server", "server-side-http", "transport-streamable-http-server"] }
+tauri-plugin-notification = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-deep-link = "2"
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

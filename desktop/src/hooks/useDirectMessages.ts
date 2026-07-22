@@ -9,14 +9,19 @@ export interface DirectMessagesState {
   refresh: () => Promise<void>;
 }
 
+export interface UseDirectMessagesOptions {
+  apiUrl?: string;
+}
+
 export function useDirectMessages(
   token: string | undefined,
   organizationId: string | undefined,
+  options: UseDirectMessagesOptions = {},
 ): DirectMessagesState {
   const [conversations, setConversations] = useState<DirectMessageConversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const api = useMemo(() => createApi(), []);
+  const api = useMemo(() => createApi(options.apiUrl), [options.apiUrl]);
 
   const refresh = useCallback(async () => {
     if (!token || !organizationId) {

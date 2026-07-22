@@ -9,11 +9,19 @@ export interface ChannelsState {
   refresh: () => Promise<void>;
 }
 
-export function useChannels(token: string | undefined, organizationId: string | undefined): ChannelsState {
+export interface UseChannelsOptions {
+  apiUrl?: string;
+}
+
+export function useChannels(
+  token: string | undefined,
+  organizationId: string | undefined,
+  options: UseChannelsOptions = {},
+): ChannelsState {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const api = useMemo(() => createApi(), []);
+  const api = useMemo(() => createApi(options.apiUrl), [options.apiUrl]);
 
   const refresh = useCallback(async () => {
     if (!token || !organizationId) {

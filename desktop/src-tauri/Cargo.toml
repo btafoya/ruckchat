@@ -15,8 +15,11 @@ categories = ["network-programming"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
+tauri-plugin-notification = { workspace = true }
+tauri-plugin-dialog = { workspace = true }
+tauri-plugin-deep-link = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 

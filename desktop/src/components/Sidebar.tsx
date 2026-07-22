@@ -138,7 +138,16 @@ export function Sidebar(): JSX.Element {
       )}
 
       <div className="mt-auto border-t border-gray-700 p-3">
-        <div className="text-sm text-gray-300">{session?.user.display_name ?? session?.user.email}</div>
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-300">{session?.user.display_name ?? session?.user.email}</div>
+          <NavLink
+            to="/settings"
+            className="text-xs text-gray-400 hover:text-white"
+            aria-label="Settings"
+          >
+            Settings
+          </NavLink>
+        </div>
       </div>
     </aside>
   );

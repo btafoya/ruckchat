@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=RuckChat
+Comment=Real-time team messaging
+Exec=%exec%
+Icon=%icon%
+Terminal=false
+Type=Application
+MimeType=x-scheme-handler/ruckchat;
+Categories=Network;Chat;

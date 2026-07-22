@@ -9,11 +9,18 @@ export interface OrganizationsState {
   refresh: () => Promise<void>;
 }
 
-export function useOrganizations(token: string | undefined): OrganizationsState {
+export interface UseOrganizationsOptions {
+  apiUrl?: string;
+}
+
+export function useOrganizations(
+  token: string | undefined,
+  options: UseOrganizationsOptions = {},
+): OrganizationsState {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const api = useMemo(() => createApi(), []);
+  const api = useMemo(() => createApi(options.apiUrl), [options.apiUrl]);
 
   const refresh = useCallback(async () => {
     if (!token) {

@@ -51,6 +51,7 @@ describe('useWebSocket', () => {
   it('connects when a token is provided and dispatches events', async () => {
     const handler = vi.fn();
     vi.stubGlobal('WebSocket', MockWebSocket);
+    vi.stubGlobal('location', { origin: 'http://localhost:3000' });
     MockWebSocket.instances = [];
 
     const { result } = renderHook(() => useWebSocket('token', handler));
@@ -65,6 +66,8 @@ describe('useWebSocket', () => {
       },
       { timeout: 3000 },
     );
+
+    expect(MockWebSocket.instances[0]).toBeDefined();
 
     const socket = MockWebSocket.instances[0];
 

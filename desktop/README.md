@@ -26,10 +26,11 @@ Installers are produced under `src-tauri/target/release/bundle/`.
 
 - `src/api/` — OpenAPI-generated schema, fetch client, and API modules.
 - `src/components/` — UI components (`Shell`, `Sidebar`, `MessagePane`,
-  `Composer`, `MessageItem`, `ThreadPane`, `AuthScreen`, `AuthForm`).
+  `Composer`, `MessageItem`, `ThreadPane`, `Settings`, `AuthScreen`, `AuthForm`).
 - `src/context/` — React context providers for session, organizations, channels,
   direct messages, messages, presence, typing, and real-time sync.
-- `src/hooks/` — State hooks and the WebSocket connection manager.
+- `src/hooks/` — State hooks and the WebSocket connection manager, plus
+  `useSettings`, `useNotifications`, `useTray`, and `useDeepLink`.
 - `src-tauri/` — Tauri Rust shell and native integrations.
 - `index.html` — Vite entry point.
 - `vite.config.ts` — Vite + Tailwind + Vitest configuration.
@@ -46,14 +47,19 @@ Installers are produced under `src-tauri/target/release/bundle/`.
 
 ## Notes
 
-- The backend URL is currently hard-coded to `http://localhost:3000` for
-  development (matching the server default in `ruckchat-config`). A settings
-  screen will make this configurable in the native integrations task.
+- The backend URL defaults to `http://localhost:3000` and can be changed from
+  the `/settings` screen. The URL is stored under `ruckchat_settings` in
+  `localStorage` and used by all API hooks and the WebSocket connection.
 - Messaging features implemented in `MessagePane`, `Composer`, `MessageItem`,
   and `ThreadPane` include paginated history loading, message sending with
-  optimistic updates, `@mention` autocomplete derived from direct-message
-  member IDs, markdown preview, typing indicators, reactions, file metadata
-  attachments, thread replies, and local unread badges.
+  optimistic updates, failed-send retry, `@mention` autocomplete derived from
+  direct-message member IDs, markdown preview, typing indicators, reactions,
+  file metadata attachments, thread replies, and local unread badges.
+- Native integrations use Tauri plugins: notifications (`useNotifications`),
+  file dialogs in the composer, deep-link registration for `ruckchat://`, and a
+  tray icon with an unread count tooltip (`set_unread_count` command).
+- Draft messages are persisted per conversation (`ruckchat_draft_${id}` in
+  `localStorage`).
 - TypeScript API types are generated from `../server/openapi.yaml` into
   `src/api/schema.ts`. Regenerate with `pnpm dlx openapi-typescript
   ../server/openapi.yaml -o src/api/schema.ts` when the server contract changes.

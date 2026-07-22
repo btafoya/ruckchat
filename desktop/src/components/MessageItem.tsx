@@ -15,12 +15,13 @@ interface MessageItemProps {
 
 export function MessageItem({ message, organizationId, showReplyButton = true }: MessageItemProps): JSX.Element {
   const { session } = useSessionContext();
-  const { reactions, addReaction, removeReaction } = useMessageContext();
+  const { reactions, addReaction, removeReaction, retryMessage } = useMessageContext();
   const api = useMemo(() => createApi(), []);
   const [isReacting, setIsReacting] = useState(false);
 
   const messageReactions = reactions[message.id] ?? [];
   const isDeleted = message.deleted_at != null;
+  const isPending = message.id.startsWith('pending-');
 
   const grouped = useMemo(() => {
     const map = new Map<string, { count: number; hasMe: boolean }>();
@@ -73,6 +74,7 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
       <div className="flex items-baseline gap-2">
         <span className="text-sm font-semibold text-green-400">{message.author_id}</span>
         <span className="text-xs text-gray-500">{new Date(message.created_at).toLocaleString()}</span>
+        {isPending && <span className="text-xs text-yellow-500">Sending...</span>}
       </div>
       <div className="whitespace-pre-wrap text-sm text-gray-200">
         {isDeleted ? <span className="italic text-gray-500">[deleted]</span> : message.content}
@@ -103,20 +105,29 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
             key={emoji}
             type="button"
             onClick={() => void toggleReaction(emoji)}
-            disabled={isReacting}
-            className="rounded-md px-1 py-0.5 text-sm text-gray-400 hover:bg-gray-700 hover:text-white"
+            disabled={isReacting || isPending}
+            className="rounded-md px-1 py-0.5 text-sm text-gray-400 hover:bg-gray-700 hover:text-white disabled:opacity-50"
             aria-label={`React with ${emoji}`}
           >
             {emoji}
           </button>
         ))}
-        {showReplyButton && (
+        {showReplyButton && !isPending && (
           <NavLink
             to={replyPath}
             className="ml-2 text-xs text-gray-400 hover:text-white"
           >
             Reply in thread
           </NavLink>
+        )}
+        {isPending && (
+          <button
+            type="button"
+            onClick={() => void retryMessage(message.id)}
+            className="ml-2 text-xs text-yellow-400 hover:text-yellow-300"
+          >
+            Retry
+          </button>
         )}
       </div>
     </article>

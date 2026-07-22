@@ -4,6 +4,7 @@ const STORAGE_KEY = 'ruckchat_unread_counts';
 
 export interface UnreadState {
   counts: Record<string, number>;
+  total: number;
   increment: (conversationId: string) => void;
   markRead: (conversationId: string) => void;
 }
@@ -64,12 +65,18 @@ export function useUnread(activeConversationId: string | undefined): UnreadState
     }
   }, [activeConversationId, markRead]);
 
+  const total = useMemo(
+    () => Object.values(counts).reduce((sum, count) => sum + count, 0),
+    [counts],
+  );
+
   return useMemo(
     () => ({
       counts,
+      total,
       increment,
       markRead,
     }),
-    [counts, increment, markRead],
+    [counts, total, increment, markRead],
   );
 }

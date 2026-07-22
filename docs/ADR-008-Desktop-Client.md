@@ -46,12 +46,14 @@ Specific choices:
    `WebSocket` for real-time events, authenticated with the same session cookie
    or bearer token as the server.
 
-5. **Native integrations**: Tauri plugins expose notifications, file open/save
+5. **Native integrations**: Tauri plugins expose notifications, file open
    dialogs, deep-link handling for `ruckchat://` invitations, and a tray icon.
+   A `/settings` screen lets users change the backend URL and toggle
+   notifications.
 
 6. **Offline resilience**: Draft messages and read positions are cached locally
-   (`localStorage` and/or Tauri secure storage) and reconciled on reconnect.
-   Failed sends remain editable with a retry affordance.
+   in `localStorage` and reconciled on reconnect. Failed sends remain in the
+   message list with a retry affordance.
 
 7. **Security**: The Tauri Content Security Policy restricts `connect-src` to the
   configured RuckChat server, disallows `unsafe-inline` scripts, and scopes
