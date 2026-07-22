@@ -8,6 +8,7 @@ Never change architecture without updating ADRs.
 - Always fully complete the task.
 - Never create stubs.
 - Always build for production use.
+- Always follow the `Implementation Loop` below.
 
 ## Current Status
 
@@ -144,24 +145,10 @@ Optional via `ruckchat.toml` or `RUCKCHAT_*` environment variables:
 
 ## CodeGraph and MCP Tooling
 
-This project uses the [CodeGraph MCP server](https://colbymchenry.github.io/codegraph/getting-started/introduction/)
-for structural code exploration. Prefer CodeGraph tools for questions like:
-
-- Where is X defined?
-- What calls function Y?
-- What would break if I changed Z?
-- Show me focused context for a task/area.
-- See several related symbols' source at once.
-
-Rules of thumb:
-
-- Use `codegraph_explore` instead of `grep` for symbol lookup and structural questions.
-- Trust the AST-parsed results; do not re-verify with grep.
-- Avoid chaining many `Read` calls; one `codegraph_explore` call returns grouped source.
-
-MCP server configuration and additional Claude tooling guidance is available at
-[SuperClaude MCP docs](https://superclaude.netlify.app/docs/User-Guide/mcp-servers).
-Use configured MCP servers whenever they provide a dedicated tool for the task.
+Use the [CodeGraph MCP server](https://colbymchenry.github.io/codegraph/getting-started/introduction/)
+for structural questions. Prefer `codegraph_explore` over `grep` or chained `Read`
+calls; trust its AST-parsed results. Use other configured MCP servers when they
+provide a dedicated tool for the task.
 
 ## Implementation Loop
 
@@ -195,26 +182,17 @@ Update codegraph `codegraph index`
 
 ### Read docs
 
-Before planning, read the relevant project documentation. Priority order:
-
-1. Active ADRs in `docs/ADR-*.md` for architectural constraints.
-2. `book/000-Vision.md`, `book/001-Product.md`, and `book/002-UX.md` for goals and behavior expectations.
-3. `book/003-Architecture.md`, `book/004-Domain.md`, and `book/005-Database.md` for structure and invariants.
-4. `book/006-Server.md` for server-layer conventions.
-5. `.claude/plan.md` if the task is part of an active phase plan.
+Read ADRs first, then `book/000-Vision.md` through `book/006-Server.md` as the
+task touches them. Check `.claude/plan.md` for active phase plans.
 
 ### Plan
 
-- State assumptions explicitly.
-- Identify which crates, services, repositories, and domain invariants are involved.
-- Decide whether the change requires an ADR update before code changes.
-- For non-trivial changes, write the plan down and verify it against the docs before coding.
+State assumptions, identify affected crates/services/repositories, and decide if
+an ADR needs updating before code changes.
 
 ### Write code
 
-- Follow the phase order in **Implementation Order**.
-- Keep changes surgical; do not refactor unrelated code.
-- Match existing style and naming.
+Follow **Implementation Order**, keep changes surgical, and match existing style.
 
 ### Format, check, lint, test
 
@@ -231,14 +209,8 @@ If `cargo nextest` is not installed, use `cargo test --workspace` as a fallback.
 
 ### Update docs
 
-After the code passes all checks, update the relevant documentation:
-
-- `server/openapi.yaml` for REST API changes.
-- `book/*.md` for behavior, architecture, or convention changes.
-- `docs/ADR-*.md` for architecture decisions or changes.
-- `server/README.md` for server crate-specific developer guidance.
-- `desktop/README.md` for desktop client developer guidance.
-- This `CLAUDE.md` for global contract changes.
+Update `server/openapi.yaml`, `book/*.md`, `docs/ADR-*.md`, `server/README.md`,
+`desktop/README.md`, and this `CLAUDE.md` as the change touches them.
 
 ### Commit
 
@@ -276,21 +248,8 @@ Or use the equivalent CodeGraph MCP server action.
 
 ## Implementation Order
 
-1. Cargo workspace
-2. Shared crates
-3. Database schema
-4. Domain layer
-5. Services
-6. REST API
-7. WebSocket server
-8. MCP server
-9. Plugin SDK
-10. Desktop
-11. Mobile
-12. Migration tools
+1. Cargo workspace → 2. Shared crates → 3. Database schema → 4. Domain layer →
+5. Services → 6. REST API → 7. WebSocket server → 8. MCP server → 9. Plugin SDK →
+10. Desktop → 11. Mobile → 12. Migration tools.
 
-Every completed feature must include:
-- Unit tests
-- Integration tests
-- OpenAPI updates
-- Documentation
+Ship unit tests, integration tests, OpenAPI updates, and docs with every feature.
