@@ -15,9 +15,10 @@ clients.
 
 ## Current Status
 
-Phases 1–6 are complete. The server is a working REST API with authentication,
-organizations, channels, direct messages, file metadata, WebSocket real-time
-events, and an MCP server, with integration tests against PostgreSQL.
+Phases 1–6 are complete. Phase 8 (desktop client) is in progress. The server is
+a working REST API with authentication, organizations, channels, direct messages,
+file metadata, WebSocket real-time events, and an MCP server, with integration
+tests against PostgreSQL.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -28,7 +29,7 @@ events, and an MCP server, with integration tests against PostgreSQL.
 | 5 | ✅ Complete | WebSocket server for realtime messaging |
 | 6 | ✅ Complete | MCP server integration |
 | 7 | Planned | Plugin SDK |
-| 8 | Planned | Desktop client (Tauri) |
+| 8 | 🚧 In Progress | Desktop client (Tauri + React) |
 | 9 | Planned | Mobile client (Flutter) |
 | 10 | Planned | Migration and packaging tools |
 
@@ -42,6 +43,7 @@ events, and an MCP server, with integration tests against PostgreSQL.
 - **Real-time**: WebSocket with in-memory connection manager
 - **MCP**: `rmcp` Streamable HTTP transport at `/mcp/v1/sse`
 - **Tracing**: `tracing` + `tracing-subscriber`
+- **Desktop**: Tauri v2, React 19, TypeScript, Vite, Tailwind CSS v4
 
 ## Quick Start
 
@@ -60,6 +62,18 @@ cargo run -p ruckchat-server
 ```
 
 The server binds to `http://localhost:3000` by default.
+
+### Run the Desktop Client
+
+```bash
+cd desktop
+pnpm install
+pnpm tauri dev
+```
+
+The desktop client opens a Tauri WebView pointing at the Vite dev server. It
+expects the server at `http://localhost:8080` by default (configurable in a
+future settings screen).
 
 ### Run the Tests
 
@@ -124,6 +138,7 @@ root/
 │   ├── src/websocket/      # WebSocket real-time events
 │   ├── src/mcp/            # MCP server
 │   └── tests/              # HTTP integration tests
+├── desktop/                # Tauri v2 + React desktop client
 ├── migrations/             # SQLx migrations
 ├── book/                   # Project documentation
 └── docs/                   # ADRs and implementation plans
@@ -137,15 +152,17 @@ Repository traits live in `ruckchat-domain`; SQLx implementations live in
 ## Documentation
 
 - [book/006-Server.md](book/006-Server.md) — Server conventions and request lifecycle
+- [book/007-Desktop.md](book/007-Desktop.md) — Desktop client conventions and build notes
 - [server/README.md](server/README.md) — Crate-specific developer guide
+- [desktop/README.md](desktop/README.md) — Desktop client developer guide
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — Sprint plan
 - [docs/ADR-*.md](docs/) — Architecture Decision Records
 
 ## Roadmap
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full
-sprint breakdown. Upcoming milestones include a plugin SDK, a Tauri desktop
-client, a Flutter mobile client, and migration/packaging tools.
+sprint breakdown. Upcoming milestones include completing the Tauri desktop
+client, a plugin SDK, a Flutter mobile client, and migration/packaging tools.
 
 ## Contributing
 

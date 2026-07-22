@@ -37,6 +37,11 @@ Phases 9–12 are not yet implemented.
 | `cargo clippy --workspace -- -D warnings` | Run clippy with workspace lints |
 | `cargo sqlx migrate run --source migrations/migrations` | Apply pending migrations |
 | `cargo run -p ruckchat-server` | Run the server binary (HTTP, WebSocket, MCP) |
+| `cd desktop && pnpm install` | Install desktop client dependencies |
+| `cd desktop && pnpm tauri dev` | Run the desktop client in dev mode |
+| `cd desktop && pnpm tauri build` | Build desktop installers |
+| `cd desktop && pnpm typecheck` | Type-check the desktop client |
+| `cd desktop && pnpm test` | Run desktop client unit tests |
 
 ## Architecture
 
@@ -85,7 +90,7 @@ root/
 - `server/openapi.yaml` — Full OpenAPI specification for the REST API, WebSocket upgrade, and MCP endpoint.
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
   `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md`,
-  `docs/ADR-007-MCP-Server.md` — Active ADRs.
+  `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md` — Active ADRs.
 
 ## Environment
 
@@ -117,6 +122,8 @@ Optional via `ruckchat.toml` or `RUCKCHAT_*` environment variables:
   not against the real database.
 - MCP integration tests exercise the `/mcp/v1/sse` Streamable HTTP endpoint,
   including initialization, tool calls, and resource reads.
+- Desktop unit and component tests live in `desktop/src/**/*.test.tsx` and are run
+  with `pnpm test` inside the `desktop/` directory.
 
 ## CodeGraph and MCP Tooling
 
@@ -200,6 +207,8 @@ Before planning, read the relevant project documentation. Priority order:
 | Check | `cargo check --workspace` | Yes |
 | Lint | `cargo clippy --workspace --all-targets --all-features -- -D warnings` | Yes |
 | Test | `cargo nextest run --workspace` | Yes |
+| Type check (desktop) | `cd desktop && pnpm typecheck` | Yes |
+| Unit tests (desktop) | `cd desktop && pnpm test` | Yes |
 
 If `cargo nextest` is not installed, use `cargo test --workspace` as a fallback.
 
@@ -210,7 +219,8 @@ After the code passes all checks, update the relevant documentation:
 - `server/openapi.yaml` for REST API changes.
 - `book/*.md` for behavior, architecture, or convention changes.
 - `docs/ADR-*.md` for architecture decisions or changes.
-- `server/README.md` for crate-specific developer guidance.
+- `server/README.md` for server crate-specific developer guidance.
+- `desktop/README.md` for desktop client developer guidance.
 - This `CLAUDE.md` for global contract changes.
 
 ### Commit
