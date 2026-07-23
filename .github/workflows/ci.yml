@@ -68,6 +68,10 @@ jobs:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
 
+      - name: Install desktop frontend dependencies
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+
       - name: Build Web UI assets
         working-directory: web
         run: |
@@ -75,10 +79,6 @@ jobs:
           pnpm build
         env:
           NODE_ENV: production
-
-      - name: Install desktop frontend dependencies
-        working-directory: desktop
-        run: pnpm install --frozen-lockfile
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -149,6 +149,10 @@ jobs:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
 
+      - name: Install desktop frontend dependencies
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+
       - name: Build Web UI assets
         working-directory: web
         run: |
@@ -156,10 +160,6 @@ jobs:
           pnpm build
         env:
           NODE_ENV: production
-
-      - name: Install desktop frontend dependencies
-        working-directory: desktop
-        run: pnpm install --frozen-lockfile
 
       - name: Install sqlx-cli
         run: cargo install sqlx-cli --no-default-features --features postgres --locked
