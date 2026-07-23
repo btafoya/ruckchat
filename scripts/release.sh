@@ -19,6 +19,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Load local test environment if present and DATABASE_URL is unset.
+if [[ -z "${DATABASE_URL:-}" && -f "${PROJECT_ROOT}/.env.testing" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "${PROJECT_ROOT}/.env.testing"
+    set +a
+fi
+
 DRY_RUN=0
 NO_CONFIRM=0
 NO_CHECKS=0
