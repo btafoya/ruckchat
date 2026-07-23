@@ -1,7 +1,7 @@
 {
   "name": "ruckchat-desktop",
   "private": true,
-  "version": "0.2.1-alpha-r1",
+  "version": "0.2.1-alpha-r2",
   "type": "module",
   "scripts": {
     "dev": "vite",

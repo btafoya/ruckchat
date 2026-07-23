@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.2.1-alpha-r2] - 2026-07-23
+
+- Fix release.sh local-ahead check when origin/main is behind
+- Fix release workflow Tauri build target flag
+- Stop tracking .serena/ directory
+- Fix release tag signing flag (-S is for commits, -s for tags)
+
 ## [v0.2.1-alpha-r1] - 2026-07-23
 
 - Source .env.testing in release.sh for SQLx compile-time checks
