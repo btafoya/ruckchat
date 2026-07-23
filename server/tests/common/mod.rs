@@ -24,8 +24,14 @@ impl TestClient {
             .run(&pool)
             .await
             .expect("migrations apply");
-        let state = AppState::from_pool(pool, false, true, true, "./plugins".into());
-        Self::from_router(router().with_state(state))
+        let files_dir = std::env::temp_dir()
+            .join(format!("ruckchat-test-{}", uuid::Uuid::new_v4()))
+            .to_str()
+            .expect("valid temp path")
+            .to_string();
+        let state = AppState::from_pool(pool, false, true, true, "./plugins".into(), files_dir);
+        let web_config = ruckchat_config::WebConfig::default();
+        Self::from_router(router(&web_config, "http://localhost:3000").with_state(state))
     }
 
     /// Creates a test client from an already-built router.
@@ -76,6 +82,29 @@ impl TestClient {
                 body.map(|b| serde_json::to_string(&b).expect("valid json"))
                     .unwrap_or_default(),
             ))
+            .expect("valid request");
+        self.router
+            .clone()
+            .oneshot(request)
+            .await
+            .expect("router responds")
+    }
+
+    /// Sends a multipart request with a bearer token.
+    pub async fn auth_multipart(
+        &self,
+        method: &str,
+        path: &str,
+        token: &str,
+        content_type: &str,
+        body: Vec<u8>,
+    ) -> Response {
+        let request = Request::builder()
+            .method(method)
+            .uri(path)
+            .header("authorization", format!("Bearer {token}"))
+            .header("content-type", content_type)
+            .body(Body::from(body))
             .expect("valid request");
         self.router
             .clone()

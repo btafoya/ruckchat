@@ -7,11 +7,13 @@ import {
   DirectMessageProvider,
   MessageProvider,
   OrganizationProvider,
+  PlatformProvider,
   PresenceProvider,
   RealtimeProvider,
   SessionProvider,
   TypingProvider,
 } from '../context';
+import { mockPlatform } from '../test/platformMocks';
 import type { MessagesState } from '../hooks/useMessages';
 import type { Message, Channel, Organization, DirectMessageConversation } from '../api';
 
@@ -164,14 +166,16 @@ function renderPane(initialEntries = ['/org/org-1/channel/chan-1']) {
                     }}
                   >
                     <RealtimeProvider value={{ status: 'open', send: vi.fn() }}>
-                      <Routes>
-                        <Route path="/org/:organizationId/channel/:channelId" element={<MessagePane />} />
-                        <Route
-                          path="/org/:organizationId/channel/:channelId/thread/:messageId"
-                          element={<MessagePane />}
-                        />
-                        <Route path="/org/:organizationId/dm/:dmId" element={<MessagePane />} />
-                      </Routes>
+                      <PlatformProvider platform={mockPlatform}>
+                        <Routes>
+                          <Route path="/org/:organizationId/channel/:channelId" element={<MessagePane />} />
+                          <Route
+                            path="/org/:organizationId/channel/:channelId/thread/:messageId"
+                            element={<MessagePane />}
+                          />
+                          <Route path="/org/:organizationId/dm/:dmId" element={<MessagePane />} />
+                        </Routes>
+                      </PlatformProvider>
                     </RealtimeProvider>
                   </TypingProvider>
                 </PresenceProvider>

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { open } from '@tauri-apps/plugin-dialog';
 import { createApi } from '../api';
 import type { Message } from '../api';
-import { useDirectMessageContext, useMessageContext, useRealtimeContext, useSessionContext } from '../context';
+import { useDirectMessageContext, useMessageContext, usePlatform, useRealtimeContext, useSessionContext } from '../context';
 
 const TYPING_DEBOUNCE_MS = 1500;
 const DRAFT_KEY = (conversationId: string) => `ruckchat_draft_${conversationId}`;
@@ -29,6 +28,7 @@ export function Composer({
   const { send: sendWs } = useRealtimeContext();
   const { sendMessage } = useMessageContext();
   const { conversations } = useDirectMessageContext();
+  const platform = usePlatform();
   const api = useMemo(() => createApi(), []);
 
   const [content, setContent] = useState(() => {
@@ -114,47 +114,6 @@ export function Composer({
     }
     return candidateIds.filter((id) => id.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 5);
   }, [candidateIds, mentionQuery]);
-
-  const handleFileSelect = useCallback(async () => {
-    if (!session) {
-      return;
-    }
-
-    let selected: string | string[] | null = null;
-    try {
-      selected = await open({
-        multiple: true,
-      });
-    } catch (err) {
-      console.warn('Failed to open file dialog', err);
-      return;
-    }
-    if (!selected) {
-      return;
-    }
-    const paths = Array.isArray(selected) ? selected : [selected];
-
-    const recorded = await Promise.all(
-      paths.map(async (path) => {
-        const fileName = path.split('/').pop() ?? path.split('\\').pop() ?? path;
-        try {
-          const response = await api.files.recordUpload(session.token, {
-            organization_id: organizationId,
-            file_name: fileName,
-            mime_type: 'application/octet-stream',
-            size_bytes: 0,
-            storage_path: path,
-          });
-          return { id: response.id, name: fileName };
-        } catch (err) {
-          console.warn('Failed to record file upload', err);
-          return null;
-        }
-      }),
-    );
-
-    setPendingFiles((prev) => [...prev, ...(recorded.filter(Boolean) as Array<{ id: string; name: string }>)]);
-  }, [api, organizationId, session]);
 
   const removePendingFile = useCallback((fileId: string) => {
     setPendingFiles((prev) => prev.filter((f) => f.id !== fileId));
@@ -256,14 +215,15 @@ export function Composer({
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void handleFileSelect()}
-            disabled={isSending}
-            className="rounded-md px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700 disabled:opacity-50"
-          >
-            Attach
-          </button>
+          {session && platform.FilePicker && (
+            <platform.FilePicker
+              api={api}
+              token={session.token}
+              organizationId={organizationId}
+              onFilesSelected={(files) => setPendingFiles((prev) => [...prev, ...files])}
+              disabled={isSending}
+            />
+          )}
           <button
             type="button"
             onClick={() => setShowPreview((p) => !p)}

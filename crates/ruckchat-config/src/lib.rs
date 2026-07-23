@@ -34,6 +34,15 @@ pub struct AppConfig {
     /// Native plugin configuration.
     #[serde(default)]
     pub plugins: PluginConfig,
+    /// Uploaded file storage configuration.
+    #[serde(default)]
+    pub files: FilesConfig,
+    /// Browser Web UI configuration.
+    #[serde(default)]
+    pub web: WebConfig,
+    /// Web Push notification configuration.
+    #[serde(default)]
+    pub web_push: WebPushConfig,
 }
 
 /// MCP endpoint configuration.
@@ -57,6 +66,47 @@ pub struct PluginConfig {
     pub directory: String,
 }
 
+/// Uploaded file storage configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct FilesConfig {
+    /// Directory where uploaded file bytes are stored on disk.
+    #[serde(default = "default_files_dir")]
+    pub directory: String,
+}
+
+/// Browser Web UI configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct WebConfig {
+    /// Whether the Web UI static assets are served by the server.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// Optional directory to serve assets from instead of the embedded
+    /// `web/dist` directory.
+    pub path: Option<String>,
+    /// Origins allowed to make credentialed cross-origin requests. When empty,
+    /// the origin implied by `base_url` is used.
+    #[serde(default)]
+    pub allowed_origins: Vec<String>,
+}
+
+/// Web Push notification configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct WebPushConfig {
+    /// Whether Web Push notifications are enabled.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// VAPID subject, typically a `mailto:` URI.
+    pub subject: Option<String>,
+    /// VAPID public key (base64url encoded) exposed to clients.
+    pub vapid_public_key: Option<String>,
+    /// VAPID private key (base64url encoded) used by the server to sign push
+    /// messages.
+    pub vapid_private_key: Option<String>,
+}
+
 #[must_use]
 fn default_true() -> bool {
     true
@@ -65,6 +115,11 @@ fn default_true() -> bool {
 #[must_use]
 fn default_plugin_dir() -> String {
     "/var/lib/ruckchat/plugins".into()
+}
+
+#[must_use]
+fn default_files_dir() -> String {
+    "/var/lib/ruckchat/files".into()
 }
 
 impl Default for McpConfig {
@@ -80,6 +135,35 @@ impl Default for PluginConfig {
     fn default() -> Self {
         Self {
             directory: default_plugin_dir(),
+        }
+    }
+}
+
+impl Default for FilesConfig {
+    fn default() -> Self {
+        Self {
+            directory: default_files_dir(),
+        }
+    }
+}
+
+impl Default for WebConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            path: None,
+            allowed_origins: Vec::new(),
+        }
+    }
+}
+
+impl Default for WebPushConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            subject: None,
+            vapid_public_key: None,
+            vapid_private_key: None,
         }
     }
 }
@@ -335,6 +419,34 @@ mcp:
 plugins:
   directory: "/var/lib/ruckchat/plugins"
 
+# Uploaded file storage.
+files:
+  directory: "/var/lib/ruckchat/files"
+
+# Browser-based Web UI served by the server.
+web:
+  # Whether static Web UI assets are served. Disable if another server handles
+  # the Web UI.
+  enabled: true
+  # Optional directory to serve assets from. If omitted, assets embedded at
+  # compile time are used.
+  # path: "/usr/share/ruckchat/web"
+  # Origins allowed for credentialed cross-origin requests. When empty, the
+  # origin implied by base_url is allowed.
+  # allowed_origins:
+  #   - "https://chat.example.com"
+
+# Web Push notifications for browser clients.
+web_push:
+  # Whether Web Push is enabled.
+  enabled: false
+  # VAPID subject, typically a mailto: URI.
+  # subject: "mailto:admin@example.com"
+  # VAPID public key (base64url) exposed to clients.
+  # vapid_public_key: ""
+  # VAPID private key (base64url) used to sign push messages.
+  # vapid_private_key: ""
+
 # Placeholders for future phases. These keys are ignored today.
 # retention:
 #   message_history_days: 365
@@ -400,6 +512,7 @@ plugins:
         assert!(!cfg.mcp.enabled);
         assert!(!cfg.mcp.require_confirmation);
         assert_eq!(cfg.plugins.directory, "/tmp/plugins");
+        assert_eq!(cfg.files.directory, "/var/lib/ruckchat/files");
     }
 
     #[test]
@@ -424,7 +537,15 @@ database:
         assert!(cfg.mcp.enabled);
         assert!(cfg.mcp.require_confirmation);
         assert_eq!(cfg.plugins.directory, "/var/lib/ruckchat/plugins");
+        assert_eq!(cfg.files.directory, "/var/lib/ruckchat/files");
         assert_eq!(cfg.database.max_connections, 10);
+        assert!(cfg.web.enabled);
+        assert!(cfg.web.path.is_none());
+        assert!(cfg.web.allowed_origins.is_empty());
+        assert!(cfg.web_push.enabled);
+        assert!(cfg.web_push.subject.is_none());
+        assert!(cfg.web_push.vapid_public_key.is_none());
+        assert!(cfg.web_push.vapid_private_key.is_none());
     }
 
     #[test]
@@ -477,6 +598,8 @@ database:
         assert!(content.contains("database:"));
         assert!(content.contains("mcp:"));
         assert!(content.contains("plugins:"));
+        assert!(content.contains("web:"));
+        assert!(content.contains("web_push:"));
         // Should be loadable.
         AppConfig::load_from_path(&path).expect("load generated config");
     }

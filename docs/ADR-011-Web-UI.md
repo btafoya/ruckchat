@@ -1,8 +1,8 @@
-# ADR-011: Web UI and Browser Client
+# ADR-011: Web UI
 
 ## Status
 
-Proposed — pending implementation in Phase 10.
+Accepted — implemented in Phase 10.
 
 ## Context
 
@@ -37,18 +37,21 @@ We will add a browser-based Web UI as **Phase 10** in the implementation order.
   When `path` is omitted, the server serves assets embedded at compile time via
   `include_dir`.
 - **PWA**: The web build includes a service worker, manifest, and install
-  prompt. Offline resilience is limited to asset caching and queued outgoing
-  messages in the first iteration.
+  prompt. The service worker caches static assets on fetch and displays push
+  notifications delivered by the server.
 - **Web Push**: The server manages a VAPID key pair stored in
   `ruckchat.yaml`. Clients subscribe via `POST /web-push/subscribe` and receive
-  push notifications for direct messages and `@mentions`.
-- **CORS**: The current `CorsLayer::permissive()` is replaced with an explicit
-  credentials-aware CORS configuration so the Web UI can use the existing
-  HTTP-only `ruckchat_session` cookie when served from a different origin.
+  push notifications for direct messages and `@mentions` only.
+- **CORS**: The permissive CORS layer is replaced with an explicit
+  credentials-aware configuration. Allowed origins come from `web.allowed_origins`
+  or are derived from `base_url`. Credentials are always allowed and the layer
+  exposes `GET`, `POST`, `PATCH`, and `DELETE` plus `Content-Type`,
+  `Authorization`, and `Accept` headers.
 - **Cookie policy**: The default deployment serves the Web UI from the same
-  origin as the API, keeping `SameSite=Strict` cookies working. A future
-  `web.cross_origin` flag can switch to `SameSite=None; Secure` for separate
-  hosting.
+  origin as the API, keeping `SameSite=Strict` cookies working.
+- **File uploads**: Browser file attachments use a new multipart `POST /files`
+  endpoint. The desktop file dialog continues to use `POST /files/record` for
+  files the Tauri shell already has access to.
 
 ## Consequences
 
@@ -70,10 +73,41 @@ We will add a browser-based Web UI as **Phase 10** in the implementation order.
 - Web Push requires operators to generate and secure a VAPID key pair.
 - The CORS change touches all cross-origin requests, including MCP clients, and
   must be tested carefully.
+- File storage is local disk only; larger deployments will need object storage
+  in a later phase.
+
+## Implementation
+
+- `web/` — Vite React package with PWA manifest, service worker, and web entry
+  points.
+- `desktop/src/platform/desktop.tsx` — Tauri-backed `Platform` implementation.
+- `desktop/src/platform/web.tsx` — Browser-backed implementation with Web Push
+  subscription flow, service-worker notification display, and
+  `<input type="file">` upload.
+- `desktop/src/PlatformShell.tsx` — Shared router and provider tree that consumes
+  a `Platform`.
+- `desktop/src/api/webPush.ts` — API module for the Web Push endpoints.
+- `server/src/handlers/web_assets.rs` — Embedded/runtime static asset serving
+  with React Router fallback.
+- `server/src/handlers/web_push.rs` — REST handlers for VAPID key and
+  subscribe/unsubscribe.
+- `server/src/services/web_push.rs` — Core push service, recipient filtering,
+  and notification delivery.
+- `server/src/repositories/web_push.rs` — SQLx subscription repository.
+- `crates/ruckchat-domain/src/web_push_subscription.rs` — Domain entity.
+- `server/src/plugins/bus.rs` — `CompositeEventBus` forwards `message.created`
+  to the optional `WebPushService`.
+- `migrations/migrations/20260722150000_web_push_subscriptions.{up,down}.sql` —
+  Database migration for push subscriptions.
+- `server/openapi.yaml` — Documented `/files`, `/files/record`, and
+  `/web-push/*` endpoints.
 
 ## Related
 
-- `docs/design/WEB-UI-DESIGN.md`
+- `book/019-Web-UI.md`
 - `book/007-Desktop.md`
+- `web/README.md`
+- `desktop/README.md`
+- `server/README.md`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/ADR-010-Runtime-YAML-Configuration.md`

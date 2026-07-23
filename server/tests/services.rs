@@ -188,12 +188,15 @@ async fn services() -> Services {
             conversations: conversations.clone(),
             memberships: memberships.clone(),
         }),
-        files: FileService::new(FileServiceDeps {
-            files: files_repo,
-            messages: messages_for_files,
-            memberships: memberships.clone(),
-            settings: settings.clone(),
-        }),
+        files: FileService::new(
+            FileServiceDeps {
+                files: files_repo,
+                messages: messages_for_files,
+                memberships: memberships.clone(),
+                settings: settings.clone(),
+            },
+            std::env::temp_dir().join(format!("ruckchat-test-{}", uuid::Uuid::new_v4())),
+        ),
         users_repo: users.clone(),
         memberships_repo: memberships.clone(),
         pool,

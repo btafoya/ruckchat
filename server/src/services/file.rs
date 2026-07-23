@@ -7,6 +7,7 @@ use ruckchat_domain::{
     OrganizationSettings, OrganizationSettingsRepository,
 };
 use ruckchat_id::{FileId, OrganizationId, UserId};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 /// Dependencies required by [`FileService`].
@@ -22,17 +23,22 @@ pub struct FileServiceDeps {
     pub settings: Arc<dyn OrganizationSettingsRepository + Send + Sync>,
 }
 
-/// File metadata and attachment operations.
+/// File metadata, storage, and attachment operations.
 #[derive(Clone)]
 pub struct FileService {
     deps: FileServiceDeps,
+    /// Directory where uploaded file bytes are stored on disk.
+    storage_directory: PathBuf,
 }
 
 impl FileService {
-    /// Creates the service from its dependencies.
+    /// Creates the service from its dependencies and a storage directory.
     #[must_use]
-    pub fn new(deps: FileServiceDeps) -> Self {
-        Self { deps }
+    pub fn new(deps: FileServiceDeps, storage_directory: impl AsRef<Path>) -> Self {
+        Self {
+            deps,
+            storage_directory: storage_directory.as_ref().to_path_buf(),
+        }
     }
 
     /// Records metadata for an uploaded file.
@@ -78,6 +84,79 @@ impl FileService {
             request.size_bytes,
             request.storage_path,
         )?;
+
+        self.deps.files.create(&file).await?;
+
+        Ok(FileResponse {
+            id: file.id,
+            file_name: file.file_name,
+            mime_type: file.mime_type,
+            size_bytes: file.size_bytes,
+        })
+    }
+
+    /// Stores an uploaded file's bytes on disk and records its metadata.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Forbidden`] when the caller is not an organization
+    /// member, [`Error::Validation`] for invalid metadata, and
+    /// [`Error::Internal`] when the file cannot be written to disk.
+    pub async fn upload_file(
+        &self,
+        caller_id: UserId,
+        request: crate::services::dto::UploadFileRequest,
+        bytes: Vec<u8>,
+    ) -> ruckchat_common::Result<FileResponse> {
+        let membership = self
+            .deps
+            .memberships
+            .by_ids(caller_id, request.organization_id)
+            .await?;
+        if membership.is_none() {
+            return Err(Error::Forbidden("must be an organization member".into()));
+        }
+
+        let settings = self
+            .deps
+            .settings
+            .by_organization_id(request.organization_id)
+            .await?
+            .unwrap_or_else(|| OrganizationSettings::new(request.organization_id));
+
+        let size_bytes =
+            i64::try_from(bytes.len()).map_err(|_| Error::validation("file is too large"))?;
+        if size_bytes > settings.max_file_size_bytes {
+            return Err(Error::validation(format!(
+                "file exceeds maximum size of {} bytes",
+                settings.max_file_size_bytes
+            )));
+        }
+
+        let mut file = File::new(
+            request.organization_id,
+            caller_id,
+            request.file_name,
+            request.mime_type,
+            size_bytes,
+            "pending",
+        )?;
+
+        let dir = self
+            .storage_directory
+            .join(file.organization_id.as_uuid().to_string());
+        tokio::fs::create_dir_all(&dir)
+            .await
+            .map_err(|err| Error::Internal(format!("failed to create file directory: {err}")))?;
+        let storage_path = dir.join(file.id.as_uuid().to_string());
+        tokio::fs::write(&storage_path, bytes)
+            .await
+            .map_err(|err| Error::Internal(format!("failed to write file: {err}")))?;
+
+        file.storage_path = storage_path
+            .to_str()
+            .ok_or_else(|| Error::Internal("invalid file path".into()))?
+            .to_string();
 
         self.deps.files.create(&file).await?;
 
@@ -177,12 +256,16 @@ mod tests {
     use std::sync::Arc;
 
     fn service() -> FileService {
-        FileService::new(FileServiceDeps {
-            files: Arc::new(MockFileRepository::new()),
-            messages: Arc::new(MockMessageRepository::new()),
-            memberships: Arc::new(MockOrganizationMembershipRepository::new()),
-            settings: Arc::new(MockOrganizationSettingsRepository::new()),
-        })
+        let dir = std::env::temp_dir().join(format!("ruckchat-test-{}", uuid::Uuid::new_v4()));
+        FileService::new(
+            FileServiceDeps {
+                files: Arc::new(MockFileRepository::new()),
+                messages: Arc::new(MockMessageRepository::new()),
+                memberships: Arc::new(MockOrganizationMembershipRepository::new()),
+                settings: Arc::new(MockOrganizationSettingsRepository::new()),
+            },
+            dir,
+        )
     }
 
     async fn seed_user_and_org(svc: &FileService) -> (UserId, OrganizationId) {

@@ -6,6 +6,7 @@ import { DirectMessagesApi } from './directMessages';
 import { FilesApi } from './files';
 import { OrganizationsApi } from './organizations';
 import { ReactionsApi } from './reactions';
+import { WebPushApi } from './webPush';
 
 export interface RuckChatApi {
   auth: AuthApi;
@@ -14,6 +15,7 @@ export interface RuckChatApi {
   directMessages: DirectMessagesApi;
   reactions: ReactionsApi;
   files: FilesApi;
+  webPush: WebPushApi;
 }
 
 export function createApi(baseUrl = DEFAULT_API_URL): RuckChatApi {
@@ -25,10 +27,19 @@ export function createApi(baseUrl = DEFAULT_API_URL): RuckChatApi {
     directMessages: new DirectMessagesApi(client),
     reactions: new ReactionsApi(client),
     files: new FilesApi(client),
+    webPush: new WebPushApi(client),
   };
 }
 
 export * from './client';
 export * from './error';
 export * from './types';
-export { AuthApi, ChannelsApi, DirectMessagesApi, FilesApi, OrganizationsApi, ReactionsApi };
+export {
+  AuthApi,
+  ChannelsApi,
+  DirectMessagesApi,
+  FilesApi,
+  OrganizationsApi,
+  ReactionsApi,
+  WebPushApi,
+};

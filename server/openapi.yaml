@@ -23,6 +23,7 @@ tags:
   - name: Real-Time
   - name: MCP
   - name: Plugins
+  - name: Web Push
 
 paths:
   /auth/register:
@@ -732,7 +733,41 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
     post:
-      summary: Record metadata for an uploaded file
+      summary: Upload a file via multipart form data
+      tags: [Files]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [organization_id, file]
+              properties:
+                organization_id:
+                  $ref: '#/components/schemas/Uuid'
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /files/record:
+    post:
+      summary: Record metadata for a file uploaded through another mechanism
       tags: [Files]
       security:
         - bearerAuth: []
@@ -1012,6 +1047,64 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /web-push/vapid-key:
+    get:
+      summary: Get the VAPID public key
+      description: |
+        Returns the server's VAPID public key in URL-safe base64. Browsers use
+        this key to subscribe to Web Push notifications. An empty string is
+        returned when Web Push is not configured.
+      tags: [Web Push]
+      responses:
+        '200':
+          description: VAPID public key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VapidKeyResponse'
+
+  /web-push/subscribe:
+    post:
+      summary: Subscribe to Web Push notifications
+      tags: [Web Push]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeRequest'
+      responses:
+        '201':
+          description: Subscription stored
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /web-push/unsubscribe:
+    post:
+      summary: Unsubscribe from Web Push notifications
+      tags: [Web Push]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnsubscribeRequest'
+      responses:
+        '204':
+          description: Subscription removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
 components:
   securitySchemes:
@@ -1568,3 +1661,35 @@ components:
           properties:
             message:
               type: string
+
+    VapidKeyResponse:
+      type: object
+      required: [public_key]
+      properties:
+        public_key:
+          type: string
+          description: VAPID public key in URL-safe base64
+
+    SubscribeRequest:
+      type: object
+      required: [endpoint, p256dh, auth]
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          description: Push service endpoint URL
+        p256dh:
+          type: string
+          description: P-256 ECDH public key
+        auth:
+          type: string
+          description: Authentication secret
+
+    UnsubscribeRequest:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          description: Push service endpoint URL

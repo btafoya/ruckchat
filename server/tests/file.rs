@@ -51,7 +51,7 @@ async fn record_and_list_files(pool: sqlx::PgPool) {
     let response = client
         .auth_request(
             "POST",
-            "/files",
+            "/files/record",
             &token,
             Some(json!({
                 "organization_id": org_id,
@@ -84,4 +84,33 @@ async fn record_and_list_files(pool: sqlx::PgPool) {
     assert_status(&response, StatusCode::OK);
     let body = body_json(response).await;
     assert_eq!(body["file_name"], "report.pdf");
+}
+
+#[sqlx::test]
+async fn multipart_upload_stores_file(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (token, org_id) = setup(&client).await;
+
+    let boundary = "----WebKitFormBoundary";
+    let body = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"organization_id\"\r\n\r\n\
+         {org_id}\r\n\
+         --{boundary}\r\n\
+         Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n\
+         Content-Type: text/plain\r\n\r\n\
+         hello\r\n\
+         --{boundary}--\r\n"
+    )
+    .into_bytes();
+    let content_type = format!("multipart/form-data; boundary={boundary}");
+
+    let response = client
+        .auth_multipart("POST", "/files", &token, &content_type, body)
+        .await;
+    assert_status(&response, StatusCode::CREATED);
+    let body = body_json(response).await;
+    assert_eq!(body["file_name"], "test.txt");
+    assert_eq!(body["mime_type"], "text/plain");
+    assert_eq!(body["size_bytes"], 5);
 }

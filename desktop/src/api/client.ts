@@ -7,13 +7,16 @@ export interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
   token?: string;
+  formData?: FormData;
 }
 
-function buildHeaders(token: string | undefined): HeadersInit {
+function buildHeaders(token: string | undefined, isFormData: boolean): HeadersInit {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     Accept: 'application/json',
   };
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -48,12 +51,15 @@ export class ApiClient {
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
+    const isFormData = options.formData !== undefined;
     const init: RequestInit = {
       method: options.method ?? 'GET',
-      headers: buildHeaders(options.token),
+      headers: buildHeaders(options.token, isFormData),
       credentials: 'include',
     };
-    if (options.body !== undefined) {
+    if (options.formData !== undefined) {
+      init.body = options.formData;
+    } else if (options.body !== undefined) {
       init.body = JSON.stringify(options.body);
     }
 

@@ -68,7 +68,7 @@ async fn run(config_path: Option<PathBuf>) -> Result<(), Box<dyn std::error::Err
     let listener = TcpListener::bind(&addr).await?;
     info!("listening on http://{addr}");
 
-    let app = router().with_state(state);
+    let app = router(&config.web, &config.base_url).with_state(state);
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;

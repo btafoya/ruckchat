@@ -1,9 +1,9 @@
 # ruckchat-server
 
 RuckChat server crate. It implements the service layer, SQLx repository
-implementations, the Axum REST API, the WebSocket real-time event layer, and the
-MCP server on top of the `ruckchat-domain` crate. Plugin support is added in a
-later phase.
+implementations, the Axum REST API, the WebSocket real-time event layer, the
+MCP server, native plugin support, the browser Web UI static asset handler, and
+Web Push notifications on top of the `ruckchat-domain` crate.
 
 ## Crate layout
 
@@ -24,7 +24,8 @@ server/src
 │   ├── message.rs
 │   ├── direct_message_conversation.rs
 │   ├── reaction.rs
-│   └── file.rs
+│   ├── file.rs
+│   └── web_push.rs
 ├── services/            # Business logic and DTOs
 │   ├── auth.rs
 │   ├── authorization.rs
@@ -35,8 +36,9 @@ server/src
 │   ├── reaction.rs
 │   ├── direct_message.rs
 │   ├── file.rs
-│   ├── mcp.rs           # MCP service bridge
-│   └── events.rs        # EventBus trait and WebSocket event types
+│   ├── web_push.rs      # Web Push subscription delivery
+│   ├── events.rs        # EventBus trait and event types
+│   └── mcp.rs           # MCP service bridge
 ├── handlers/            # HTTP route handlers and DTOs
 │   ├── auth.rs
 │   ├── channel.rs
@@ -47,8 +49,11 @@ server/src
 │   ├── message.rs
 │   ├── mod.rs
 │   ├── organization.rs
+│   ├── plugins.rs       # Plugin slash-command endpoint
 │   ├── reaction.rs
-│   └── user.rs
+│   ├── user.rs
+│   ├── web_assets.rs    # Static Web UI asset serving
+│   └── web_push.rs      # Web Push REST handlers
 ├── websocket/           # WebSocket connection registry and event bus
 │   ├── mod.rs
 │   ├── manager.rs
@@ -60,6 +65,11 @@ server/src
 │   ├── tools.rs
 │   ├── resources.rs
 │   └── handler.rs
+├── plugins/             # Dynamic plugin loader, manager, host API, event bus
+│   ├── loader.rs
+│   ├── manager.rs
+│   ├── host.rs
+│   └── bus.rs
 └── testing.rs          # In-memory mock repositories and event bus for unit tests
 ```
 
@@ -148,7 +158,8 @@ traits defined in `ruckchat-domain`. The current services cover:
 - **Message** — post, edit, delete, history, and thread replies; emits real-time events.
 - **Reaction** — add and remove message reactions; emits real-time events.
 - **DirectMessage** — start conversations and list conversations for a user.
-- **File** — record uploads, list files, and attach files to messages.
+- **File** — multipart file uploads, record uploads, list files, and attach files to messages.
+- **WebPush** — store browser push subscriptions and deliver notifications for DMs and @mentions.
 - **McpService** — scoped bridge used by the MCP server; delegates to the other services.
 
 Real-time delivery is implemented in `server/src/websocket`:
@@ -170,3 +181,17 @@ The `/mcp/v1/sse` endpoint is mounted for Streamable HTTP MCP traffic. The
 the caller's `UserId` into the request extensions; the `RuckChatMcpServer`
 handler reads it from the `http::request::Parts` extensions passed through the
 JSON-RPC request context.
+
+The Web UI is served as static assets from `/{*path}`. Embedded assets come from
+`web/dist/` at compile time; a runtime `web.path` config in `ruckchat.yaml`
+overrides them for development or custom branding. Unknown paths fall back to
+`index.html` so React Router can handle client-side routes.
+
+Web Push endpoints are mounted under `/web-push`:
+
+- `GET /web-push/vapid-key` returns the configured VAPID public key.
+- `POST /web-push/subscribe` stores a browser push subscription.
+- `POST /web-push/unsubscribe` removes a browser push subscription.
+
+The `CompositeEventBus` routes `message.created` events to WebSocket clients,
+plugins, and the optional `WebPushService` when configured.

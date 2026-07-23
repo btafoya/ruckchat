@@ -60,7 +60,7 @@ Never reason from assumptions, always reason from the actual data. You need to r
 
 ## Current Status
 
-Phases 1–9 are complete. Phase 10 (Web UI) and Phases 11–13 are not yet implemented.
+Phases 1–10 are complete. Phases 11–13 are not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -116,6 +116,10 @@ Phases 1–9 are complete. Phase 10 (Web UI) and Phases 11–13 are not yet impl
 | `cd desktop && pnpm tauri build` | Build desktop installers |
 | `cd desktop && pnpm typecheck` | Type-check the desktop client |
 | `cd desktop && pnpm test` | Run desktop client unit tests |
+| `cd web && pnpm install` | Install Web UI dependencies |
+| `cd web && pnpm dev` | Run the Web UI dev server |
+| `cd web && pnpm build` | Build the Web UI for the server to embed |
+| `cd web && pnpm typecheck` | Type-check the Web UI |
 
 ### Desktop schema regeneration
 

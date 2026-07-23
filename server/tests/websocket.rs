@@ -23,8 +23,19 @@ async fn start_server(pool: PgPool) -> (TestClient, String) {
         .run(&pool)
         .await
         .expect("migrations apply");
-    let state = AppState::from_pool(pool, false, true, true, "./plugins".into());
-    let app = router().with_state(state);
+    let state = AppState::from_pool(
+        pool,
+        false,
+        true,
+        true,
+        "./plugins".into(),
+        "/var/lib/ruckchat/files".into(),
+    );
+    let app = router(
+        &ruckchat_config::WebConfig::default(),
+        "http://localhost:3000",
+    )
+    .with_state(state);
     let client = TestClient::from_router(app.clone());
 
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();

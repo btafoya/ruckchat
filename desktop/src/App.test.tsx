@@ -1,5 +1,4 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 
@@ -31,11 +30,7 @@ vi.mock('./api', async () => {
 
 describe('App', () => {
   it('renders the sign-in screen when not authenticated', async () => {
-    render(
-      <MemoryRouter>
-        <App />
-      </MemoryRouter>,
-    );
+    render(<App />);
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Sign in to RuckChat/i })).toBeInTheDocument();
     });

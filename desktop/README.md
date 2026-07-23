@@ -31,6 +31,9 @@ Installers are produced under `src-tauri/target/release/bundle/`.
   direct messages, messages, presence, typing, and real-time sync.
 - `src/hooks/` — State hooks and the WebSocket connection manager, plus
   `useSettings`, `useNotifications`, `useTray`, and `useDeepLink`.
+- `src/platform/` — Platform abstraction layer. The `desktop` and `web` shims
+  provide platform-specific implementations of notifications, file pickers, tray,
+  and deep links so the same components work in Tauri and the browser.
 - `src-tauri/` — Tauri Rust shell and native integrations.
 - `index.html` — Vite entry point.
 - `vite.config.ts` — Vite + Tailwind + Vitest configuration.
@@ -57,7 +60,9 @@ Installers are produced under `src-tauri/target/release/bundle/`.
   file metadata attachments, thread replies, and local unread badges.
 - Native integrations use Tauri plugins: notifications (`useNotifications`),
   file dialogs in the composer, deep-link registration for `ruckchat://`, and a
-  tray icon with an unread count tooltip (`set_unread_count` command).
+  tray icon with an unread count tooltip (`set_unread_count` command). The browser
+  version of these features lives in `src/platform/web.tsx` and uses the Web Push
+  API and a standard `<input type="file">` instead of Tauri plugins.
 - Draft messages are persisted per conversation (`ruckchat_draft_${id}` in
   `localStorage`).
 - TypeScript API types are generated from `../server/openapi.yaml` into

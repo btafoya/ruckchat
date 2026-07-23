@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { JSX } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import {
@@ -24,7 +24,12 @@ function NavBadge({ count }: NavBadgeProps): JSX.Element | null {
   );
 }
 
-export function Sidebar(): JSX.Element {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Element {
   const { session, logout } = useSessionContext();
   const { organizations, isLoading: orgsLoading, error: orgsError } = useOrganizationContext();
   const { channels, isLoading: channelsLoading, error: channelsError } = useChannelContext();
@@ -46,17 +51,39 @@ export function Sidebar(): JSX.Element {
     );
   }, [conversations, session?.user.id]);
 
+  const handleNavClick = useCallback(() => {
+    if (mobileOpen) {
+      onClose?.();
+    }
+  }, [mobileOpen, onClose]);
+
+  const asideClass = mobileOpen
+    ? 'fixed inset-y-0 left-0 z-20 flex w-64 flex-shrink-0 flex-col border-r border-gray-700 bg-gray-800'
+    : 'hidden md:flex w-64 flex-shrink-0 flex-col border-r border-gray-700 bg-gray-800';
+
   return (
-    <aside className="flex w-64 flex-shrink-0 flex-col border-r border-gray-700 bg-gray-800" aria-label="Navigation">
+    <aside className={asideClass} aria-label="Navigation">
       <header className="flex items-center justify-between border-b border-gray-700 p-4">
         <span className="font-semibold text-white">RuckChat</span>
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="text-xs text-gray-400 hover:text-white"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-2">
+          {mobileOpen && (
+            <button
+              type="button"
+              aria-label="Close navigation"
+              onClick={onClose}
+              className="text-xs text-gray-400 hover:text-white md:hidden"
+            >
+              ✕
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="text-xs text-gray-400 hover:text-white"
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-col gap-2 p-3">
@@ -70,6 +97,7 @@ export function Sidebar(): JSX.Element {
             <NavLink
               key={org.id}
               to={`/org/${org.id}/channel`}
+              onClick={handleNavClick}
               className={({ isActive }) =>
                 `rounded-md px-3 py-2 text-sm ${
                   isActive || activeOrgId === org.id
@@ -98,6 +126,7 @@ export function Sidebar(): JSX.Element {
                 <NavLink
                   key={channel.id}
                   to={`/org/${activeOrganization.id}/channel/${channel.id}`}
+                  onClick={handleNavClick}
                   className={({ isActive }) =>
                     `flex items-center rounded-md px-3 py-2 text-sm ${
                       isActive ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'
@@ -122,6 +151,7 @@ export function Sidebar(): JSX.Element {
                 <NavLink
                   key={conversation.id}
                   to={`/org/${activeOrganization.id}/dm/${conversation.id}`}
+                  onClick={handleNavClick}
                   className={({ isActive }) =>
                     `flex items-center rounded-md px-3 py-2 text-sm ${
                       isActive ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'

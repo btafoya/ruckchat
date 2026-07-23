@@ -4,9 +4,11 @@ import { Composer } from './Composer';
 import {
   DirectMessageProvider,
   MessageProvider,
+  PlatformProvider,
   RealtimeProvider,
   SessionProvider,
 } from '../context';
+import { mockPlatform } from '../test/platformMocks';
 import type { MessagesState } from '../hooks/useMessages';
 import type { Message } from '../api';
 
@@ -87,7 +89,9 @@ function Wrapper({ children }: { children: React.ReactNode }) {
         }}
       >
         <MessageProvider value={mockMessageState}>
-          <RealtimeProvider value={{ status: 'open', send: mockSendWs }}>{children}</RealtimeProvider>
+          <RealtimeProvider value={{ status: 'open', send: mockSendWs }}>
+            <PlatformProvider platform={mockPlatform}>{children}</PlatformProvider>
+          </RealtimeProvider>
         </MessageProvider>
       </DirectMessageProvider>
     </SessionProvider>

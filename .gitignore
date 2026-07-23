@@ -11,3 +11,6 @@ ruckchat.yaml
 *.swp
 .codegraph/
 .claude/
+node_modules/
+web/dist/
+desktop/dist/

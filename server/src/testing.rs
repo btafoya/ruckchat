@@ -13,6 +13,7 @@ use ruckchat_domain::{
     MessageRepository, Organization, OrganizationMembership, OrganizationMembershipRepository,
     OrganizationRepository, OrganizationSettings, OrganizationSettingsRepository, Reaction,
     ReactionRepository, Role, Session, SessionRepository, User, UserRepository,
+    WebPushSubscription, WebPushSubscriptionRepository,
 };
 use ruckchat_id::{
     ChannelId, DirectMessageConversationId, FileId, MessageId, OrganizationId, SessionId, UserId,
@@ -836,6 +837,57 @@ impl FileRepository for MockFileRepository {
 
     async fn attach_to_message(&self, message_id: MessageId, file_id: FileId) -> Result<()> {
         self.attachments.lock().unwrap().push((message_id, file_id));
+        Ok(())
+    }
+}
+
+/// In-memory Web Push subscription repository.
+#[derive(Debug, Default, Clone)]
+pub struct MockWebPushSubscriptionRepository {
+    subscriptions: Arc<Mutex<Vec<WebPushSubscription>>>,
+}
+
+impl MockWebPushSubscriptionRepository {
+    /// Creates an empty repository.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[async_trait]
+impl WebPushSubscriptionRepository for MockWebPushSubscriptionRepository {
+    async fn upsert(&self, subscription: &WebPushSubscription) -> Result<()> {
+        let mut subscriptions = self.subscriptions.lock().unwrap();
+        if let Some(existing) = subscriptions
+            .iter_mut()
+            .find(|s| s.user_id == subscription.user_id && s.endpoint == subscription.endpoint)
+        {
+            *existing = subscription.clone();
+            return Ok(());
+        }
+        subscriptions.push(subscription.clone());
+        Ok(())
+    }
+
+    async fn list_by_user(&self, user_id: UserId) -> Result<Vec<WebPushSubscription>> {
+        Ok(self
+            .subscriptions
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|s| s.user_id == user_id)
+            .cloned()
+            .collect())
+    }
+
+    async fn delete_by_endpoint(&self, user_id: UserId, endpoint: &str) -> Result<()> {
+        let mut subscriptions = self.subscriptions.lock().unwrap();
+        let idx = subscriptions
+            .iter()
+            .position(|s| s.user_id == user_id && s.endpoint == endpoint)
+            .ok_or_else(|| ruckchat_common::Error::NotFound("web push subscription".into()))?;
+        subscriptions.remove(idx);
         Ok(())
     }
 }

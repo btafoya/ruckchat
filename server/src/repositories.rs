@@ -11,6 +11,7 @@ pub mod organization_settings;
 pub mod reaction;
 pub mod session;
 pub mod user;
+pub mod web_push;
 
 pub use channel::ChannelRepositorySqlx;
 pub use channel_membership::ChannelMembershipRepositorySqlx;
@@ -23,3 +24,4 @@ pub use organization_settings::OrganizationSettingsRepositorySqlx;
 pub use reaction::ReactionRepositorySqlx;
 pub use session::SessionRepositorySqlx;
 pub use user::UserRepositorySqlx;
+pub use web_push::WebPushSubscriptionRepositorySqlx;

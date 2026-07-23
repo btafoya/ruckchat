@@ -15,6 +15,7 @@ pub mod message;
 pub mod organization;
 pub mod reaction;
 pub mod user;
+pub mod web_push;
 
 pub use auth::AuthService;
 pub use authorization::{AuthorizationService, Permission};
@@ -27,3 +28,4 @@ pub use message::MessageService;
 pub use organization::OrganizationService;
 pub use reaction::ReactionService;
 pub use user::UserService;
+pub use web_push::{WebPushService, WebPushServiceConfig, WebPushServiceDeps};

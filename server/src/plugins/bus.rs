@@ -2,24 +2,36 @@
 
 use crate::plugins::manager::PluginManager;
 use crate::services::events::{EventBus, PresenceStatus};
+use crate::services::web_push::WebPushService;
 use crate::websocket::WebSocketEventBus;
 use std::sync::Arc;
 
-/// Event bus that multiplexes server events to both WebSocket clients and
-/// loaded plugins.
+/// Event bus that multiplexes server events to WebSocket clients, loaded plugins,
+/// and browser push subscriptions.
 #[derive(Clone)]
 pub struct CompositeEventBus {
     /// WebSocket event bus.
     websocket: WebSocketEventBus,
     /// Loaded plugin manager.
     plugins: Arc<PluginManager>,
+    /// Optional Web Push notification service.
+    web_push: Option<WebPushService>,
 }
 
 impl CompositeEventBus {
-    /// Creates a composite bus from a WebSocket bus and a plugin manager.
+    /// Creates a composite bus from a WebSocket bus, a plugin manager, and an
+    /// optional Web Push notification service.
     #[must_use]
-    pub fn new(websocket: WebSocketEventBus, plugins: Arc<PluginManager>) -> Self {
-        Self { websocket, plugins }
+    pub fn new(
+        websocket: WebSocketEventBus,
+        plugins: Arc<PluginManager>,
+        web_push: Option<WebPushService>,
+    ) -> Self {
+        Self {
+            websocket,
+            plugins,
+            web_push,
+        }
     }
 }
 
@@ -34,6 +46,9 @@ impl EventBus for CompositeEventBus {
             .dispatch_event(ruckchat_plugin_sdk::PluginEvent::MessageReceived {
                 message: message.clone(),
             });
+        if let Some(web_push) = &self.web_push {
+            web_push.publish_message_created(message).await.ok();
+        }
         Ok(())
     }
 

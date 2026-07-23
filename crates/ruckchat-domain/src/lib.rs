@@ -17,6 +17,7 @@ pub mod repositories;
 pub mod role;
 pub mod session;
 pub mod user;
+pub mod web_push_subscription;
 
 pub use channel::Channel;
 pub use channel_membership::ChannelMembership;
@@ -31,7 +32,9 @@ pub use repositories::{
     ChannelMembershipRepository, ChannelRepository, DirectMessageConversationRepository,
     FileRepository, MessageRepository, OrganizationMembershipRepository, OrganizationRepository,
     OrganizationSettingsRepository, ReactionRepository, SessionRepository, UserRepository,
+    WebPushSubscriptionRepository,
 };
 pub use role::Role;
 pub use session::Session;
 pub use user::User;
+pub use web_push_subscription::WebPushSubscription;

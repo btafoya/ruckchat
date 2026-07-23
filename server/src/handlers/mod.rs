@@ -11,18 +11,24 @@ pub mod organization;
 pub mod plugins;
 pub mod reaction;
 pub mod user;
+pub mod web_assets;
+pub mod web_push;
 
 pub use auth::AuthUser;
 
 use crate::{mcp::mcp_handler, state::AppState, websocket::websocket_handler};
 use axum::{
     Router,
+    http::header::{AUTHORIZATION, CONTENT_TYPE},
     routing::{any, delete, get, patch, post},
 };
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{
+    cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer},
+    trace::TraceLayer,
+};
 
 /// Builds the full HTTP router for the RuckChat API.
-pub fn router() -> Router<AppState> {
+pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router<AppState> {
     Router::new()
         .route("/websocket", get(websocket_handler))
         .route("/mcp/v1/sse", any(mcp_handler))
@@ -85,13 +91,54 @@ pub fn router() -> Router<AppState> {
             post(direct_message::post_message),
         )
         .route("/files", get(file::list))
-        .route("/files", post(file::record))
+        .route("/files", post(file::upload))
+        .route("/files/record", post(file::record))
         .route("/files/{file_id}", get(file::get_metadata))
         .route("/messages/{message_id}/attachments", post(file::attach))
         .route(
             "/plugins/{plugin}/commands/{command}",
             post(plugins::invoke_command),
         )
+        .route("/web-push/vapid-key", get(web_push::vapid_key))
+        .route("/web-push/subscribe", post(web_push::subscribe))
+        .route("/web-push/unsubscribe", post(web_push::unsubscribe))
+        .route("/{*path}", get(web_assets::serve_asset))
         .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
+        .layer(cors_layer(web_config, base_url))
+}
+
+/// Builds a CORS layer that allows credentialed requests from configured
+/// origins.
+fn cors_layer(web_config: &ruckchat_config::WebConfig, base_url: &str) -> CorsLayer {
+    let mut origins = web_config.allowed_origins.clone();
+    if origins.is_empty()
+        && let Ok(url) = url::Url::parse(base_url)
+    {
+        origins.push(url.origin().ascii_serialization());
+    }
+
+    let allow_origin = if origins.is_empty() {
+        AllowOrigin::any()
+    } else {
+        let header_values: Vec<axum::http::HeaderValue> = origins
+            .into_iter()
+            .filter_map(|origin| origin.parse().ok())
+            .collect();
+        AllowOrigin::list(header_values)
+    };
+
+    CorsLayer::new()
+        .allow_origin(allow_origin)
+        .allow_credentials(true)
+        .allow_methods(AllowMethods::list([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PATCH,
+            axum::http::Method::DELETE,
+        ]))
+        .allow_headers(AllowHeaders::list([
+            CONTENT_TYPE,
+            AUTHORIZATION,
+            axum::http::header::ACCEPT,
+        ]))
 }

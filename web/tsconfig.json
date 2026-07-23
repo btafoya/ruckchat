@@ -1,0 +1,12 @@
+{
+  "extends": "../desktop/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src", "../desktop/src"],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+}

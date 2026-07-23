@@ -15,13 +15,15 @@ clients.
 
 ## Current Status
 
-Phases 1–9 are complete. The server is a working REST API with authentication,
+Phases 1–10 are complete. The server is a working REST API with authentication,
 organizations, channels, direct messages, file metadata, WebSocket real-time
-events, an MCP server, a native plugin SDK, and runtime YAML configuration, with
-integration tests against PostgreSQL. The desktop client provides a Tauri + React
-UI with messaging, native OS notifications, a system tray icon with unread count,
-`ruckchat://` deep links, configurable backend URL, draft persistence, and
-failed-send retry.
+events, an MCP server, a native plugin SDK, runtime YAML configuration, a
+browser-based Web UI, and Web Push notifications, with integration tests against
+PostgreSQL. The desktop client provides a Tauri + React UI with messaging, native
+OS notifications, a system tray icon with unread count, `ruckchat://` deep links,
+configurable backend URL, draft persistence, and failed-send retry. The Web UI
+shares the desktop React code via a platform abstraction and is served by the
+server as a PWA with offline caching and push notifications.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -34,7 +36,7 @@ failed-send retry.
 | 7 | ✅ Complete | Plugin SDK and native dynamic plugins |
 | 8 | ✅ Complete | Desktop client (Tauri + React) |
 | 9 | ✅ Complete | Runtime YAML configuration |
-| 10 | Planned | Web UI (browser client with PWA and Web Push) |
+| 10 | ✅ Complete | Web UI (browser client with PWA and Web Push) |
 | 11 | Planned | Mobile client (Flutter) |
 | 12 | Planned | Migration and packaging tools |
 
@@ -88,6 +90,25 @@ The desktop client opens a Tauri WebView pointing at the Vite dev server. It
 expects the server at `http://localhost:3000` by default; change this from the
 `/settings` screen in the app.
 
+### Run the Web UI
+
+```bash
+cd web
+pnpm install
+pnpm dev
+```
+
+The Vite dev server proxies API requests to `http://localhost:3000`. For a
+production release, build `web/` before `server/` so the Rust binary embeds the
+`web/dist/` assets:
+
+```bash
+cd web
+pnpm build
+cd ..
+cargo build --release -p ruckchat-server
+```
+
 ### Run the Tests
 
 ```bash
@@ -135,6 +156,11 @@ Key endpoints:
 | POST | `/plugins/{plugin}/commands/{command}` | Invoke a plugin slash command |
 | POST | `/mcp/v1/sse` | MCP Streamable HTTP client messages |
 | GET  | `/mcp/v1/sse` | MCP Server-Sent Events stream |
+| POST | `/files` | Upload a file via multipart form data |
+| POST | `/files/record` | Record metadata for an uploaded file |
+| GET  | `/web-push/vapid-key` | Get the VAPID public key |
+| POST | `/web-push/subscribe` | Subscribe to Web Push notifications |
+| POST | `/web-push/unsubscribe` | Unsubscribe from Web Push notifications |
 
 ## Architecture
 

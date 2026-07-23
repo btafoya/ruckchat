@@ -14,7 +14,7 @@ use crate::{
         DirectMessageConversationRepositorySqlx, FileRepositorySqlx, MessageRepositorySqlx,
         OrganizationMembershipRepositorySqlx, OrganizationRepositorySqlx,
         OrganizationSettingsRepositorySqlx, ReactionRepositorySqlx, SessionRepositorySqlx,
-        UserRepositorySqlx,
+        UserRepositorySqlx, WebPushSubscriptionRepositorySqlx,
     },
     services::{
         auth::{AuthService, AuthServiceDeps},
@@ -27,6 +27,7 @@ use crate::{
         organization::{OrganizationService, OrganizationServiceDeps},
         reaction::{ReactionService, ReactionServiceDeps},
         user::{UserService, UserServiceDeps},
+        web_push::{WebPushService, WebPushServiceConfig, WebPushServiceDeps},
     },
     websocket::{ConnectionManager, WebSocketEventBus, WebSocketEventBusDeps},
 };
@@ -74,6 +75,10 @@ pub struct AppState {
     pub mcp: McpService,
     /// MCP Streamable HTTP service.
     pub mcp_http: McpHttpService,
+    /// Web UI configuration.
+    pub web_config: ruckchat_config::WebConfig,
+    /// Web Push notification service, if enabled and configured.
+    pub web_push: Option<WebPushService>,
 }
 
 impl std::fmt::Debug for AppState {
@@ -88,6 +93,10 @@ impl std::fmt::Debug for AppState {
             .field("plugin_manager", &"PluginManager")
             .field("mcp", &"McpService")
             .field("mcp_http", &"McpHttpService")
+            .field(
+                "web_push",
+                &self.web_push.as_ref().map(|_| "WebPushService"),
+            )
             .finish_non_exhaustive()
     }
 }
@@ -102,6 +111,7 @@ impl AppState {
         mcp_enabled: bool,
         mcp_require_confirmation: bool,
         plugin_dir: String,
+        files_directory: String,
     ) -> Self {
         Self::build(
             pool,
@@ -109,6 +119,9 @@ impl AppState {
             mcp_enabled,
             mcp_require_confirmation,
             plugin_dir,
+            ruckchat_config::WebConfig::default(),
+            &ruckchat_config::WebPushConfig::default(),
+            &files_directory,
         )
     }
 
@@ -122,15 +135,22 @@ impl AppState {
             config.mcp.enabled,
             config.mcp.require_confirmation,
             config.plugins.directory.clone(),
+            config.web.clone(),
+            &config.web_push,
+            &config.files.directory,
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build(
         pool: PgPool,
         secure_cookies: bool,
         mcp_enabled: bool,
         mcp_require_confirmation: bool,
         plugin_dir: String,
+        web_config: ruckchat_config::WebConfig,
+        web_push_config: &ruckchat_config::WebPushConfig,
+        files_directory: &str,
     ) -> Self {
         let users_repo = Arc::new(UserRepositorySqlx::new(pool.clone()));
         let sessions_repo = Arc::new(SessionRepositorySqlx::new(pool.clone()));
@@ -144,6 +164,26 @@ impl AppState {
         let messages_repo = Arc::new(MessageRepositorySqlx::new(pool.clone()));
         let reactions_repo = Arc::new(ReactionRepositorySqlx::new(pool.clone()));
         let files_repo = Arc::new(FileRepositorySqlx::new(pool.clone()));
+        let web_push_subscriptions_repo =
+            Arc::new(WebPushSubscriptionRepositorySqlx::new(pool.clone()));
+
+        let web_push = WebPushServiceConfig::from_config(web_push_config)
+            .and_then(|svc_config| {
+                WebPushService::new(
+                    WebPushServiceDeps {
+                        subscriptions: web_push_subscriptions_repo.clone(),
+                        conversations: conversations_repo.clone(),
+                        channel_memberships: channel_memberships_repo.clone(),
+                        users: users_repo.clone(),
+                    },
+                    svc_config,
+                )
+                .map_err(|err| {
+                    tracing::warn!(%err, "failed to initialize web push service; continuing without push notifications");
+                    err
+                })
+                .ok()
+            });
 
         let authorization = AuthorizationService::new();
         let connection_manager = ConnectionManager::new();
@@ -172,7 +212,8 @@ impl AppState {
             }),
         );
 
-        let events = CompositeEventBus::new(websocket_events, plugin_manager.clone());
+        let events =
+            CompositeEventBus::new(websocket_events, plugin_manager.clone(), web_push.clone());
 
         let auth = AuthService::new(AuthServiceDeps {
             users: users_repo.clone(),
@@ -229,12 +270,15 @@ impl AppState {
             memberships: memberships_repo.clone(),
         });
 
-        let files = FileService::new(FileServiceDeps {
-            files: files_repo.clone(),
-            messages: messages_repo.clone(),
-            memberships: memberships_repo.clone(),
-            settings: settings_repo.clone(),
-        });
+        let files = FileService::new(
+            FileServiceDeps {
+                files: files_repo.clone(),
+                messages: messages_repo.clone(),
+                memberships: memberships_repo.clone(),
+                settings: settings_repo.clone(),
+            },
+            files_directory,
+        );
 
         let mcp = McpService::new(
             McpServiceDeps {
@@ -269,6 +313,8 @@ impl AppState {
             events,
             mcp,
             mcp_http,
+            web_config,
+            web_push,
         }
     }
 

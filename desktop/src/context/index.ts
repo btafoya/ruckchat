@@ -10,3 +10,4 @@ export {
 } from './DirectMessageContext';
 export { TypingContext, TypingProvider, useTypingContext } from './TypingContext';
 export { RealtimeContext, RealtimeProvider, useRealtimeContext } from './RealtimeContext';
+export { PlatformProvider, usePlatform } from './PlatformContext';

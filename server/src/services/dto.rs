@@ -168,6 +168,17 @@ pub struct RecordUploadRequest {
     pub storage_path: String,
 }
 
+/// Request to upload a file from a multipart body.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UploadFileRequest {
+    /// Organization that owns the file.
+    pub organization_id: OrganizationId,
+    /// Original file name.
+    pub file_name: String,
+    /// MIME type.
+    pub mime_type: String,
+}
+
 /// Response returned when a file is recorded.
 #[derive(Debug, Clone, Serialize)]
 pub struct FileResponse {

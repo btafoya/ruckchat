@@ -6,6 +6,7 @@
 use crate::{
     Channel, ChannelMembership, DirectMessageConversation, File, Message, Organization,
     OrganizationMembership, OrganizationSettings, Reaction, Role, Session, User,
+    WebPushSubscription,
 };
 use async_trait::async_trait;
 use ruckchat_common::Result;
@@ -232,4 +233,18 @@ pub trait FileRepository {
 
     /// Links a file to a message.
     async fn attach_to_message(&self, message_id: MessageId, file_id: FileId) -> Result<()>;
+}
+
+/// Web Push subscription data access.
+#[async_trait]
+pub trait WebPushSubscriptionRepository {
+    /// Persists a subscription for a user, replacing an existing subscription for
+    /// the same endpoint.
+    async fn upsert(&self, subscription: &WebPushSubscription) -> Result<()>;
+
+    /// Loads all subscriptions for a user.
+    async fn list_by_user(&self, user_id: UserId) -> Result<Vec<WebPushSubscription>>;
+
+    /// Deletes a subscription by user and endpoint.
+    async fn delete_by_endpoint(&self, user_id: UserId, endpoint: &str) -> Result<()>;
 }
