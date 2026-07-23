@@ -109,15 +109,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: ubuntu-22.04
+          - platform: linux
             runner: [self-hosted, linux]
             targets: deb,appimage
-          - platform: macos-latest
+            args: --bundles deb,appimage
+          - platform: macos
             runner: [self-hosted, macos]
             targets: dmg
-          - platform: windows-latest
+            args: --target universal-apple-darwin --bundles dmg
+          - platform: windows
             runner: [self-hosted, windows]
             targets: msi,nsis
+            args: --bundles msi,nsis
 
     env:
       CARGO_TERM_COLOR: always
@@ -174,9 +177,7 @@ jobs:
         with:
           projectPath: desktop
           tauriScript: pnpm tauri
-          args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }} --bundles ${{ matrix.targets }}
+          args: ${{ matrix.args }}
           tagName: ${{ github.ref_name }}
           releaseName: 'RuckChat ${{ github.ref_name }}'
           releaseBody: 'See the release assets below for installer downloads.'
-          includeRelease: true
-          includeDebug: false
