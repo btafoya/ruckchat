@@ -1,5 +1,5 @@
 [workspace]
-members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruckchat-common", "crates/ruckchat-domain", "crates/ruckchat-plugin-sdk", "migrations", "desktop/src-tauri"]
+members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruckchat-common", "crates/ruckchat-domain", "crates/ruckchat-plugin-sdk", "crates/rocketchat2ruckchat", "migrations", "desktop/src-tauri"]
 resolver = "2"
 
 [workspace.package]
@@ -16,7 +16,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
 time = { version = "0.3", features = ["serde", "formatting", "parsing", "serde-human-readable"] }
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "time", "migrate", "macros"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "time", "migrate", "macros"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = "0.7"
 tracing = "0.1"
