@@ -5,6 +5,10 @@
 
 use crate::{
     mcp::McpHttpService,
+    plugins::{
+        CompositeEventBus,
+        manager::{PluginManager, PluginManagerDeps},
+    },
     repositories::{
         ChannelMembershipRepositorySqlx, ChannelRepositorySqlx,
         DirectMessageConversationRepositorySqlx, FileRepositorySqlx, MessageRepositorySqlx,
@@ -40,6 +44,8 @@ pub struct AppState {
     pub mcp_enabled: bool,
     /// Whether MCP `post_message` requires explicit confirmation.
     pub mcp_require_confirmation: bool,
+    /// Directory containing plugin dynamic libraries.
+    pub plugin_dir: String,
     /// Authentication service.
     pub auth: AuthService,
     /// User service.
@@ -60,8 +66,10 @@ pub struct AppState {
     pub authorization: AuthorizationService,
     /// WebSocket connection manager.
     pub websocket_manager: ConnectionManager,
-    /// WebSocket event bus.
-    pub events: WebSocketEventBus,
+    /// Plugin manager.
+    pub plugin_manager: Arc<PluginManager>,
+    /// WebSocket + plugin event bus.
+    pub events: CompositeEventBus,
     /// MCP service.
     pub mcp: McpService,
     /// MCP Streamable HTTP service.
@@ -75,7 +83,9 @@ impl std::fmt::Debug for AppState {
             .field("secure_cookies", &self.secure_cookies)
             .field("mcp_enabled", &self.mcp_enabled)
             .field("mcp_require_confirmation", &self.mcp_require_confirmation)
+            .field("plugin_dir", &self.plugin_dir)
             .field("websocket_manager", &self.websocket_manager)
+            .field("plugin_manager", &"PluginManager")
             .field("mcp", &"McpService")
             .field("mcp_http", &"McpHttpService")
             .finish_non_exhaustive()
@@ -91,6 +101,7 @@ impl AppState {
         secure_cookies: bool,
         mcp_enabled: bool,
         mcp_require_confirmation: bool,
+        plugin_dir: String,
     ) -> Self {
         let users_repo = Arc::new(UserRepositorySqlx::new(pool.clone()));
         let sessions_repo = Arc::new(SessionRepositorySqlx::new(pool.clone()));
@@ -107,7 +118,7 @@ impl AppState {
 
         let authorization = AuthorizationService::new();
         let connection_manager = ConnectionManager::new();
-        let events = WebSocketEventBus::new(WebSocketEventBusDeps {
+        let websocket_events = WebSocketEventBus::new(WebSocketEventBusDeps {
             manager: connection_manager.clone(),
             messages: messages_repo.clone(),
             channels: channels_repo.clone(),
@@ -115,6 +126,24 @@ impl AppState {
             conversations: conversations_repo.clone(),
             memberships: memberships_repo.clone(),
         });
+
+        let plugin_manager = Arc::new(
+            PluginManager::load_from_dir(
+                std::path::Path::new(&plugin_dir),
+                PluginManagerDeps {
+                    users: users_repo.clone(),
+                    channels: channels_repo.clone(),
+                    messages: messages_repo.clone(),
+                    events: Arc::new(websocket_events.clone()),
+                },
+            )
+            .unwrap_or_else(|err| {
+                tracing::warn!(%err, plugin_dir = %plugin_dir, "failed to load plugins; continuing without plugins");
+                PluginManager::empty()
+            }),
+        );
+
+        let events = CompositeEventBus::new(websocket_events, plugin_manager.clone());
 
         let auth = AuthService::new(AuthServiceDeps {
             users: users_repo.clone(),
@@ -196,6 +225,7 @@ impl AppState {
             secure_cookies,
             mcp_enabled,
             mcp_require_confirmation,
+            plugin_dir,
             auth,
             users,
             organizations,
@@ -206,6 +236,7 @@ impl AppState {
             reactions,
             authorization,
             websocket_manager: connection_manager,
+            plugin_manager,
             events,
             mcp,
             mcp_http,

@@ -37,6 +37,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         secure_cookies,
         config.mcp_enabled,
         config.mcp_require_confirmation,
+        config.plugin_dir,
     );
 
     let addr = parse_server_addr(&config.base_url).await?;

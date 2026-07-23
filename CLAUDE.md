@@ -57,8 +57,8 @@ Never reason from assumptions, always reason from the actual data. You need to r
 
 ## Current Status
 
-Phases 1–6 and Phase 8 (Desktop client) are complete. Phase 7 and Phases 9–12
-are not yet implemented.
+Phases 1–8 and Phase 7 (Plugin SDK) are complete. Phases 9–12 are not yet
+implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -73,6 +73,10 @@ are not yet implemented.
 - Phase 6: MCP server exposed on `/mcp/v1/sse` using the `rmcp` Streamable HTTP
   transport, with six tools, four `ruckchat://` resources, service-layer
   authorization, unit tests, integration tests, and OpenAPI documentation.
+- Phase 7 (complete): Plugin SDK in `crates/ruckchat-plugin-sdk/`, server-side
+  dynamic loading via `libloading`, `CompositeEventBus` event routing to plugins,
+  `HostApi` for plugin interaction with the service layer, and a
+  `POST /plugins/{plugin}/commands/{command}` slash-command endpoint.
 - Phase 8 (complete): Desktop client in `desktop/` with Tauri v2, React 19,
   TypeScript, Tailwind CSS v4, and React Router v7. The `desktop/src-tauri`
   crate is part of the Cargo workspace. Features include API client + auth flow,
@@ -83,7 +87,7 @@ are not yet implemented.
   tray icon with unread count, file dialogs, deep links for `ruckchat://`),
   offline resilience (draft persistence and failed-send retry), a configurable
   backend URL settings screen, packaging metadata, tests, and docs.
-- Plugin and mobile support are added in later phases.
+- Mobile support and migration tooling are added in later phases.
 
 ## Commands
 
@@ -125,13 +129,15 @@ root/
 │   ├── ruckchat-id/        # Strongly-typed IDs
 │   ├── ruckchat-common/    # Shared error type and validation utilities
 │   ├── ruckchat-config/    # Configuration primitives and `AuthenticatedUser`
-│   └── ruckchat-domain/    # Entities, value objects, and repository traits
-├── server/                 # Service layer, SQLx repositories, HTTP, WebSocket, and MCP
+│   ├── ruckchat-domain/    # Entities, value objects, and repository traits
+│   └── ruckchat-plugin-sdk/ # Plugin SDK trait, types, and `declare_plugin!` macro
+├── server/                 # Service layer, SQLx repositories, HTTP, WebSocket, MCP, and plugins
 │   ├── src/handlers/       # Axum route handlers and HTTP DTOs
 │   ├── src/services/       # Business logic, service DTOs, and event bus trait
 │   ├── src/repositories/   # SQLx repository implementations
 │   ├── src/websocket/      # Connection manager, event bus implementation, handler
 │   ├── src/mcp/            # MCP server, tools, resources, and SSE handler
+│   ├── src/plugins/        # Plugin loader, manager, host API, and composite event bus
 │   ├── src/testing.rs      # In-memory mock repositories and event bus
 │   └── tests/              # Integration tests against PostgreSQL
 ├── migrations/             # SQLx migration crate and SQL files
@@ -162,6 +168,10 @@ root/
 - `server/src/websocket/` — WebSocket connection manager, event bus, and upgrade handler.
 - `server/src/services/mcp.rs` — MCP service bridge that delegates to the existing service layer.
 - `server/src/mcp/` — MCP server handler, tools, resources, and Streamable HTTP handler.
+- `server/src/plugins/loader.rs` — Dynamic library loading and API-version validation.
+- `server/src/plugins/manager.rs` — Plugin lifecycle, event dispatch, and command routing.
+- `server/src/plugins/host.rs` — `HostApi` implementation that bridges plugins to services.
+- `server/src/plugins/bus.rs` — `CompositeEventBus` that routes events to both WebSocket clients and plugins.
 - `server/src/testing.rs` — In-memory mock repositories and event bus for service unit tests.
 - `desktop/src-tauri/` — Tauri v2 Rust shell and native integrations.
 - `desktop/src/` — React + TypeScript desktop UI.
@@ -194,7 +204,8 @@ root/
 - `server/openapi.yaml` — Full OpenAPI specification for the REST API, WebSocket upgrade, and MCP endpoint.
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
   `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md`,
-  `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md` — Active ADRs.
+  `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md`,
+  `docs/ADR-009-Plugin-SDK.md` — Active ADRs.
 
 ## Environment
 
@@ -223,6 +234,7 @@ Optional via `ruckchat.toml` or `RUCKCHAT_*` environment variables:
 - `RUCKCHAT_LOG_LEVEL`
 - `RUCKCHAT_MCP_ENABLED` — Enable the MCP endpoint (default `true`).
 - `RUCKCHAT_MCP_REQUIRE_CONFIRMATION` — Require confirmation for MCP `post_message` (default `true`).
+- `RUCKCHAT_PLUGIN_DIR` — Directory containing native plugin dynamic libraries (default `./plugins`).
 
 ## Testing
 

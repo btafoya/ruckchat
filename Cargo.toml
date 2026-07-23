@@ -1,5 +1,5 @@
 [workspace]
-members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruckchat-common", "crates/ruckchat-domain", "migrations", "desktop/src-tauri"]
+members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruckchat-common", "crates/ruckchat-domain", "crates/ruckchat-plugin-sdk", "migrations", "desktop/src-tauri"]
 resolver = "2"
 
 [workspace.package]
@@ -30,6 +30,8 @@ rmcp = { version = "2.2.0", features = ["server", "server-side-http", "transport
 tauri-plugin-notification = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"
+libloading = "0.8"
+toml = "0.8"
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

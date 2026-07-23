@@ -26,6 +26,9 @@ pub struct AppConfig {
     /// Whether MCP `post_message` requires explicit confirmation.
     #[serde(default = "default_mcp_require_confirmation")]
     pub mcp_require_confirmation: bool,
+    /// Directory containing native plugin dynamic libraries.
+    #[serde(default = "default_plugin_dir")]
+    pub plugin_dir: String,
 }
 
 #[must_use]
@@ -36,6 +39,11 @@ fn default_mcp_enabled() -> bool {
 #[must_use]
 fn default_mcp_require_confirmation() -> bool {
     true
+}
+
+#[must_use]
+fn default_plugin_dir() -> String {
+    "./plugins".into()
 }
 
 impl AppConfig {
@@ -55,6 +63,7 @@ impl AppConfig {
             .set_default("log_level", "info")?
             .set_default("mcp_enabled", true)?
             .set_default("mcp_require_confirmation", true)?
+            .set_default("plugin_dir", "./plugins")?
             .build()?;
 
         cfg.try_deserialize()
@@ -174,6 +183,18 @@ mod tests {
         assert_eq!(cfg.base_url, "http://127.0.0.1:3900");
         unsafe {
             std::env::remove_var("RUCKCHAT_BASE_URL");
+        }
+    }
+
+    #[test]
+    fn plugin_dir_env_override() {
+        unsafe {
+            std::env::set_var("RUCKCHAT_PLUGIN_DIR", "/var/lib/ruckchat/plugins");
+        }
+        let cfg = AppConfig::load().expect("load config with env override");
+        assert_eq!(cfg.plugin_dir, "/var/lib/ruckchat/plugins");
+        unsafe {
+            std::env::remove_var("RUCKCHAT_PLUGIN_DIR");
         }
     }
 

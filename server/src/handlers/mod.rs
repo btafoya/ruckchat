@@ -8,6 +8,7 @@ pub mod error;
 pub mod file;
 pub mod message;
 pub mod organization;
+pub mod plugins;
 pub mod reaction;
 pub mod user;
 
@@ -87,6 +88,10 @@ pub fn router() -> Router<AppState> {
         .route("/files", post(file::record))
         .route("/files/{file_id}", get(file::get_metadata))
         .route("/messages/{message_id}/attachments", post(file::attach))
+        .route(
+            "/plugins/{plugin}/commands/{command}",
+            post(plugins::invoke_command),
+        )
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
 }

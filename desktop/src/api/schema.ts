@@ -1344,6 +1344,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/plugins/{plugin}/commands/{command}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invoke a plugin command
+         * @description Dispatches a slash-style command to a loaded plugin. The plugin
+         *     receives the conversation, the invoking user, and any arguments. The
+         *     response may ask the server to post a message, show an ephemeral
+         *     message, or return an error.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    plugin: string;
+                    command: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InvokeCommandRequest"];
+                };
+            };
+            responses: {
+                /** @description Command executed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommandResponse"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1558,6 +1610,47 @@ export interface components {
         };
         AddReactionRequest: {
             emoji: string;
+        };
+        InvokeCommandRequest: {
+            conversation_id: components["schemas"]["Uuid"];
+            conversation_type: components["schemas"]["ConversationType"];
+            /** @default [] */
+            args: string[];
+        };
+        CommandResponse: {
+            /** @enum {string} */
+            type: "message" | "ephemeral" | "error";
+            content?: string;
+            parent_id?: components["schemas"]["Uuid"];
+            message?: string;
+        };
+        CommandResponseMessage: Omit<components["schemas"]["CommandResponse"], "type"> & {
+            content: string;
+            parent_id?: components["schemas"]["Uuid"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "message";
+        };
+        CommandResponseEphemeral: Omit<components["schemas"]["CommandResponse"], "type"> & {
+            content: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ephemeral";
+        };
+        CommandResponseError: Omit<components["schemas"]["CommandResponse"], "type"> & {
+            message: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "error";
         };
     };
     responses: {

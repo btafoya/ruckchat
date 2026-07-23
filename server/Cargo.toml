@@ -16,6 +16,7 @@ ruckchat-id = { path = "../crates/ruckchat-id" }
 ruckchat-common = { path = "../crates/ruckchat-common" }
 ruckchat-config = { path = "../crates/ruckchat-config" }
 ruckchat-domain = { path = "../crates/ruckchat-domain" }
+ruckchat-plugin-sdk = { path = "../crates/ruckchat-plugin-sdk" }
 ruckchat-migrations = { path = "../migrations" }
 async-trait = { workspace = true }
 config = { workspace = true }
@@ -40,6 +41,8 @@ axum = { version = "0.8", features = ["ws"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 rmcp = { workspace = true }
+libloading = { workspace = true }
+toml = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

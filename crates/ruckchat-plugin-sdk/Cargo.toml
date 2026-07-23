@@ -1,0 +1,23 @@
+[package]
+name = "ruckchat-plugin-sdk"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Plugin SDK for writing native RuckChat plugins."
+readme = "README.md"
+keywords = ["ruckchat", "plugin", "sdk"]
+categories = ["development-tools"]
+
+[dependencies]
+ruckchat-id = { path = "../ruckchat-id" }
+ruckchat-common = { path = "../ruckchat-common" }
+ruckchat-domain = { path = "../ruckchat-domain" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

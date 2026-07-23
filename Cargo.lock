@@ -2288,7 +2288,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e9ec52138abedcc58dc17a7c6c0c00a2bdb4f3427c7f63fa97fd0d859155caf"
 dependencies = [
  "gtk-sys",
- "libloading",
+ "libloading 0.7.4",
  "once_cell",
 ]
 
@@ -2315,6 +2315,16 @@ checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
 dependencies = [
  "cfg-if",
  "winapi",
+]
+
+[[package]]
+name = "libloading"
+version = "0.8.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
+dependencies = [
+ "cfg-if",
+ "windows-link 0.2.1",
 ]
 
 [[package]]
@@ -3654,6 +3664,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruckchat-plugin-sdk"
+version = "0.1.0"
+dependencies = [
+ "ruckchat-common",
+ "ruckchat-domain",
+ "ruckchat-id",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "ruckchat-server"
 version = "0.1.0"
 dependencies = [
@@ -3666,6 +3688,7 @@ dependencies = [
  "hex",
  "http-body-util",
  "ipnetwork 0.21.1",
+ "libloading 0.8.9",
  "rand 0.8.7",
  "rand_core 0.6.4",
  "rmcp",
@@ -3674,6 +3697,7 @@ dependencies = [
  "ruckchat-domain",
  "ruckchat-id",
  "ruckchat-migrations",
+ "ruckchat-plugin-sdk",
  "secrecy",
  "serde",
  "serde_json",
@@ -3683,6 +3707,7 @@ dependencies = [
  "time",
  "tokio",
  "tokio-tungstenite 0.26.2",
+ "toml 0.8.2",
  "tower",
  "tower-http",
  "tracing",

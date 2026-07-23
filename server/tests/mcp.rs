@@ -25,7 +25,7 @@ async fn setup_app(pool: PgPool, mcp_enabled: bool) -> (Router, TestClient) {
         .run(&pool)
         .await
         .expect("migrations apply");
-    let state = AppState::from_pool(pool, false, mcp_enabled, true);
+    let state = AppState::from_pool(pool, false, mcp_enabled, true, "./plugins".into());
     let app = router().with_state(state);
     let client = TestClient::from_router(app.clone());
     (app, client)
