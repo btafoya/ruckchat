@@ -174,7 +174,9 @@ ensure_on_main() {
         local_sha="$(git rev-parse HEAD)"
         remote_sha="$(git rev-parse origin/main)"
         if [[ "${local_sha}" != "${remote_sha}" ]]; then
-            if git merge-base --is-ancestor HEAD origin/main; then
+            if git merge-base --is-ancestor origin/main HEAD; then
+                log "Local main is ahead of origin/main."
+            elif git merge-base --is-ancestor HEAD origin/main; then
                 log "Fast-forwarding main to origin/main..."
                 git merge --ff-only origin/main
             else
