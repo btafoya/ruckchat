@@ -3,42 +3,66 @@
 //! Loads configuration, connects to PostgreSQL, runs pending migrations, builds
 //! the Axum application state, and starts the HTTP server.
 
-use ruckchat_config::{AppConfig, DatabaseConfig};
+use ruckchat_config::{AppConfig, ConfigError, DatabaseConfig, default_config_path};
 use ruckchat_server::{connect_database, handlers::router, state::AppState};
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use tokio::net::TcpListener;
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() {
-    if let Err(err) = run().await {
+    let args = parse_args();
+
+    if args.init_config {
+        let path = args.config.unwrap_or_else(|| {
+            default_config_path().unwrap_or_else(|err| {
+                eprintln!("could not determine default config path: {err}");
+                std::process::exit(1);
+            })
+        });
+        match AppConfig::write_default_to(&path) {
+            Ok(written) => {
+                println!("wrote default configuration to {}", written.display());
+                std::process::exit(0);
+            }
+            Err(err) => {
+                eprintln!("failed to write default configuration: {err}");
+                std::process::exit(1);
+            }
+        }
+    }
+
+    if let Err(err) = run(args.config).await {
         eprintln!("server failed: {err}");
         std::process::exit(1);
     }
 }
 
-async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let config = AppConfig::load()?;
-    config.validate()?;
+async fn run(config_path: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
+    let config = match config_path {
+        Some(path) => AppConfig::load_from_path(path)?,
+        None => AppConfig::load().map_err(|err| {
+            if matches!(err, ConfigError::Read { .. }) {
+                let default = default_config_path()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or_else(|_| "the platform default path".into());
+                ConfigError::Validation(format!(
+                    "config file not found at {default}; create one with `ruckchat-server --init-config` or pass `--config <path>`"
+                ))
+            } else {
+                err
+            }
+        })?,
+    };
 
     init_tracing(&config.log_level);
 
-    let db_config = DatabaseConfig::from_url(
-        std::env::var("DATABASE_URL")
-            .as_deref()
-            .unwrap_or("postgres://ruckchat:ruckchat@localhost/ruckchat"),
-    );
+    let db_config = DatabaseConfig::from_url(config.database.url_exposed());
     let pool = connect_database(&db_config).await?;
 
-    let secure_cookies = matches!(config.environment, ruckchat_config::Environment::Production);
-    let state = AppState::from_pool(
-        pool,
-        secure_cookies,
-        config.mcp_enabled,
-        config.mcp_require_confirmation,
-        config.plugin_dir,
-    );
+    let state = AppState::from_config(pool, &config);
 
     let addr = parse_server_addr(&config.base_url).await?;
     let listener = TcpListener::bind(&addr).await?;
@@ -50,6 +74,47 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     Ok(())
+}
+
+#[derive(Debug, Default)]
+struct Args {
+    /// Path to the YAML configuration file.
+    config: Option<PathBuf>,
+    /// Write a default configuration file and exit.
+    init_config: bool,
+}
+
+fn parse_args() -> Args {
+    let mut args = Args::default();
+    let mut iter = std::env::args().skip(1);
+    while let Some(arg) = iter.next() {
+        match arg.as_str() {
+            "--config" => {
+                let value = iter.next().unwrap_or_else(|| {
+                    eprintln!("--config requires a path argument");
+                    std::process::exit(1);
+                });
+                args.config = Some(PathBuf::from(value));
+            }
+            "--init-config" => {
+                args.init_config = true;
+            }
+            "--help" | "-h" => {
+                println!("Usage: ruckchat-server [OPTIONS]");
+                println!();
+                println!("Options:");
+                println!("  --config <PATH>    Path to ruckchat.yaml");
+                println!("  --init-config      Write a default config file and exit");
+                println!("  -h, --help         Print this help message");
+                std::process::exit(0);
+            }
+            other => {
+                eprintln!("unknown argument: {other}");
+                std::process::exit(1);
+            }
+        }
+    }
+    args
 }
 
 fn init_tracing(log_level: &str) {
@@ -93,4 +158,50 @@ async fn shutdown_signal() {
 
     #[cfg(not(unix))]
     ctrl_c.await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_args_config_path() {
+        let args = parse_args_from(&["--config", "/etc/ruckchat/ruckchat.yaml"]);
+        assert_eq!(
+            args.config,
+            Some(PathBuf::from("/etc/ruckchat/ruckchat.yaml"))
+        );
+        assert!(!args.init_config);
+    }
+
+    #[test]
+    fn parse_args_init_config() {
+        let args = parse_args_from(&["--init-config"]);
+        assert!(args.init_config);
+        assert!(args.config.is_none());
+    }
+
+    #[test]
+    fn parse_args_config_with_init() {
+        let args = parse_args_from(&["--init-config", "--config", "./dev.yaml"]);
+        assert!(args.init_config);
+        assert_eq!(args.config, Some(PathBuf::from("./dev.yaml")));
+    }
+
+    fn parse_args_from(input: &[&str]) -> Args {
+        let mut args = Args::default();
+        let mut iter = input.iter().map(|s| s.to_string());
+        while let Some(arg) = iter.next() {
+            match arg.as_str() {
+                "--config" => {
+                    args.config = Some(PathBuf::from(iter.next().expect("value")));
+                }
+                "--init-config" => {
+                    args.init_config = true;
+                }
+                _ => {}
+            }
+        }
+        args
+    }
 }

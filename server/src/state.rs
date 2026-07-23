@@ -103,6 +103,35 @@ impl AppState {
         mcp_require_confirmation: bool,
         plugin_dir: String,
     ) -> Self {
+        Self::build(
+            pool,
+            secure_cookies,
+            mcp_enabled,
+            mcp_require_confirmation,
+            plugin_dir,
+        )
+    }
+
+    /// Creates state from a loaded [`AppConfig`] and an existing connection pool.
+    #[must_use]
+    pub fn from_config(pool: PgPool, config: &ruckchat_config::AppConfig) -> Self {
+        let secure_cookies = matches!(config.environment, ruckchat_config::Environment::Production);
+        Self::build(
+            pool,
+            secure_cookies,
+            config.mcp.enabled,
+            config.mcp.require_confirmation,
+            config.plugins.directory.clone(),
+        )
+    }
+
+    fn build(
+        pool: PgPool,
+        secure_cookies: bool,
+        mcp_enabled: bool,
+        mcp_require_confirmation: bool,
+        plugin_dir: String,
+    ) -> Self {
         let users_repo = Arc::new(UserRepositorySqlx::new(pool.clone()));
         let sessions_repo = Arc::new(SessionRepositorySqlx::new(pool.clone()));
         let organizations_repo = Arc::new(OrganizationRepositorySqlx::new(pool.clone()));

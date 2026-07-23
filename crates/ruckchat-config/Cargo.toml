@@ -8,19 +8,20 @@ authors.workspace = true
 repository.workspace = true
 description = "Configuration primitives and validation for RuckChat applications."
 readme = "README.md"
-keywords = ["ruckchat", "chat", "domain"]
-categories = ["data-structures"]
+keywords = ["ruckchat", "chat", "config"]
+categories = ["config"]
 
 [dependencies]
 ruckchat-id = { path = "../ruckchat-id" }
 ruckchat-common = { path = "../ruckchat-common" }
 serde = { workspace = true }
-config = { workspace = true }
 secrecy = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
+yaml_serde = { workspace = true }
 
 [dev-dependencies]
+tempfile = "3"
 
 [lints]
 workspace = true

@@ -2,31 +2,52 @@
 
 ## Deployment Philosophy
 
-RuckChat is designed to be deployed as a single server process with one PostgreSQL database. The goal is to make self-hosting as simple as running a binary and connecting a database.
+RuckChat is designed to be deployed as a single server process with one PostgreSQL database. The goal is to make self-hosting as simple as running a binary, placing a single YAML configuration file, and connecting a database.
 
 ## Single Binary Deployment
 
 The server is compiled to a single executable:
 
 ```bash
-ruckchat-server
+ruckchat-server --config /etc/ruckchat/ruckchat.yaml
 ```
 
-Run with environment variables:
+Generate a configuration file on first install:
 
 ```bash
-DATABASE_URL=postgres://ruckchat:secret@localhost/ruckchat
-SESSION_SECRET=$(openssl rand -hex 32)
-RUCKCHAT_PORT=3000
-./ruckchat-server
+ruckchat-server --init-config /etc/ruckchat/ruckchat.yaml
 ```
+
+Edit the generated file to set the PostgreSQL URL, base URL, and plugin directory, then start the service.
+
+## systemd Deployment
+
+```ini
+[Unit]
+Description=RuckChat server
+After=network.target postgresql.service
+
+[Service]
+Type=exec
+User=ruckchat
+Group=ruckchat
+ExecStart=/usr/local/bin/ruckchat-server --config /etc/ruckchat/ruckchat.yaml
+Restart=on-failure
+ReadWritePaths=/var/lib/ruckchat/plugins
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Place the configuration file at `/etc/ruckchat/ruckchat.yaml` and ensure the `ruckchat` user can read it.
 
 ## Docker Deployment
 
-An official Docker image is provided:
+Mount the configuration file into the container:
 
 ```bash
-docker run -e DATABASE_URL=... -e SESSION_SECRET=... -p 3000:3000 ruckchat/server:latest
+docker run -v /opt/ruckchat/ruckchat.yaml:/etc/ruckchat/ruckchat.yaml:ro \
+  -p 3000:3000 ruckchat/server:latest
 ```
 
 A `docker-compose.yml` example is included in the repository for local and small production deployments.
@@ -58,23 +79,24 @@ Default storage is the local filesystem in the `FILE_STORAGE_PATH` directory. Fo
 ## Database Setup
 
 1. Create the database and user.
-2. Set `DATABASE_URL`.
+2. Set `database.url` in `/etc/ruckchat/ruckchat.yaml`.
 3. Run the server; migrations apply automatically.
 
 For manual migrations:
 
 ```bash
-cargo sqlx migrate run
+cargo sqlx migrate run --source migrations/migrations
 ```
 
 ## Environment Checklist
 
 Before running in production, verify:
 
-- [ ] `SESSION_SECRET` is a strong, unique secret.
-- [ ] `DATABASE_URL` points to a persistent PostgreSQL instance.
+- [ ] `/etc/ruckchat/ruckchat.yaml` exists and is readable by the server user.
+- [ ] `database.url` points to a persistent PostgreSQL instance.
+- [ ] `base_url` matches the public HTTPS address served by the reverse proxy.
 - [ ] HTTPS is enabled via reverse proxy.
-- [ ] `SMTP_*` variables are set if email notifications are required.
+- [ ] SMTP settings are configured if email notifications are required.
 - [ ] File storage backend is configured and accessible.
 - [ ] Backups are scheduled for the database and file storage.
 

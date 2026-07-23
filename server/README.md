@@ -12,7 +12,7 @@ server/src
 ├── lib.rs               # Crate entry point and database connection helper
 ├── error.rs             # Server-specific error variants
 ├── state.rs             # Shared application state and service wiring
-├── main.rs              # Entry point: config, tracing, DB, graceful shutdown
+├── main.rs              # Entry point: CLI, config, tracing, DB, graceful shutdown
 ├── repositories/        # SQLx implementations of domain repository traits
 │   ├── user.rs
 │   ├── session.rs
@@ -63,9 +63,31 @@ server/src
 └── testing.rs          # In-memory mock repositories and event bus for unit tests
 ```
 
+## Configuration
+
+The server reads a single YAML file at startup. The default path is
+`/etc/ruckchat/ruckchat.yaml` on Linux, `/Library/Application Support/RuckChat/ruckchat.yaml`
+on macOS, and `%ProgramData%\RuckChat\ruckchat.yaml` on Windows.
+
+Generate a default configuration file:
+
+```bash
+ruckchat-server --init-config /etc/ruckchat/ruckchat.yaml
+```
+
+Run with an explicit config path:
+
+```bash
+ruckchat-server --config ./ruckchat.yaml
+```
+
+The file is the sole source of truth for server runtime settings. No `.env`
+files or `RUCKCHAT_*` environment variables are read at runtime.
+
 ## Running tests
 
-Integration tests require a running PostgreSQL database and `DATABASE_URL`:
+`DATABASE_URL` is required at compile time for SQLx query verification, and
+integration tests use it to create test pools:
 
 ```bash
 export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
@@ -75,7 +97,9 @@ cargo test -p ruckchat-server
 If you have a local `.env.testing` file (gitignored), source it first:
 
 ```bash
-export $(grep -v '^#' .env.testing | xargs)
+set -a
+source .env.testing
+set +a
 cargo test -p ruckchat-server
 ```
 
@@ -94,8 +118,9 @@ crate on startup.
 ## Running the server
 
 ```bash
-export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
-cargo run -p ruckchat-server
+ruckchat-server --init-config /etc/ruckchat/ruckchat.yaml
+# edit /etc/ruckchat/ruckchat.yaml, then:
+ruckchat-server --config /etc/ruckchat/ruckchat.yaml
 ```
 
 The server binds to the address derived from `base_url` in the configuration

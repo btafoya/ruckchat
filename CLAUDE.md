@@ -5,12 +5,15 @@ Never change architecture without updating ADRs.
 
 ## Quick start
 
+Generate a local configuration file and edit the database URL:
+
 ```bash
 set -a
 source .env.testing
 set +a
-cargo sqlx migrate run --source migrations/migrations
-cargo run -p ruckchat-server
+cargo run -p ruckchat-server -- --init-config ./ruckchat.yaml
+# edit ./ruckchat.yaml, then:
+cargo run -p ruckchat-server -- --config ./ruckchat.yaml
 ```
 
 Then in another terminal, run the desktop client:
@@ -87,6 +90,10 @@ implemented.
   tray icon with unread count, file dialogs, deep links for `ruckchat://`),
   offline resilience (draft persistence and failed-send retry), a configurable
   backend URL settings screen, packaging metadata, tests, and docs.
+- Phase 9 (complete): Runtime YAML configuration. The server reads a single
+  `ruckchat.yaml` file from a platform default path or a path supplied via
+  `--config`. The file is the sole source of truth for runtime settings; no
+  `.env` files or `RUCKCHAT_*` environment variable overrides are read.
 - Mobile support and migration tooling are added in later phases.
 
 ## Commands
@@ -98,7 +105,8 @@ implemented.
 | `cargo test -p ruckchat-server` | Run server tests (requires `DATABASE_URL` for integration tests) |
 | `cargo clippy --workspace --all-targets --all-features -- -D warnings` | Run clippy with workspace lints |
 | `cargo sqlx migrate run --source migrations/migrations` | Apply pending migrations |
-| `cargo run -p ruckchat-server` | Run the server binary (HTTP, WebSocket, MCP) |
+| `cargo run -p ruckchat-server -- --config ./ruckchat.yaml` | Run the server with an explicit config file |
+| `cargo run -p ruckchat-server -- --init-config [./ruckchat.yaml]` | Write a default config file and exit |
 | `cd desktop && pnpm install` | Install desktop client dependencies |
 | `cd desktop && pnpm tauri dev` | Run the desktop client in dev mode |
 | `cd desktop && pnpm tauri build` | Build desktop installers |
@@ -205,15 +213,15 @@ root/
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
   `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md`,
   `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md`,
-  `docs/ADR-009-Plugin-SDK.md` — Active ADRs.
+  `docs/ADR-009-Plugin-SDK.md`, `docs/ADR-010-Runtime-YAML-Configuration.md` — Active ADRs.
 
 ## Environment
 
-Required for integration tests and the running server:
+Required at **compile time** for SQLx query verification in the server crate:
 - `DATABASE_URL` — PostgreSQL connection string, e.g.
   `postgres://ruckchat:ruckchat@localhost/ruckchat`.
 
-A local `.env.testing` file is provided at the repo root with these values.
+A local `.env.testing` file is provided at the repo root with this value.
 Source it before workspace checks:
 
 ```bash
@@ -222,19 +230,20 @@ source .env.testing
 set +a
 ```
 
+At **runtime** the server reads a single YAML configuration file:
+- Default path: `/etc/ruckchat/ruckchat.yaml` (Linux),
+  `/Library/Application Support/RuckChat/ruckchat.yaml` (macOS), or
+  `%ProgramData%\RuckChat\ruckchat.yaml` (Windows).
+- Override with `--config <path>`.
+- Generate a template with `ruckchat-server --init-config [path]`.
+
 Required for schema/migration tests that create isolated per-test databases:
 - `RUCKCHAT_TEST_ADMIN_DATABASE_URL` — Admin connection string used to create and
   drop temporary test databases, e.g.
   `postgres://postgres:postgres@localhost:5445/postgres`.
 
-Optional via `ruckchat.toml` or `RUCKCHAT_*` environment variables:
-- `RUCKCHAT_APP_NAME`
-- `RUCKCHAT_ENVIRONMENT`
-- `RUCKCHAT_BASE_URL`
-- `RUCKCHAT_LOG_LEVEL`
-- `RUCKCHAT_MCP_ENABLED` — Enable the MCP endpoint (default `true`).
-- `RUCKCHAT_MCP_REQUIRE_CONFIRMATION` — Require confirmation for MCP `post_message` (default `true`).
-- `RUCKCHAT_PLUGIN_DIR` — Directory containing native plugin dynamic libraries (default `./plugins`).
+The server does **not** read `.env` files or `RUCKCHAT_*` environment variables
+at runtime. All runtime settings live in `ruckchat.yaml`.
 
 ## Testing
 

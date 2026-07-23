@@ -1,9 +1,26 @@
 # 016 - Operations
 
+## Configuration
+
+The server reads one YAML configuration file at startup.
+
+- Default locations:
+  - Linux: `/etc/ruckchat/ruckchat.yaml`
+  - macOS: `/Library/Application Support/RuckChat/ruckchat.yaml`
+  - Windows: `%ProgramData%\RuckChat\ruckchat.yaml`
+- Override with `--config <path>` for development or non-standard installs.
+- Generate a template with `ruckchat-server --init-config [path]`.
+
+The file is read once at startup and is not reloaded automatically. Edit the file and restart the service to apply changes. Validate a file before restarting by loading it from a temporary path:
+
+```bash
+ruckchat-server --config /tmp/ruckchat-staging.yaml
+```
+
 ## Logging
 
 - The server uses `tracing` for structured logging.
-- Default log level is `info`. Debug logging is enabled via `RUST_LOG=debug`.
+- Default log level is `info`, driven by `log_level` in `ruckchat.yaml`.
 - Request logs include method, path, status, duration, and authenticated user ID.
 - Sensitive fields are redacted from logs.
 
