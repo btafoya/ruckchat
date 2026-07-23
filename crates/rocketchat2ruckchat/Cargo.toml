@@ -1,0 +1,43 @@
+[package]
+name = "rocketchat2ruckchat"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Standalone RocketChat to RuckChat migration tool"
+readme = "README.md"
+keywords = ["ruckchat", "rocketchat", "migration"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "rocketchat2ruckchat"
+path = "src/main.rs"
+
+[dependencies]
+ruckchat-common = { path = "../ruckchat-common" }
+ruckchat-domain = { path = "../ruckchat-domain" }
+ruckchat-id = { path = "../ruckchat-id" }
+
+clap = { version = "4", features = ["derive"] }
+console = "0.15"
+dialoguer = "0.11"
+reqwest = { version = "0.12", features = ["cookies", "json", "stream", "multipart"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml = "0.9"
+thiserror.workspace = true
+time.workspace = true
+tokio.workspace = true
+tokio-util = { version = "0.7", features = ["io-util"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid = { workspace = true, features = ["v5"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

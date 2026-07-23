@@ -104,6 +104,10 @@ Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
   using SQLx offline mode, a `docker-compose.yml` with PostgreSQL 17, a
   `scripts/build-server.sh` helper, and a `.github/workflows/release.yml` workflow
   that builds cross-platform Tauri desktop installers on `v*` tags.
+- RocketChat → RuckChat migration tool: standalone `rocketchat2ruckchat` binary
+  crate in `crates/rocketchat2ruckchat/` with RocketChat and RuckChat REST clients,
+  a SQLite mapping store, deterministic UUIDv5 transforms, file/emoji upload
+  pipeline, dry-run, and interactive prompts.
 - Mobile support (Flutter) is planned for a later phase.
 
 ## Commands
@@ -119,6 +123,9 @@ Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
 | `cargo run -p ruckchat-server -- --init-config [./ruckchat.yaml]` | Write a default config file and exit |
 | `cargo run -p ruckchat-server -- --config ./ruckchat.yaml migrate export --output export.json` | Export a domain snapshot |
 | `cargo run -p ruckchat-server -- --config ./ruckchat.yaml migrate import --input export.json` | Import a domain snapshot idempotently |
+| `cargo run -p rocketchat2ruckchat -- --config migration.yaml --dry-run` | Dry-run a RocketChat → RuckChat migration |
+| `cargo run -p rocketchat2ruckchat -- --config migration.yaml --apply` | Apply a RocketChat → RuckChat migration |
+| `cargo run -p rocketchat2ruckchat -- --interactive` | Run the migration tool with interactive prompts |
 | `cargo sqlx prepare --workspace` | Generate SQLx offline metadata for Docker builds |
 | `./scripts/build-server.sh` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image |
 | `docker compose up -d` | Start the server and PostgreSQL via Docker Compose |
@@ -157,7 +164,8 @@ root/
 │   ├── ruckchat-common/    # Shared error type and validation utilities
 │   ├── ruckchat-config/    # Configuration primitives, `AuthenticatedUser`, and runtime YAML parsing
 │   ├── ruckchat-domain/    # Entities, value objects, and repository traits
-│   └── ruckchat-plugin-sdk/ # Plugin SDK trait, types, and `declare_plugin!` macro
+│   ├── ruckchat-plugin-sdk/ # Plugin SDK trait, types, and `declare_plugin!` macro
+│   └── rocketchat2ruckchat/ # Standalone RocketChat → RuckChat migration tool
 ├── server/                 # Service layer, SQLx repositories, HTTP, WebSocket, MCP, and plugins
 │   ├── src/handlers/       # Axum route handlers and HTTP DTOs
 │   ├── src/services/       # Business logic, service DTOs, and event bus trait
