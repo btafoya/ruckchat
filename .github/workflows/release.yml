@@ -113,14 +113,6 @@ jobs:
             runner: [self-hosted, linux]
             targets: deb,appimage
             args: --bundles deb,appimage
-          - platform: macos
-            runner: [self-hosted, macos]
-            targets: dmg
-            args: --target universal-apple-darwin --bundles dmg
-          - platform: windows
-            runner: [self-hosted, windows]
-            targets: msi,nsis
-            args: --bundles msi,nsis
 
     env:
       CARGO_TERM_COLOR: always
@@ -155,7 +147,7 @@ jobs:
           cache-dependency-path: desktop/pnpm-lock.yaml
 
       - name: Install Linux system dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
