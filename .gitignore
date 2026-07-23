@@ -14,3 +14,4 @@ ruckchat.yaml
 node_modules/
 web/dist/
 desktop/dist/
+.serena/
