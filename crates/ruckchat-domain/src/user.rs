@@ -22,6 +22,8 @@ pub struct User {
     pub password_hash: String,
     /// Optional URL to an avatar image.
     pub avatar_url: Option<String>,
+    /// Timestamp when the user was deactivated, if applicable.
+    pub deactivated_at: Option<OffsetDateTime>,
     /// Timestamp when the user was created.
     pub created_at: OffsetDateTime,
     /// Timestamp of the last profile update.
@@ -62,6 +64,7 @@ impl User {
             display_name,
             password_hash,
             avatar_url: None,
+            deactivated_at: None,
             created_at: now,
             updated_at: now,
         })
@@ -88,6 +91,28 @@ impl User {
     pub fn set_avatar_url(&mut self, avatar_url: Option<impl Into<String>>) {
         self.avatar_url = avatar_url.map(Into::into);
         self.updated_at = OffsetDateTime::now_utc();
+    }
+
+    /// Deactivates the user account.
+    pub fn deactivate(&mut self) {
+        if self.deactivated_at.is_none() {
+            self.deactivated_at = Some(OffsetDateTime::now_utc());
+            self.updated_at = OffsetDateTime::now_utc();
+        }
+    }
+
+    /// Reactivates a previously deactivated user account.
+    pub fn reactivate(&mut self) {
+        if self.deactivated_at.is_some() {
+            self.deactivated_at = None;
+            self.updated_at = OffsetDateTime::now_utc();
+        }
+    }
+
+    /// Returns true if the user has been deactivated.
+    #[must_use]
+    pub fn is_active(&self) -> bool {
+        self.deactivated_at.is_none()
     }
 }
 
@@ -137,5 +162,17 @@ mod tests {
             user.avatar_url,
             Some("https://example.com/avatar.png".into())
         );
+    }
+
+    #[test]
+    fn deactivate_and_reactivate() {
+        let mut user = User::new("alice@example.com", "Alice", "hash").expect("valid user");
+        assert!(user.is_active());
+        user.deactivate();
+        assert!(!user.is_active());
+        assert!(user.deactivated_at.is_some());
+        user.reactivate();
+        assert!(user.is_active());
+        assert!(user.deactivated_at.is_none());
     }
 }

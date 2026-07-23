@@ -1,5 +1,6 @@
 //! HTTP route handlers and Axum router wiring.
 
+pub mod admin;
 pub mod auth;
 pub mod channel;
 pub mod direct_message;
@@ -102,6 +103,26 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route("/web-push/vapid-key", get(web_push::vapid_key))
         .route("/web-push/subscribe", post(web_push::subscribe))
         .route("/web-push/unsubscribe", post(web_push::unsubscribe))
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/import",
+            post(admin::import),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/roles",
+            get(admin::list_roles).post(admin::create_role),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/permissions",
+            get(admin::list_permissions).post(admin::create_permission),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/emoji",
+            get(admin::list_emoji).post(admin::create_emoji),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/teams",
+            get(admin::list_teams).post(admin::create_team),
+        )
         .route("/", get(web_assets::serve_root))
         .route("/{*path}", get(web_assets::serve_asset))
         .layer(TraceLayer::new_for_http())

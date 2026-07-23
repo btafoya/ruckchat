@@ -10,13 +10,15 @@ use crate::{
         manager::{PluginManager, PluginManagerDeps},
     },
     repositories::{
-        ChannelMembershipRepositorySqlx, ChannelRepositorySqlx,
+        ChannelMembershipRepositorySqlx, ChannelRepositorySqlx, CustomEmojiRepositorySqlx,
         DirectMessageConversationRepositorySqlx, FileRepositorySqlx, MessageRepositorySqlx,
         OrganizationMembershipRepositorySqlx, OrganizationRepositorySqlx,
-        OrganizationSettingsRepositorySqlx, ReactionRepositorySqlx, SessionRepositorySqlx,
-        UserRepositorySqlx, WebPushSubscriptionRepositorySqlx,
+        OrganizationRoleRepositorySqlx, OrganizationSettingsRepositorySqlx,
+        PermissionRepositorySqlx, ReactionRepositorySqlx, SessionRepositorySqlx,
+        TeamRepositorySqlx, UserRepositorySqlx, WebPushSubscriptionRepositorySqlx,
     },
     services::{
+        admin::{AdminService, AdminServiceDeps},
         auth::{AuthService, AuthServiceDeps},
         authorization::AuthorizationService,
         channel::{ChannelService, ChannelServiceDeps},
@@ -79,6 +81,8 @@ pub struct AppState {
     pub web_config: ruckchat_config::WebConfig,
     /// Web Push notification service, if enabled and configured.
     pub web_push: Option<WebPushService>,
+    /// Administrative service for imports and organization metadata.
+    pub admin: AdminService,
 }
 
 impl std::fmt::Debug for AppState {
@@ -97,6 +101,7 @@ impl std::fmt::Debug for AppState {
                 "web_push",
                 &self.web_push.as_ref().map(|_| "WebPushService"),
             )
+            .field("admin", &"AdminService")
             .finish_non_exhaustive()
     }
 }
@@ -166,6 +171,10 @@ impl AppState {
         let files_repo = Arc::new(FileRepositorySqlx::new(pool.clone()));
         let web_push_subscriptions_repo =
             Arc::new(WebPushSubscriptionRepositorySqlx::new(pool.clone()));
+        let organization_roles_repo = Arc::new(OrganizationRoleRepositorySqlx::new(pool.clone()));
+        let permissions_repo = Arc::new(PermissionRepositorySqlx::new(pool.clone()));
+        let custom_emoji_repo = Arc::new(CustomEmojiRepositorySqlx::new(pool.clone()));
+        let teams_repo = Arc::new(TeamRepositorySqlx::new(pool.clone()));
 
         let web_push = WebPushServiceConfig::from_config(web_push_config)
             .and_then(|svc_config| {
@@ -293,6 +302,17 @@ impl AppState {
         );
         let mcp_http = McpHttpService::new(mcp.clone());
 
+        let admin = AdminService::new(AdminServiceDeps {
+            pool: pool.clone(),
+            organizations: organizations_repo.clone(),
+            memberships: memberships_repo.clone(),
+            roles: organization_roles_repo.clone(),
+            permissions: permissions_repo.clone(),
+            emoji: custom_emoji_repo.clone(),
+            teams: teams_repo.clone(),
+            files: files_repo.clone(),
+        });
+
         Self {
             pool,
             secure_cookies,
@@ -315,6 +335,7 @@ impl AppState {
             mcp_http,
             web_config,
             web_push,
+            admin,
         }
     }
 

@@ -24,14 +24,15 @@ impl UserRepositorySqlx {
 impl UserRepository for UserRepositorySqlx {
     async fn create(&self, user: &User) -> Result<()> {
         sqlx::query!(
-            "INSERT INTO users (id, email, display_name, password_hash, avatar_url, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            "INSERT INTO users (id, email, display_name, password_hash, avatar_url, deactivated_at, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              ON CONFLICT (email) DO NOTHING",
             user.id.as_uuid(),
             user.email,
             user.display_name,
             user.password_hash,
             user.avatar_url,
+            user.deactivated_at,
             user.created_at,
             user.updated_at,
         )
@@ -44,7 +45,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn by_id(&self, id: UserId) -> Result<Option<User>> {
         let row = sqlx::query_as!(
             UserRow,
-            "SELECT id, email, display_name, password_hash, avatar_url, created_at, updated_at FROM users WHERE id = $1",
+            "SELECT id, email, display_name, password_hash, avatar_url, deactivated_at, created_at, updated_at FROM users WHERE id = $1",
             id.as_uuid()
         )
         .fetch_optional(&self.pool)
@@ -57,7 +58,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn by_email(&self, email: &str) -> Result<Option<User>> {
         let row = sqlx::query_as!(
             UserRow,
-            "SELECT id, email, display_name, password_hash, avatar_url, created_at, updated_at FROM users WHERE email = $1",
+            "SELECT id, email, display_name, password_hash, avatar_url, deactivated_at, created_at, updated_at FROM users WHERE email = $1",
             email
         )
         .fetch_optional(&self.pool)
@@ -70,13 +71,14 @@ impl UserRepository for UserRepositorySqlx {
     async fn update(&self, user: &User) -> Result<()> {
         let rows = sqlx::query!(
             "UPDATE users
-             SET email = $2, display_name = $3, password_hash = $4, avatar_url = $5, updated_at = $6
+             SET email = $2, display_name = $3, password_hash = $4, avatar_url = $5, deactivated_at = $6, updated_at = $7
              WHERE id = $1",
             user.id.as_uuid(),
             user.email,
             user.display_name,
             user.password_hash,
             user.avatar_url,
+            user.deactivated_at,
             user.updated_at,
         )
         .execute(&self.pool)
@@ -97,6 +99,7 @@ struct UserRow {
     display_name: String,
     password_hash: String,
     avatar_url: Option<String>,
+    deactivated_at: Option<time::OffsetDateTime>,
     created_at: time::OffsetDateTime,
     updated_at: time::OffsetDateTime,
 }
@@ -108,6 +111,7 @@ fn into_user(row: UserRow) -> User {
         display_name: row.display_name,
         password_hash: row.password_hash,
         avatar_url: row.avatar_url,
+        deactivated_at: row.deactivated_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
     }

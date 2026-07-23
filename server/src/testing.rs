@@ -33,6 +33,19 @@ impl MockUserRepository {
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// Sets the deactivated timestamp on a stored user for testing migration
+    /// of deleted accounts.
+    pub fn set_deactivated(
+        &self,
+        id: UserId,
+        deactivated_at: Option<ruckchat_common::time::OffsetDateTime>,
+    ) {
+        let mut users = self.users.lock().unwrap();
+        if let Some(user) = users.iter_mut().find(|u| u.id == id) {
+            user.deactivated_at = deactivated_at;
+        }
+    }
 }
 
 #[async_trait]

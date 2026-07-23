@@ -4,14 +4,16 @@
 //! Concrete implementations using SQLx live in the server crate.
 
 use crate::{
-    Channel, ChannelMembership, DirectMessageConversation, File, Message, Organization,
-    OrganizationMembership, OrganizationSettings, Reaction, Role, Session, User,
-    WebPushSubscription,
+    Channel, ChannelMembership, CustomEmoji, DirectMessageConversation, File, Message,
+    Organization, OrganizationMembership, OrganizationRole, OrganizationRolePermission,
+    OrganizationSettings, Permission, Reaction, Role, Session, Team, TeamMembership, TeamRoom,
+    User, WebPushSubscription,
 };
 use async_trait::async_trait;
 use ruckchat_common::Result;
 use ruckchat_id::{
-    ChannelId, DirectMessageConversationId, FileId, MessageId, OrganizationId, SessionId, UserId,
+    ChannelId, CustomEmojiId, DirectMessageConversationId, FileId, MessageId, OrganizationId,
+    OrganizationRoleId, PermissionId, SessionId, TeamId, UserId,
 };
 use uuid::Uuid;
 
@@ -233,6 +235,94 @@ pub trait FileRepository {
 
     /// Links a file to a message.
     async fn attach_to_message(&self, message_id: MessageId, file_id: FileId) -> Result<()>;
+}
+
+/// Custom organization role data access.
+#[async_trait]
+pub trait OrganizationRoleRepository {
+    /// Persists a new role.
+    async fn create(&self, role: &OrganizationRole) -> Result<()>;
+
+    /// Loads a role by id.
+    async fn by_id(&self, id: OrganizationRoleId) -> Result<Option<OrganizationRole>>;
+
+    /// Lists roles in an organization.
+    async fn list_by_organization(
+        &self,
+        organization_id: OrganizationId,
+    ) -> Result<Vec<OrganizationRole>>;
+}
+
+/// Permission data access.
+#[async_trait]
+pub trait PermissionRepository {
+    /// Persists a new permission.
+    async fn create(&self, permission: &Permission) -> Result<()>;
+
+    /// Lists permissions in an organization.
+    async fn list_by_organization(
+        &self,
+        organization_id: OrganizationId,
+    ) -> Result<Vec<Permission>>;
+}
+
+/// Role-permission grant data access.
+#[async_trait]
+pub trait RolePermissionRepository {
+    /// Grants a permission to a role.
+    async fn create(&self, grant: &OrganizationRolePermission) -> Result<()>;
+
+    /// Lists permission ids granted to a role.
+    async fn list_by_role(&self, role_id: OrganizationRoleId) -> Result<Vec<PermissionId>>;
+}
+
+/// Custom emoji data access.
+#[async_trait]
+pub trait CustomEmojiRepository {
+    /// Persists a new emoji.
+    async fn create(&self, emoji: &CustomEmoji) -> Result<()>;
+
+    /// Loads an emoji by id.
+    async fn by_id(&self, id: CustomEmojiId) -> Result<Option<CustomEmoji>>;
+
+    /// Lists emoji in an organization.
+    async fn list_by_organization(
+        &self,
+        organization_id: OrganizationId,
+    ) -> Result<Vec<CustomEmoji>>;
+}
+
+/// Team data access.
+#[async_trait]
+pub trait TeamRepository {
+    /// Persists a new team.
+    async fn create(&self, team: &Team) -> Result<()>;
+
+    /// Loads a team by id.
+    async fn by_id(&self, id: TeamId) -> Result<Option<Team>>;
+
+    /// Lists teams in an organization.
+    async fn list_by_organization(&self, organization_id: OrganizationId) -> Result<Vec<Team>>;
+}
+
+/// Team membership data access.
+#[async_trait]
+pub trait TeamMembershipRepository {
+    /// Adds a user to a team.
+    async fn create(&self, membership: &TeamMembership) -> Result<()>;
+
+    /// Lists members of a team.
+    async fn list_by_team(&self, team_id: TeamId) -> Result<Vec<TeamMembership>>;
+}
+
+/// Team-room link data access.
+#[async_trait]
+pub trait TeamRoomRepository {
+    /// Links a channel to a team.
+    async fn create(&self, link: &TeamRoom) -> Result<()>;
+
+    /// Lists channels linked to a team.
+    async fn list_by_team(&self, team_id: TeamId) -> Result<Vec<TeamRoom>>;
 }
 
 /// Web Push subscription data access.

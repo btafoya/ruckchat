@@ -102,6 +102,10 @@ id_type!(DirectMessageConversationId);
 id_type!(MessageId);
 id_type!(FileId);
 id_type!(SessionId);
+id_type!(OrganizationRoleId);
+id_type!(PermissionId);
+id_type!(CustomEmojiId);
+id_type!(TeamId);
 
 /// A polymorphic conversation identifier: either a channel or a DM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

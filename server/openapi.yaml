@@ -24,6 +24,7 @@ tags:
   - name: MCP
   - name: Plugins
   - name: Web Push
+  - name: Admin
 
 paths:
   /auth/register:
@@ -1106,6 +1107,275 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/v1/admin/organizations/{organization_id}/import:
+    post:
+      summary: Import a migration snapshot into the organization
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminImportRequest'
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportCountsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/organizations/{organization_id}/roles:
+    get:
+      summary: List custom organization roles
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Role list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationRoleList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create a custom organization role
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationRole'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/organizations/{organization_id}/permissions:
+    get:
+      summary: List permissions defined in the organization
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Permission list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create a permission
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePermissionRequest'
+      responses:
+        '201':
+          description: Permission created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/organizations/{organization_id}/emoji:
+    get:
+      summary: List custom emoji
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Emoji list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomEmojiList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create a custom emoji
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmojiRequest'
+      responses:
+        '201':
+          description: Emoji created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomEmoji'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/organizations/{organization_id}/teams:
+    get:
+      summary: List teams
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Team list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create a team
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamRequest'
+      responses:
+        '201':
+          description: Team created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1189,6 +1459,10 @@ components:
           type: string
         avatar_url:
           type: string
+          nullable: true
+        deactivated_at:
+          type: string
+          format: date-time
           nullable: true
         created_at:
           type: string
@@ -1693,3 +1967,350 @@ components:
           type: string
           format: uri
           description: Push service endpoint URL
+
+    OrganizationRole:
+      type: object
+      required: [id, organization_id, name, created_at, updated_at]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        organization_id:
+          $ref: '#/components/schemas/Uuid'
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrganizationRoleList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationRole'
+
+    Permission:
+      type: object
+      required: [id, organization_id, key]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        organization_id:
+          $ref: '#/components/schemas/Uuid'
+        key:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    PermissionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+
+    OrganizationRolePermission:
+      type: object
+      required: [role_id, permission_id]
+      properties:
+        role_id:
+          $ref: '#/components/schemas/Uuid'
+        permission_id:
+          $ref: '#/components/schemas/Uuid'
+
+    CustomEmoji:
+      type: object
+      required: [id, organization_id, shortcode, file_id, created_by, created_at]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        organization_id:
+          $ref: '#/components/schemas/Uuid'
+        shortcode:
+          type: string
+        file_id:
+          $ref: '#/components/schemas/Uuid'
+        created_by:
+          $ref: '#/components/schemas/Uuid'
+        created_at:
+          type: string
+          format: date-time
+
+    CustomEmojiList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomEmoji'
+
+    Team:
+      type: object
+      required: [id, organization_id, name, created_by, created_at, updated_at]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        organization_id:
+          $ref: '#/components/schemas/Uuid'
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_by:
+          $ref: '#/components/schemas/Uuid'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TeamList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Team'
+
+    TeamMembership:
+      type: object
+      required: [team_id, user_id, role, joined_at]
+      properties:
+        team_id:
+          $ref: '#/components/schemas/Uuid'
+        user_id:
+          $ref: '#/components/schemas/Uuid'
+        role:
+          type: string
+          enum: [owner, leader, member]
+        joined_at:
+          type: string
+          format: date-time
+
+    TeamRoom:
+      type: object
+      required: [team_id, channel_id, added_at]
+      properties:
+        team_id:
+          $ref: '#/components/schemas/Uuid'
+        channel_id:
+          $ref: '#/components/schemas/Uuid'
+        added_at:
+          type: string
+          format: date-time
+
+    OrganizationSettings:
+      type: object
+      required: [organization_id, max_file_size_bytes, storage_quota_bytes, updated_at]
+      properties:
+        organization_id:
+          $ref: '#/components/schemas/Uuid'
+        max_file_size_bytes:
+          type: integer
+          format: int64
+        storage_quota_bytes:
+          type: integer
+          format: int64
+        updated_at:
+          type: string
+          format: date-time
+
+    MessageFileLink:
+      type: object
+      required: [message_id, file_id]
+      properties:
+        message_id:
+          $ref: '#/components/schemas/Uuid'
+        file_id:
+          $ref: '#/components/schemas/Uuid'
+
+    MigrationMessage:
+      type: object
+      required: [id, conversation_id, conversation_type, author_id, content, created_at, updated_at]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        conversation_id:
+          $ref: '#/components/schemas/Uuid'
+        conversation_type:
+          type: string
+          enum: [channel, dm]
+        parent_id:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        author_id:
+          $ref: '#/components/schemas/Uuid'
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    MigrationData:
+      type: object
+      required: [version, exported_at]
+      properties:
+        version:
+          type: integer
+          format: int32
+          example: 2
+        exported_at:
+          type: string
+          format: date-time
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+        organization_memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationMembership'
+        organization_settings:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationSettings'
+        organization_roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationRole'
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+        role_permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationRolePermission'
+        custom_emoji:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomEmoji'
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/Team'
+        team_memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamMembership'
+        team_rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamRoom'
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+        channel_memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelMembership'
+        direct_message_conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DirectMessageConversation'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MigrationMessage'
+        reactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reaction'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+        message_files:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageFileLink'
+
+    AdminImportRequest:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/MigrationData'
+        dry_run:
+          type: boolean
+          default: true
+          description: When true, validate the snapshot without writing to the database.
+
+    ImportCountsResponse:
+      type: object
+      required: [inserted, skipped]
+      properties:
+        inserted:
+          type: integer
+          format: int64
+          description: Rows inserted or updated.
+        skipped:
+          type: integer
+          format: int64
+          description: Rows skipped because they already existed.
+
+    CreateRoleRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    CreatePermissionRequest:
+      type: object
+      required: [key]
+      properties:
+        key:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    CreateEmojiRequest:
+      type: object
+      required: [shortcode, file_id]
+      properties:
+        shortcode:
+          type: string
+        file_id:
+          $ref: '#/components/schemas/Uuid'
+
+    CreateTeamRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true

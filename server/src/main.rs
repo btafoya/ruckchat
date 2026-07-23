@@ -135,11 +135,15 @@ async fn run_migrate(
         MigrateSubcommand::Export { output } => {
             let data = migrate::export_to_file(&pool, &output).await?;
             println!(
-                "exported {} users, {} organizations, {} channels, {} messages to {}",
+                "exported {} users, {} organizations, {} channels, {} messages, {} roles, {} permissions, {} emoji, {} teams to {}",
                 data.users.len(),
                 data.organizations.len(),
                 data.channels.len(),
                 data.messages.len(),
+                data.organization_roles.len(),
+                data.permissions.len(),
+                data.custom_emoji.len(),
+                data.teams.len(),
                 output.display()
             );
         }

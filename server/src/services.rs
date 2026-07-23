@@ -3,6 +3,7 @@
 //! Services orchestrate domain aggregates and repository traits to implement
 //! use cases. They do not depend on HTTP or WebSocket infrastructure.
 
+pub mod admin;
 pub mod auth;
 pub mod authorization;
 pub mod channel;
@@ -17,6 +18,7 @@ pub mod reaction;
 pub mod user;
 pub mod web_push;
 
+pub use admin::AdminService;
 pub use auth::AuthService;
 pub use authorization::{AuthorizationService, Permission};
 pub use channel::ChannelService;

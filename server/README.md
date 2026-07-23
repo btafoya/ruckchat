@@ -20,6 +20,13 @@ server/src
 │   ├── organization.rs
 │   ├── organization_membership.rs
 │   ├── organization_settings.rs
+│   ├── organization_role.rs
+│   ├── permission.rs
+│   ├── role_permission.rs
+│   ├── custom_emoji.rs
+│   ├── team.rs
+│   ├── team_membership.rs
+│   ├── team_room.rs
 │   ├── channel.rs
 │   ├── channel_membership.rs
 │   ├── message.rs
@@ -32,6 +39,7 @@ server/src
 │   ├── authorization.rs
 │   ├── user.rs
 │   ├── organization.rs
+│   ├── admin.rs         # Organization admin operations and import
 │   ├── channel.rs
 │   ├── message.rs
 │   ├── reaction.rs
@@ -50,6 +58,7 @@ server/src
 │   ├── message.rs
 │   ├── mod.rs
 │   ├── organization.rs
+│   ├── admin.rs         # Admin import and metadata endpoints
 │   ├── plugins.rs       # Plugin slash-command endpoint
 │   ├── reaction.rs
 │   ├── user.rs

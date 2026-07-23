@@ -111,6 +111,20 @@
 - `GET /api/v1/files/:id/download`
 - `DELETE /api/v1/files/:id`
 
+### Admin
+
+Restricted to organization owners and admins.
+
+- `POST /api/v1/admin/organizations/:id/import` — import a `MigrationData` snapshot.
+- `GET /api/v1/admin/organizations/:id/roles`
+- `POST /api/v1/admin/organizations/:id/roles`
+- `GET /api/v1/admin/organizations/:id/permissions`
+- `POST /api/v1/admin/organizations/:id/permissions`
+- `GET /api/v1/admin/organizations/:id/emoji`
+- `POST /api/v1/admin/organizations/:id/emoji`
+- `GET /api/v1/admin/organizations/:id/teams`
+- `POST /api/v1/admin/organizations/:id/teams`
+
 ## OpenAPI
 
 - The API is documented in `docs/openapi.yaml`.

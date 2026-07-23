@@ -26,11 +26,18 @@ async fn export_includes_all_domain_tables(pool: PgPool) {
 
     let exported = migrate::export(&pool).await.expect("export succeeds");
 
-    assert_eq!(exported.version, 1);
+    assert_eq!(exported.version, 2);
     assert_eq!(exported.users.len(), 2);
     assert_eq!(exported.organizations.len(), 1);
     assert_eq!(exported.organization_memberships.len(), 2);
     assert_eq!(exported.organization_settings.len(), 1);
+    assert_eq!(exported.organization_roles.len(), 0);
+    assert_eq!(exported.permissions.len(), 0);
+    assert_eq!(exported.role_permissions.len(), 0);
+    assert_eq!(exported.custom_emoji.len(), 0);
+    assert_eq!(exported.teams.len(), 0);
+    assert_eq!(exported.team_memberships.len(), 0);
+    assert_eq!(exported.team_rooms.len(), 0);
     assert_eq!(exported.channels.len(), 1);
     assert_eq!(exported.channel_memberships.len(), 2);
     assert_eq!(exported.direct_message_conversations.len(), 1);
@@ -71,55 +78,17 @@ async fn round_trip_export_import_export_matches(pool: PgPool) {
         .await
         .expect("export to file");
 
-    // Clear all exportable tables in reverse dependency order.
-    sqlx::query!("DELETE FROM reactions")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM message_files")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM files")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM messages")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM dm_members")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM direct_message_conversations")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM channel_memberships")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM channels")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM organization_settings")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM organization_memberships")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM organizations")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM users")
-        .execute(&pool)
-        .await
-        .unwrap();
+    // Clear all exportable tables so the import can re-insert every row.
+    sqlx::query!(
+        "TRUNCATE TABLE users, organizations, organization_memberships, organization_settings,
+         organization_roles, permissions, organization_role_permissions, custom_emoji,
+         teams, team_memberships, team_rooms, channels, channel_memberships,
+         direct_message_conversations, dm_members, messages, reactions, files, message_files
+         RESTART IDENTITY CASCADE"
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let from_file = migrate::read_migration_file(&temp_path)
         .await
@@ -144,55 +113,17 @@ async fn dry_run_does_not_write(pool: PgPool) {
     seed_data(&pool).await;
     let snapshot = migrate::export(&pool).await.expect("export");
 
-    // Clear and dry-run import.
-    sqlx::query!("DELETE FROM message_files")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM files")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM reactions")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM messages")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM dm_members")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM direct_message_conversations")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM channel_memberships")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM channels")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM organization_settings")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM organization_memberships")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM organizations")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM users")
-        .execute(&pool)
-        .await
-        .unwrap();
+    // Clear all exportable tables and dry-run import.
+    sqlx::query!(
+        "TRUNCATE TABLE users, organizations, organization_memberships, organization_settings,
+         organization_roles, permissions, organization_role_permissions, custom_emoji,
+         teams, team_memberships, team_rooms, channels, channel_memberships,
+         direct_message_conversations, dm_members, messages, reactions, files, message_files
+         RESTART IDENTITY CASCADE"
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let counts = migrate::import(&pool, &snapshot, true)
         .await
@@ -322,6 +253,13 @@ fn total_rows(data: &MigrationData) -> usize {
         + data.organizations.len()
         + data.organization_memberships.len()
         + data.organization_settings.len()
+        + data.organization_roles.len()
+        + data.permissions.len()
+        + data.role_permissions.len()
+        + data.custom_emoji.len()
+        + data.teams.len()
+        + data.team_memberships.len()
+        + data.team_rooms.len()
         + data.channels.len()
         + data.channel_memberships.len()
         + data.direct_message_conversations.len()
