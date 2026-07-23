@@ -15,12 +15,13 @@ clients.
 
 ## Current Status
 
-Phases 1–6 and Phase 8 (desktop client) are complete. The server is a working
-REST API with authentication, organizations, channels, direct messages, file
-metadata, WebSocket real-time events, and an MCP server, with integration tests
-against PostgreSQL. The desktop client provides a Tauri + React UI with messaging,
-native OS notifications, a system tray icon with unread count, `ruckchat://`
-deep links, configurable backend URL, draft persistence, and failed-send retry.
+Phases 1–9 are complete. The server is a working REST API with authentication,
+organizations, channels, direct messages, file metadata, WebSocket real-time
+events, an MCP server, a native plugin SDK, and runtime YAML configuration, with
+integration tests against PostgreSQL. The desktop client provides a Tauri + React
+UI with messaging, native OS notifications, a system tray icon with unread count,
+`ruckchat://` deep links, configurable backend URL, draft persistence, and
+failed-send retry.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -30,10 +31,11 @@ deep links, configurable backend URL, draft persistence, and failed-send retry.
 | 4 | ✅ Complete | Axum REST API, auth extractor, integration tests |
 | 5 | ✅ Complete | WebSocket server for realtime messaging |
 | 6 | ✅ Complete | MCP server integration |
-| 7 | Planned | Plugin SDK |
+| 7 | ✅ Complete | Plugin SDK and native dynamic plugins |
 | 8 | ✅ Complete | Desktop client (Tauri + React) |
-| 9 | Planned | Mobile client (Flutter) |
-| 10 | Planned | Migration and packaging tools |
+| 9 | ✅ Complete | Runtime YAML configuration |
+| 10 | Planned | Mobile client (Flutter) |
+| 11 | Planned | Migration and packaging tools |
 
 ## Tech Stack
 
@@ -41,9 +43,10 @@ deep links, configurable backend URL, draft persistence, and failed-send retry.
 - **Database**: PostgreSQL 16+
 - **Authentication**: Argon2 password hashing, SHA-256 session tokens
 - **Validation**: Custom domain validators in `ruckchat-common`
-- **Configuration**: `ruckchat-config` (TOML + environment variables)
+- **Configuration**: Runtime YAML (`ruckchat.yaml`) via `ruckchat-config`
 - **Real-time**: WebSocket with in-memory connection manager
 - **MCP**: `rmcp` Streamable HTTP transport at `/mcp/v1/sse`
+- **Plugins**: Native Rust dynamic libraries loaded at startup
 - **Tracing**: `tracing` + `tracing-subscriber`
 - **Desktop**: Tauri v2, React 19, TypeScript, Vite, Tailwind CSS v4
 
@@ -53,17 +56,22 @@ deep links, configurable backend URL, draft persistence, and failed-send retry.
 
 - [Rust](https://www.rust-lang.org/tools/install) 1.94 or later
 - [PostgreSQL](https://www.postgresql.org/download/) 16 or later
-- A running PostgreSQL database and `DATABASE_URL`
+- A running PostgreSQL database
 
 ### Run the Server
 
 ```bash
-export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
-cargo sqlx migrate run --source migrations/migrations
-cargo run -p ruckchat-server
+set -a
+source .env.testing
+set +a
+
+cargo run -p ruckchat-server -- --init-config ./ruckchat.yaml
+# edit ./ruckchat.yaml, then:
+cargo run -p ruckchat-server -- --config ./ruckchat.yaml
 ```
 
-The server binds to `http://localhost:3000` by default.
+The server binds to the address derived from `base_url` in `ruckchat.yaml`
+(`http://localhost:3000` by default).
 
 ### Run the Desktop Client
 
@@ -81,20 +89,16 @@ expects the server at `http://localhost:3000` by default; change this from the
 
 ```bash
 # All workspace tests (server integration tests require DATABASE_URL)
-export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
+set -a
+source .env.testing
+set +a
 cargo nextest run --workspace
 
 # Server crate only
-export DATABASE_URL="postgres://ruckchat:ruckchat@localhost/ruckchat"
 cargo test -p ruckchat-server
 ```
 
-If you have a local `.env.testing` file (gitignored), source it first:
-
-```bash
-export $(grep -v '^#' .env.testing | xargs)
-cargo nextest run --workspace
-```
+If you do not have `cargo nextest`, use `cargo test --workspace`.
 
 Schema/migration tests that create isolated per-test databases read
 `RUCKCHAT_TEST_ADMIN_DATABASE_URL` (default:
@@ -106,6 +110,9 @@ The REST API is documented in [server/openapi.yaml](server/openapi.yaml).
 
 Authentication accepts either an HTTP-only `ruckchat_session` cookie or an
 `Authorization: Bearer <token>` header.
+
+Real-time updates are delivered over the authenticated WebSocket at
+`/websocket`.
 
 Key endpoints:
 
@@ -121,7 +128,8 @@ Key endpoints:
 | POST | `/organizations/{id}/channels` | Create a channel |
 | GET  | `/channels/{id}/messages` | Get channel history |
 | POST | `/channels/{id}/messages` | Post a message |
-| POST | `/direct_messages` | Start a DM conversation |
+| GET  | `/websocket` | Upgrade to authenticated WebSocket |
+| POST | `/plugins/{plugin}/commands/{command}` | Invoke a plugin slash command |
 | POST | `/mcp/v1/sse` | MCP Streamable HTTP client messages |
 | GET  | `/mcp/v1/sse` | MCP Server-Sent Events stream |
 
@@ -132,14 +140,16 @@ root/
 ├── crates/
 │   ├── ruckchat-id/        # Strongly-typed UUID wrappers
 │   ├── ruckchat-common/    # Shared errors and validation
-│   ├── ruckchat-config/    # Configuration primitives
-│   └── ruckchat-domain/    # Entities and repository traits
+│   ├── ruckchat-config/    # Configuration primitives and runtime YAML parsing
+│   ├── ruckchat-domain/    # Entities and repository traits
+│   └── ruckchat-plugin-sdk/# Plugin SDK trait, types, and `declare_plugin!` macro
 ├── server/                 # HTTP handlers, services, SQLx repositories
 │   ├── src/handlers/       # Axum routes
 │   ├── src/services/       # Business logic
 │   ├── src/repositories/   # SQLx implementations
 │   ├── src/websocket/      # WebSocket real-time events
 │   ├── src/mcp/            # MCP server
+│   ├── src/plugins/        # Dynamic plugin loader, manager, host API, event bus
 │   └── tests/              # HTTP integration tests
 ├── desktop/                # Tauri v2 + React desktop client
 │   ├── src/                # React + TypeScript frontend
@@ -167,8 +177,8 @@ Repository traits live in `ruckchat-domain`; SQLx implementations live in
 ## Roadmap
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full
-sprint breakdown. Upcoming milestones include a plugin SDK, a Flutter mobile
-client, and migration/packaging tools.
+sprint breakdown. Upcoming milestones include a Flutter mobile client and
+migration/packaging tools.
 
 ## Contributing
 

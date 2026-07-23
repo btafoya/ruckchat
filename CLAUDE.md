@@ -60,8 +60,7 @@ Never reason from assumptions, always reason from the actual data. You need to r
 
 ## Current Status
 
-Phases 1–8 and Phase 7 (Plugin SDK) are complete. Phases 9–12 are not yet
-implemented.
+Phases 1–9 are complete. Phases 10–13 are not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -76,24 +75,24 @@ implemented.
 - Phase 6: MCP server exposed on `/mcp/v1/sse` using the `rmcp` Streamable HTTP
   transport, with six tools, four `ruckchat://` resources, service-layer
   authorization, unit tests, integration tests, and OpenAPI documentation.
-- Phase 7 (complete): Plugin SDK in `crates/ruckchat-plugin-sdk/`, server-side
-  dynamic loading via `libloading`, `CompositeEventBus` event routing to plugins,
+- Phase 7: Plugin SDK in `crates/ruckchat-plugin-sdk/`, server-side dynamic
+  loading via `libloading`, `CompositeEventBus` event routing to plugins,
   `HostApi` for plugin interaction with the service layer, and a
   `POST /plugins/{plugin}/commands/{command}` slash-command endpoint.
-- Phase 8 (complete): Desktop client in `desktop/` with Tauri v2, React 19,
-  TypeScript, Tailwind CSS v4, and React Router v7. The `desktop/src-tauri`
-  crate is part of the Cargo workspace. Features include API client + auth flow,
-  core UI shell and navigation, state stores with real-time WebSocket sync,
-  messaging (message history with pagination, composer with markdown preview and
-  @mention autocomplete, typing indicators, reactions, file metadata attachments,
-  thread replies, and unread badges), native integrations (OS notifications,
-  tray icon with unread count, file dialogs, deep links for `ruckchat://`),
-  offline resilience (draft persistence and failed-send retry), a configurable
-  backend URL settings screen, packaging metadata, tests, and docs.
-- Phase 9 (complete): Runtime YAML configuration. The server reads a single
-  `ruckchat.yaml` file from a platform default path or a path supplied via
-  `--config`. The file is the sole source of truth for runtime settings; no
-  `.env` files or `RUCKCHAT_*` environment variable overrides are read.
+- Phase 8: Desktop client in `desktop/` with Tauri v2, React 19, TypeScript,
+  Tailwind CSS v4, and React Router v7. The `desktop/src-tauri` crate is part
+  of the Cargo workspace. Features include API client + auth flow, core UI shell
+  and navigation, state stores with real-time WebSocket sync, messaging (message
+  history with pagination, composer with markdown preview and @mention autocomplete,
+  typing indicators, reactions, file metadata attachments, thread replies, and
+  unread badges), native integrations (OS notifications, tray icon with unread count,
+  file dialogs, deep links for `ruckchat://`), offline resilience (draft persistence
+  and failed-send retry), a configurable backend URL settings screen, packaging
+  metadata, tests, and docs.
+- Phase 9: Runtime YAML configuration. The server reads a single `ruckchat.yaml`
+  file from a platform default path or a path supplied via `--config`. The file is
+  the sole source of truth for runtime settings; no `.env` files or `RUCKCHAT_*`
+  environment variable overrides are read.
 - Mobile support and migration tooling are added in later phases.
 
 ## Commands
@@ -136,7 +135,7 @@ root/
 ├── crates/
 │   ├── ruckchat-id/        # Strongly-typed IDs
 │   ├── ruckchat-common/    # Shared error type and validation utilities
-│   ├── ruckchat-config/    # Configuration primitives and `AuthenticatedUser`
+│   ├── ruckchat-config/    # Configuration primitives, `AuthenticatedUser`, and runtime YAML parsing
 │   ├── ruckchat-domain/    # Entities, value objects, and repository traits
 │   └── ruckchat-plugin-sdk/ # Plugin SDK trait, types, and `declare_plugin!` macro
 ├── server/                 # Service layer, SQLx repositories, HTTP, WebSocket, MCP, and plugins
@@ -368,6 +367,6 @@ Or use the equivalent CodeGraph MCP server action.
 
 1. Cargo workspace → 2. Shared crates → 3. Database schema → 4. Domain layer →
 5. Services → 6. REST API → 7. WebSocket server → 8. MCP server → 9. Plugin SDK →
-10. Desktop → 11. Mobile → 12. Migration tools.
+10. Desktop → 11. Runtime YAML configuration → 12. Mobile → 13. Migration tools.
 
 Ship unit tests, integration tests, OpenAPI updates, and docs with every feature.
