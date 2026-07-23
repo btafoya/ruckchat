@@ -12,26 +12,11 @@ permissions:
 jobs:
   server:
     name: Build and publish server image
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     env:
       CARGO_TERM_COLOR: always
-      DATABASE_URL: postgres://ruckchat:ruckchat@localhost/ruckchat
+      DATABASE_URL: postgres://postgres:postgres@postgres/ruckchat
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ruckchat-server
-
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: ruckchat
-          POSTGRES_PASSWORD: ruckchat
-          POSTGRES_DB: ruckchat
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout
@@ -101,7 +86,7 @@ jobs:
   desktop:
     name: Build desktop on ${{ matrix.platform }}
     needs: server
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
       packages: read
@@ -110,10 +95,13 @@ jobs:
       matrix:
         include:
           - platform: ubuntu-22.04
+            runner: self-hosted
             targets: deb,appimage
           - platform: macos-latest
+            runner: self-hosted
             targets: dmg
           - platform: windows-latest
+            runner: self-hosted
             targets: msi,nsis
 
     env:

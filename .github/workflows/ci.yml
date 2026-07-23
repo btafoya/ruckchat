@@ -2,32 +2,19 @@ name: CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags:
+      - 'v*'
 
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
-  DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
-  RUCKCHAT_TEST_ADMIN_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+  DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+  RUCKCHAT_TEST_ADMIN_DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
 
 jobs:
   quality:
     name: Format, Clippy, Docs
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v7
 
@@ -97,19 +84,7 @@ jobs:
 
   test:
     name: Tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v7
 
