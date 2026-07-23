@@ -43,6 +43,39 @@ Place the configuration file at `/etc/ruckchat/ruckchat.yaml` and ensure the `ru
 
 ## Docker Deployment
 
+### Using a pre-built image (recommended)
+
+Releases publish a `ruckchat-server` image to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/btafoya/ruckchat-server:latest
+```
+
+Run the container with the configuration file mounted:
+
+```bash
+docker run -v /opt/ruckchat/ruckchat.yaml:/etc/ruckchat/ruckchat.yaml:ro \
+  -v /opt/ruckchat/files:/var/lib/ruckchat/files \
+  -v /opt/ruckchat/plugins:/var/lib/ruckchat/plugins \
+  -p 3000:3000 ghcr.io/btafoya/ruckchat-server:latest
+```
+
+A runtime-only `docker-compose.yml` is included at the repository root. It starts
+PostgreSQL 17 and the server from a pre-built image, mounts `./ruckchat.yaml`,
+and creates named volumes for files and plugins:
+
+```bash
+docker compose up -d
+```
+
+Override the image tag with an environment variable:
+
+```bash
+RUCKCHAT_VERSION=0.1.0 docker compose up -d
+```
+
+### Building from source
+
 Build the server image first:
 
 ```bash
@@ -56,24 +89,13 @@ metadata:
 cd web && pnpm build
 cd ..
 cargo sqlx prepare --workspace
-docker build -t ruckchat/server:latest .
+docker build -t ruckchat-server:latest .
 ```
 
-Run the container with the configuration file mounted:
+Use `docker-compose.build.yml` to build and run from the local checkout:
 
 ```bash
-docker run -v /opt/ruckchat/ruckchat.yaml:/etc/ruckchat/ruckchat.yaml:ro \
-  -v /opt/ruckchat/files:/var/lib/ruckchat/files \
-  -v /opt/ruckchat/plugins:/var/lib/ruckchat/plugins \
-  -p 3000:3000 ruckchat/server:latest
-```
-
-A `docker-compose.yml` example is included in the repository for local and small
-production deployments. It starts PostgreSQL 17 and the server, mounts
-`./ruckchat.yaml`, and creates named volumes for files and plugins:
-
-```bash
-docker compose up -d
+docker compose -f docker-compose.build.yml up -d
 ```
 
 ## Reverse Proxy

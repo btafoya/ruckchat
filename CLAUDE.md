@@ -101,9 +101,10 @@ Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
 - Phase 12: Migration and packaging tools. The server CLI supports versioned
   JSON domain-data export/import with idempotent `ON CONFLICT DO NOTHING`
   semantics and a dry-run mode. The repository includes a multi-stage `Dockerfile`
-  using SQLx offline mode, a `docker-compose.yml` with PostgreSQL 17, a
-  `scripts/build-server.sh` helper, and a `.github/workflows/release.yml` workflow
-  that builds cross-platform Tauri desktop installers on `v*` tags.
+  using SQLx offline mode, a runtime `docker-compose.yml` with PostgreSQL 17, a
+  `docker-compose.build.yml` for source builds, a `scripts/build-server.sh` helper,
+  and a `.github/workflows/release.yml` workflow that publishes the server Docker
+  image and builds cross-platform Tauri desktop installers on `v*` tags.
 - RocketChat → RuckChat migration tool: standalone `rocketchat2ruckchat` binary
   crate in `crates/rocketchat2ruckchat/` with RocketChat and RuckChat REST clients,
   a SQLite mapping store, deterministic UUIDv5 transforms, file/emoji upload
@@ -128,7 +129,8 @@ Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
 | `cargo run -p rocketchat2ruckchat -- --interactive` | Run the migration tool with interactive prompts |
 | `cargo sqlx prepare --workspace` | Generate SQLx offline metadata for Docker builds |
 | `./scripts/build-server.sh` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image |
-| `docker compose up -d` | Start the server and PostgreSQL via Docker Compose |
+| `docker compose up -d` | Start the server and PostgreSQL via Docker Compose (pre-built image) |
+| `docker compose -f docker-compose.build.yml up -d` | Build and start the server from source |
 | `cd desktop && pnpm install` | Install desktop client dependencies |
 | `cd desktop && pnpm tauri dev` | Run the desktop client in dev mode |
 | `cd desktop && pnpm tauri build` | Build desktop installers |

@@ -1,16 +1,96 @@
-name: Release desktop
+name: Release
 
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  build:
+  server:
+    name: Build and publish server image
+    runs-on: ubuntu-22.04
+    env:
+      CARGO_TERM_COLOR: always
+      DATABASE_URL: postgres://ruckchat:ruckchat@localhost/ruckchat
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ruckchat-server
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ruckchat
+          POSTGRES_PASSWORD: ruckchat
+          POSTGRES_DB: ruckchat
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Cache pnpm dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -U ruckchat -d ruckchat; do
+            sleep 1
+          done
+
+      - name: Run database migrations
+        run: cargo sqlx migrate run --source migrations/migrations
+
+      - name: Build server image
+        run: |
+          IMAGE_TAG="${IMAGE_NAME}:${GITHUB_REF_NAME}" PUSH=1 ./scripts/build-server.sh
+          docker tag "${IMAGE_NAME}:${GITHUB_REF_NAME}" "${IMAGE_NAME}:latest"
+          docker push "${IMAGE_NAME}:latest"
+
+  desktop:
     name: Build desktop on ${{ matrix.platform }}
+    needs: server
     runs-on: ${{ matrix.platform }}
     permissions:
       contents: write
+      packages: read
     strategy:
       fail-fast: false
       matrix:

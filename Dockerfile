@@ -55,9 +55,6 @@ RUN mkdir -p /var/lib/ruckchat/plugins /var/lib/ruckchat/files /etc/ruckchat \
 
 USER ruckchat
 
-ENV RUCKCHAT_FILES_DIRECTORY=/var/lib/ruckchat/files
-ENV RUCKCHAT_PLUGINS_DIRECTORY=/var/lib/ruckchat/plugins
-
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

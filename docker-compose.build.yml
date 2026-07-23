@@ -1,14 +1,14 @@
-# Production/runtime Docker Compose file.
+# Source-build Docker Compose file.
 #
-# This file runs a pre-built ruckchat-server image. It does not build the
-# server from source. For a source-build variant (useful for development or
-# self-hosting from a checkout), see docker-compose.build.yml.
+# Use this file to build the ruckchat-server image from the local checkout.
+# It is intended for development, CI, and self-hosters who want to build
+# from source rather than pull a published image.
 #
-# Override the image tag with the RUCKCHAT_VERSION environment variable:
-#   RUCKCHAT_VERSION=0.1.0 docker compose up -d
+# Build and start the stack:
+#   docker compose -f docker-compose.build.yml up -d
 #
-# For GitHub Container Registry images built by the release workflow, the
-# default image is: ghcr.io/btafoya/ruckchat-server:latest
+# Build with no cache:
+#   docker compose -f docker-compose.build.yml build --no-cache
 
 services:
   postgres:
@@ -28,7 +28,11 @@ services:
       - ruckchat
 
   server:
-    image: ${RUCKCHAT_IMAGE:-ghcr.io/btafoya/ruckchat-server}:${RUCKCHAT_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgres://ruckchat:ruckchat@postgres/ruckchat
     depends_on:
       postgres:
         condition: service_healthy

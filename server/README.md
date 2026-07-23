@@ -165,8 +165,18 @@ cd web && pnpm build && cd ..
 docker build -t ruckchat/server:latest .
 ```
 
-A `docker-compose.yml` is provided at the repository root for local and small
-production deployments.
+Or use the helper script:
+
+```bash
+./scripts/build-server.sh
+```
+
+Two Docker Compose files are provided:
+
+- `docker-compose.yml` — runs a pre-built server image. Use this for production
+  deployments that pull the image from a registry.
+- `docker-compose.build.yml` — builds the server image from the local checkout.
+  Use this for development and self-hosting from source.
 
 ## Running the server
 
