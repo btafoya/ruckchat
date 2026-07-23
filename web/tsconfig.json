@@ -8,5 +8,10 @@
     }
   },
   "include": ["src", "../desktop/src"],
-  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "../desktop/src/**/*.test.ts",
+    "../desktop/src/**/*.test.tsx"
+  ]
 }
