@@ -171,7 +171,7 @@ jobs:
         with:
           projectPath: desktop
           tauriScript: pnpm tauri
-          args: --target-triple ${{ matrix.platform == 'macos-latest' && 'universal-apple-darwin' || '' }} --bundles ${{ matrix.targets }}
+          args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }} --bundles ${{ matrix.targets }}
           tagName: ${{ github.ref_name }}
           releaseName: 'RuckChat ${{ github.ref_name }}'
           releaseBody: 'See the release assets below for installer downloads.'
