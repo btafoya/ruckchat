@@ -60,7 +60,7 @@ Never reason from assumptions, always reason from the actual data. You need to r
 
 ## Current Status
 
-Phases 1–10 are complete. Phases 11–13 are not yet implemented.
+Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -98,7 +98,13 @@ Phases 1–10 are complete. Phases 11–13 are not yet implemented.
   static assets (embedded or from a configured directory), supports PWA
   install/service-worker offline caching, and adds Web Push notifications using a
   server-managed VAPID key.
-- Mobile support (Flutter) and migration tooling are added in later phases.
+- Phase 12: Migration and packaging tools. The server CLI supports versioned
+  JSON domain-data export/import with idempotent `ON CONFLICT DO NOTHING`
+  semantics and a dry-run mode. The repository includes a multi-stage `Dockerfile`
+  using SQLx offline mode, a `docker-compose.yml` with PostgreSQL 17, a
+  `scripts/build-server.sh` helper, and a `.github/workflows/release.yml` workflow
+  that builds cross-platform Tauri desktop installers on `v*` tags.
+- Mobile support (Flutter) is planned for a later phase.
 
 ## Commands
 
@@ -111,6 +117,11 @@ Phases 1–10 are complete. Phases 11–13 are not yet implemented.
 | `cargo sqlx migrate run --source migrations/migrations` | Apply pending migrations |
 | `cargo run -p ruckchat-server -- --config ./ruckchat.yaml` | Run the server with an explicit config file |
 | `cargo run -p ruckchat-server -- --init-config [./ruckchat.yaml]` | Write a default config file and exit |
+| `cargo run -p ruckchat-server -- --config ./ruckchat.yaml migrate export --output export.json` | Export a domain snapshot |
+| `cargo run -p ruckchat-server -- --config ./ruckchat.yaml migrate import --input export.json` | Import a domain snapshot idempotently |
+| `cargo sqlx prepare --workspace` | Generate SQLx offline metadata for Docker builds |
+| `./scripts/build-server.sh` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image |
+| `docker compose up -d` | Start the server and PostgreSQL via Docker Compose |
 | `cd desktop && pnpm install` | Install desktop client dependencies |
 | `cd desktop && pnpm tauri dev` | Run the desktop client in dev mode |
 | `cd desktop && pnpm tauri build` | Build desktop installers |
@@ -225,12 +236,18 @@ root/
   `get_deep_link_url`, and plugin initialization.
 - `server/tests/` — Integration tests against PostgreSQL.
 - `server/tests/mcp.rs` — MCP Streamable HTTP endpoint integration tests.
+- `server/tests/migrate.rs` — Domain snapshot export/import integration tests.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
-- `server/openapi.yaml` — Full OpenAPI specification for the REST API, WebSocket upgrade, and MCP endpoint.
+- `server/openapi.yaml` — Full REST API specification for the REST API, WebSocket upgrade, and MCP endpoint.
+- `Dockerfile` — Multi-stage SQLx-offline server image build.
+- `docker-compose.yml` — PostgreSQL 17 + server orchestration.
+- `scripts/build-server.sh` — Build Web UI assets, refresh `.sqlx/`, and build the Docker image.
+- `.github/workflows/release.yml` — Cross-platform Tauri desktop installer releases on `v*` tags.
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
   `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md`,
   `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md`,
-  `docs/ADR-009-Plugin-SDK.md`, `docs/ADR-010-Runtime-YAML-Configuration.md` — Active ADRs.
+  `docs/ADR-009-Plugin-SDK.md`, `docs/ADR-010-Runtime-YAML-Configuration.md`,
+  `docs/ADR-011-Web-UI.md`, `docs/ADR-012-Migration-and-Packaging.md` — Active ADRs.
 
 ## Environment
 
@@ -385,7 +402,7 @@ Or use the equivalent CodeGraph MCP server action.
 
 1. Cargo workspace → 2. Shared crates → 3. Database schema → 4. Domain layer →
 5. Services → 6. REST API → 7. WebSocket server → 8. MCP server → 9. Plugin SDK →
-10. Desktop → 11. Runtime YAML configuration → 12. Web UI → 13. Mobile →
-14. Migration tools.
+10. Desktop → 11. Runtime YAML configuration → 12. Web UI → 13. Migration and
+    packaging tools → 14. Mobile.
 
 Ship unit tests, integration tests, OpenAPI updates, and docs with every feature.

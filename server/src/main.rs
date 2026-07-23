@@ -1,22 +1,71 @@
 //! RuckChat server binary.
 //!
 //! Loads configuration, connects to PostgreSQL, runs pending migrations, builds
-//! the Axum application state, and starts the HTTP server.
+//! the Axum application state, and starts the HTTP server. Also provides data
+//! migration subcommands.
 
+use clap::{Parser, Subcommand};
 use ruckchat_config::{AppConfig, ConfigError, DatabaseConfig, default_config_path};
-use ruckchat_server::{connect_database, handlers::router, state::AppState};
+use ruckchat_server::{connect_database, handlers::router, migrate, state::AppState};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use tokio::net::TcpListener;
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
+#[derive(Parser, Debug)]
+#[command(name = "ruckchat-server", version, about = "RuckChat server")]
+struct Args {
+    /// Path to the YAML configuration file.
+    #[arg(short, long, value_name = "PATH")]
+    config: Option<PathBuf>,
+
+    /// Write a default configuration file and exit. Optionally accepts a path;
+    /// otherwise uses the platform default.
+    #[arg(long, value_name = "PATH", num_args = 0..=1)]
+    init_config: Option<Option<PathBuf>>,
+
+    /// Subcommand to run.
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Subcommand, Debug)]
+enum Command {
+    /// Run the HTTP server (default).
+    Run,
+    /// Export or import RuckChat data.
+    Migrate {
+        #[command(subcommand)]
+        subcommand: MigrateSubcommand,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum MigrateSubcommand {
+    /// Export all data to a JSON file.
+    Export {
+        /// Output file path.
+        #[arg(short, long, value_name = "PATH")]
+        output: PathBuf,
+    },
+    /// Import data from a JSON file.
+    Import {
+        /// Input file path.
+        #[arg(short, long, value_name = "PATH")]
+        input: PathBuf,
+        /// Validate the file without writing to the database.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
 #[tokio::main]
 async fn main() {
-    let args = parse_args();
+    let args = Args::parse();
 
-    if args.init_config {
-        let path = args.config.unwrap_or_else(|| {
+    if let Some(init_config) = args.init_config {
+        let path = init_config.unwrap_or_else(|| {
             default_config_path().unwrap_or_else(|err| {
                 eprintln!("could not determine default config path: {err}");
                 std::process::exit(1);
@@ -34,28 +83,24 @@ async fn main() {
         }
     }
 
-    if let Err(err) = run(args.config).await {
-        eprintln!("server failed: {err}");
-        std::process::exit(1);
+    match args.command.unwrap_or(Command::Run) {
+        Command::Run => {
+            if let Err(err) = run(args.config).await {
+                eprintln!("server failed: {err}");
+                std::process::exit(1);
+            }
+        }
+        Command::Migrate { subcommand } => {
+            if let Err(err) = run_migrate(args.config, subcommand).await {
+                eprintln!("migration failed: {err}");
+                std::process::exit(1);
+            }
+        }
     }
 }
 
 async fn run(config_path: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
-    let config = match config_path {
-        Some(path) => AppConfig::load_from_path(path)?,
-        None => AppConfig::load().map_err(|err| {
-            if matches!(err, ConfigError::Read { .. }) {
-                let default = default_config_path()
-                    .map(|p| p.display().to_string())
-                    .unwrap_or_else(|_| "the platform default path".into());
-                ConfigError::Validation(format!(
-                    "config file not found at {default}; create one with `ruckchat-server --init-config` or pass `--config <path>`"
-                ))
-            } else {
-                err
-            }
-        })?,
-    };
+    let config = load_config(config_path)?;
 
     init_tracing(&config.log_level);
 
@@ -76,45 +121,64 @@ async fn run(config_path: Option<PathBuf>) -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
-#[derive(Debug, Default)]
-struct Args {
-    /// Path to the YAML configuration file.
-    config: Option<PathBuf>,
-    /// Write a default configuration file and exit.
-    init_config: bool,
-}
+async fn run_migrate(
+    config_path: Option<PathBuf>,
+    subcommand: MigrateSubcommand,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let config = load_config(config_path)?;
+    init_tracing(&config.log_level);
 
-fn parse_args() -> Args {
-    let mut args = Args::default();
-    let mut iter = std::env::args().skip(1);
-    while let Some(arg) = iter.next() {
-        match arg.as_str() {
-            "--config" => {
-                let value = iter.next().unwrap_or_else(|| {
-                    eprintln!("--config requires a path argument");
-                    std::process::exit(1);
-                });
-                args.config = Some(PathBuf::from(value));
-            }
-            "--init-config" => {
-                args.init_config = true;
-            }
-            "--help" | "-h" => {
-                println!("Usage: ruckchat-server [OPTIONS]");
-                println!();
-                println!("Options:");
-                println!("  --config <PATH>    Path to ruckchat.yaml");
-                println!("  --init-config      Write a default config file and exit");
-                println!("  -h, --help         Print this help message");
-                std::process::exit(0);
-            }
-            other => {
-                eprintln!("unknown argument: {other}");
-                std::process::exit(1);
+    let db_config = DatabaseConfig::from_url(config.database.url_exposed());
+    let pool = connect_database(&db_config).await?;
+
+    match subcommand {
+        MigrateSubcommand::Export { output } => {
+            let data = migrate::export_to_file(&pool, &output).await?;
+            println!(
+                "exported {} users, {} organizations, {} channels, {} messages to {}",
+                data.users.len(),
+                data.organizations.len(),
+                data.channels.len(),
+                data.messages.len(),
+                output.display()
+            );
+        }
+        MigrateSubcommand::Import { input, dry_run } => {
+            let data = migrate::read_migration_file(&input).await?;
+            let counts = migrate::import(&pool, &data, dry_run).await?;
+            if dry_run {
+                println!(
+                    "dry run: would skip {} existing rows and insert {} new rows",
+                    counts.skipped, counts.inserted
+                );
+            } else {
+                println!(
+                    "imported {} rows, skipped {} existing rows",
+                    counts.inserted, counts.skipped
+                );
             }
         }
     }
-    args
+
+    Ok(())
+}
+
+fn load_config(config_path: Option<PathBuf>) -> Result<AppConfig, ConfigError> {
+    match config_path {
+        Some(path) => AppConfig::load_from_path(path),
+        None => AppConfig::load().map_err(|err| {
+            if matches!(err, ConfigError::Read { .. }) {
+                let default = default_config_path()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or_else(|_| "the platform default path".into());
+                ConfigError::Validation(format!(
+                    "config file not found at {default}; create one with `ruckchat-server --init-config` or pass `--config <path>`"
+                ))
+            } else {
+                err
+            }
+        }),
+    }
 }
 
 fn init_tracing(log_level: &str) {
@@ -166,42 +230,66 @@ mod tests {
 
     #[test]
     fn parse_args_config_path() {
-        let args = parse_args_from(&["--config", "/etc/ruckchat/ruckchat.yaml"]);
+        let args = Args::parse_from(["ruckchat-server", "--config", "/etc/ruckchat/ruckchat.yaml"]);
         assert_eq!(
             args.config,
             Some(PathBuf::from("/etc/ruckchat/ruckchat.yaml"))
         );
-        assert!(!args.init_config);
+        assert!(args.init_config.is_none());
+        assert!(matches!(args.command, Some(Command::Run) | None));
     }
 
     #[test]
     fn parse_args_init_config() {
-        let args = parse_args_from(&["--init-config"]);
-        assert!(args.init_config);
+        let args = Args::parse_from(["ruckchat-server", "--init-config"]);
+        assert_eq!(args.init_config, Some(None));
         assert!(args.config.is_none());
     }
 
     #[test]
-    fn parse_args_config_with_init() {
-        let args = parse_args_from(&["--init-config", "--config", "./dev.yaml"]);
-        assert!(args.init_config);
-        assert_eq!(args.config, Some(PathBuf::from("./dev.yaml")));
+    fn parse_args_init_config_with_path() {
+        let args = Args::parse_from(["ruckchat-server", "--init-config", "./dev.yaml"]);
+        assert_eq!(args.init_config, Some(Some(PathBuf::from("./dev.yaml"))));
     }
 
-    fn parse_args_from(input: &[&str]) -> Args {
-        let mut args = Args::default();
-        let mut iter = input.iter().map(|s| s.to_string());
-        while let Some(arg) = iter.next() {
-            match arg.as_str() {
-                "--config" => {
-                    args.config = Some(PathBuf::from(iter.next().expect("value")));
-                }
-                "--init-config" => {
-                    args.init_config = true;
-                }
-                _ => {}
-            }
+    #[test]
+    fn parse_args_migrate_export() {
+        let args = Args::parse_from([
+            "ruckchat-server",
+            "--config",
+            "./ruckchat.yaml",
+            "migrate",
+            "export",
+            "--output",
+            "export.json",
+        ]);
+        assert_eq!(args.config, Some(PathBuf::from("./ruckchat.yaml")));
+        match args.command {
+            Some(Command::Migrate {
+                subcommand: MigrateSubcommand::Export { output },
+            }) => assert_eq!(output, PathBuf::from("export.json")),
+            other => panic!("unexpected command: {other:?}"),
         }
-        args
+    }
+
+    #[test]
+    fn parse_args_migrate_import() {
+        let args = Args::parse_from([
+            "ruckchat-server",
+            "migrate",
+            "import",
+            "--input",
+            "import.json",
+            "--dry-run",
+        ]);
+        match args.command {
+            Some(Command::Migrate {
+                subcommand: MigrateSubcommand::Import { input, dry_run },
+            }) => {
+                assert_eq!(input, PathBuf::from("import.json"));
+                assert!(dry_run);
+            }
+            other => panic!("unexpected command: {other:?}"),
+        }
     }
 }

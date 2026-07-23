@@ -18,12 +18,23 @@ use crate::state::AppState;
 /// Web UI assets embedded from `web/dist` at compile time.
 static EMBEDDED_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../web/dist");
 
+/// Serves `index.html` for the root path.
+pub async fn serve_root(State(state): State<AppState>) -> Response {
+    if !state.web_config.enabled {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    if let Some(dir) = &state.web_config.path {
+        return serve_fallback_from_dir(std::path::Path::new(dir)).await;
+    }
+    serve_embedded_file("index.html")
+}
+
 /// Serves a static asset or falls back to `index.html`.
 pub async fn serve_asset(
     State(state): State<AppState>,
-    path: axum::extract::Path<String>,
+    path: Option<axum::extract::Path<String>>,
 ) -> Response {
-    let requested_path = &path.0;
+    let requested_path = path.as_ref().map_or("", |p| &p.0);
 
     if state.web_config.enabled {
         if let Some(dir) = &state.web_config.path {

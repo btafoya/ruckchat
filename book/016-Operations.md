@@ -29,6 +29,20 @@ ruckchat-server --config /tmp/ruckchat-staging.yaml
 - `GET /health` returns `200 OK` when the server is running.
 - `GET /health/ready` returns `200 OK` when the database connection pool is healthy and migrations are current.
 - Reverse proxies and orchestrators should use `/health/ready` for readiness probes.
+- The Docker image includes a `HEALTHCHECK` that probes `GET /` on port `3000`.
+
+## Server CLI
+
+The server binary provides a small set of operational subcommands:
+
+- `ruckchat-server --init-config [PATH]` — write a default `ruckchat.yaml` and
+  exit.
+- `ruckchat-server --config PATH migrate export --output PATH` — export a
+  domain snapshot.
+- `ruckchat-server --config PATH migrate import --input PATH [--dry-run]` —
+  import a domain snapshot idempotently.
+
+Run with `--help` to see the full CLI.
 
 ## Metrics
 
@@ -52,9 +66,13 @@ ruckchat-server --config /tmp/ruckchat-staging.yaml
 - Recovery time objective (RTO): operator-defined; documented in runbooks.
 - Recovery point objective (RPO): same as backup frequency.
 - Restore procedure:
-  1. Restore the PostgreSQL database from backup.
+  1. Restore the PostgreSQL database from backup or import a domain snapshot.
   2. Restore file storage from backup or object-store versioning.
   3. Restart the server and verify `/health/ready`.
+
+Domain snapshots are a lightweight alternative to full database restores for
+migrating or cloning an instance. They carry all domain metadata but not file
+payloads, so file storage must still be restored separately.
 
 ## Alerting
 

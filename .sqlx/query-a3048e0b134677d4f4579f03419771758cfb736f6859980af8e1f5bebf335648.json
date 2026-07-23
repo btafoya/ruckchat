@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO direct_message_conversations (id, organization_id, created_at)\n             VALUES ($1, $2, $3)\n             ON CONFLICT (id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a3048e0b134677d4f4579f03419771758cfb736f6859980af8e1f5bebf335648"
+}

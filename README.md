@@ -15,15 +15,17 @@ clients.
 
 ## Current Status
 
-Phases 1–10 are complete. The server is a working REST API with authentication,
+Phases 1–12 are complete. The server is a working REST API with authentication,
 organizations, channels, direct messages, file metadata, WebSocket real-time
 events, an MCP server, a native plugin SDK, runtime YAML configuration, a
-browser-based Web UI, and Web Push notifications, with integration tests against
-PostgreSQL. The desktop client provides a Tauri + React UI with messaging, native
-OS notifications, a system tray icon with unread count, `ruckchat://` deep links,
-configurable backend URL, draft persistence, and failed-send retry. The Web UI
-shares the desktop React code via a platform abstraction and is served by the
-server as a PWA with offline caching and push notifications.
+browser-based Web UI, Web Push notifications, domain-data export/import, a
+production Docker image, and automated desktop release packaging, with
+integration tests against PostgreSQL. The desktop client provides a Tauri +
+React UI with messaging, native OS notifications, a system tray icon with unread
+count, `ruckchat://` deep links, configurable backend URL, draft persistence, and
+failed-send retry. The Web UI shares the desktop React code via a platform
+abstraction and is served by the server as a PWA with offline caching and push
+notifications.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -38,7 +40,7 @@ server as a PWA with offline caching and push notifications.
 | 9 | ✅ Complete | Runtime YAML configuration |
 | 10 | ✅ Complete | Web UI (browser client with PWA and Web Push) |
 | 11 | Planned | Mobile client (Flutter) |
-| 12 | Planned | Migration and packaging tools |
+| 12 | ✅ Complete | Migration and packaging tools |
 
 ## Tech Stack
 
@@ -207,8 +209,7 @@ Repository traits live in `ruckchat-domain`; SQLx implementations live in
 ## Roadmap
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full
-sprint breakdown. Upcoming milestones include a Flutter mobile client and
-migration/packaging tools.
+sprint breakdown. The next milestone is a Flutter mobile client.
 
 ## Contributing
 

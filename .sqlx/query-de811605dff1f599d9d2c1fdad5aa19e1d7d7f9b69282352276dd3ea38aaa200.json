@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE organization_settings SET max_file_size_bytes = $2, storage_quota_bytes = $3, updated_at = $4 WHERE organization_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "de811605dff1f599d9d2c1fdad5aa19e1d7d7f9b69282352276dd3ea38aaa200"
+}

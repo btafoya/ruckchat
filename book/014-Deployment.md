@@ -43,14 +43,38 @@ Place the configuration file at `/etc/ruckchat/ruckchat.yaml` and ensure the `ru
 
 ## Docker Deployment
 
-Mount the configuration file into the container:
+Build the server image first:
+
+```bash
+./scripts/build-server.sh
+```
+
+Or build manually after compiling the Web UI assets and refreshing SQLx offline
+metadata:
+
+```bash
+cd web && pnpm build
+cd ..
+cargo sqlx prepare --workspace
+docker build -t ruckchat/server:latest .
+```
+
+Run the container with the configuration file mounted:
 
 ```bash
 docker run -v /opt/ruckchat/ruckchat.yaml:/etc/ruckchat/ruckchat.yaml:ro \
+  -v /opt/ruckchat/files:/var/lib/ruckchat/files \
+  -v /opt/ruckchat/plugins:/var/lib/ruckchat/plugins \
   -p 3000:3000 ruckchat/server:latest
 ```
 
-A `docker-compose.yml` example is included in the repository for local and small production deployments.
+A `docker-compose.yml` example is included in the repository for local and small
+production deployments. It starts PostgreSQL 17 and the server, mounts
+`./ruckchat.yaml`, and creates named volumes for files and plugins:
+
+```bash
+docker compose up -d
+```
 
 ## Reverse Proxy
 
@@ -113,4 +137,11 @@ v1 scales vertically. Horizontal scaling is not supported because WebSocket stat
 ## Desktop and Mobile Distribution
 
 - Desktop clients are released through GitHub releases as platform installers.
-- Mobile clients are released through the Google Play Store and Apple App Store in post-MVP.
+  Pushing a tag matching `v*` triggers `.github/workflows/release.yml`, which
+  builds `.deb`/AppImage for Linux, `.dmg` for macOS, and `.msi`/NSIS for
+  Windows and attaches the installers to a GitHub release.
+- Web UI assets are built into the server image at the same revision as the
+  server binary. For deployments that serve the Web UI from the server binary,
+  no separate frontend release is required.
+- Mobile clients are released through the Google Play Store and Apple App Store
+  in post-MVP.

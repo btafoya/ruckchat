@@ -43,6 +43,7 @@ rmcp = { workspace = true }
 libloading = { workspace = true }
 toml = { workspace = true }
 include_dir = "0.7"
+clap = { version = "4", features = ["derive"] }
 web-push = "0.10"
 base64 = "0.22"
 

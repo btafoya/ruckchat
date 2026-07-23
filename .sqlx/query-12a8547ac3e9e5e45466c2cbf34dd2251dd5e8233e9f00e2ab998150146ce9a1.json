@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO dm_members (conversation_id, user_id)\n                     VALUES ($1, $2)\n                     ON CONFLICT (conversation_id, user_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "12a8547ac3e9e5e45466c2cbf34dd2251dd5e8233e9f00e2ab998150146ce9a1"
+}

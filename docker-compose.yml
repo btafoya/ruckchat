@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ruckchat
+      POSTGRES_PASSWORD: ruckchat
+      POSTGRES_DB: ruckchat
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ruckchat -d ruckchat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ruckchat
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgres://ruckchat:ruckchat@postgres/ruckchat
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./ruckchat.yaml:/etc/ruckchat/ruckchat.yaml:ro
+      - ruckchat_files:/var/lib/ruckchat/files
+      - ruckchat_plugins:/var/lib/ruckchat/plugins
+    networks:
+      - ruckchat
+
+volumes:
+  postgres_data:
+  ruckchat_files:
+  ruckchat_plugins:
+
+networks:
+  ruckchat:
+    driver: bridge

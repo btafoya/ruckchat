@@ -22,6 +22,25 @@ pnpm tauri build
 
 Installers are produced under `src-tauri/target/release/bundle/`.
 
+## Release builds
+
+Pushing a Git tag matching `v*` triggers `.github/workflows/release.yml`, which
+builds cross-platform installers:
+
+- Linux: `.deb` and AppImage on `ubuntu-22.04`
+- macOS: `.dmg` on `macos-latest`
+- Windows: `.msi` and NSIS on `windows-latest`
+
+The workflow uses `tauri-apps/tauri-action` and attaches the bundles to a GitHub
+release named after the tag. Unsigned installers are produced unless repository
+secrets for code signing are configured.
+
+Generate application icons before producing release installers:
+
+```bash
+pnpm tauri icon /path/to/source.png
+```
+
 ## Project Layout
 
 - `src/api/` — OpenAPI-generated schema, fetch client, and API modules.

@@ -13,6 +13,7 @@ server/src
 ├── error.rs             # Server-specific error variants
 ├── state.rs             # Shared application state and service wiring
 ├── main.rs              # Entry point: CLI, config, tracing, DB, graceful shutdown
+├── migrate.rs           # Versioned domain snapshot export/import
 ├── repositories/        # SQLx implementations of domain repository traits
 │   ├── user.rs
 │   ├── session.rs
@@ -94,6 +95,19 @@ ruckchat-server --config ./ruckchat.yaml
 The file is the sole source of truth for server runtime settings. No `.env`
 files or `RUCKCHAT_*` environment variables are read at runtime.
 
+### CLI subcommands
+
+- `migrate export --output PATH` — export a versioned JSON snapshot of domain
+  data.
+- `migrate import --input PATH [--dry-run]` — import a snapshot idempotently;
+  each row uses `ON CONFLICT DO NOTHING` so repeated imports do not duplicate
+  data.
+
+```bash
+ruckchat-server --config ./ruckchat.yaml migrate export --output export.json
+ruckchat-server --config ./ruckchat.yaml migrate import --input export.json
+```
+
 ## Running tests
 
 `DATABASE_URL` is required at compile time for SQLx query verification, and
@@ -124,6 +138,26 @@ cargo test --workspace
 
 `connect_database` applies pending migrations from the `ruckchat-migrations`
 crate on startup.
+
+## Docker and SQLx offline mode
+
+The `Dockerfile` builds the server with `SQLX_OFFLINE=true` so no database is
+needed at image build time. Refresh the `.sqlx/` metadata after schema or query
+changes:
+
+```bash
+cargo sqlx prepare --workspace
+```
+
+Build the image after compiling the Web UI assets:
+
+```bash
+cd web && pnpm build && cd ..
+docker build -t ruckchat/server:latest .
+```
+
+A `docker-compose.yml` is provided at the repository root for local and small
+production deployments.
 
 ## Running the server
 

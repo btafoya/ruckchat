@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.organization_id, c.created_at\n             FROM direct_message_conversations c\n             JOIN dm_members m ON m.conversation_id = c.id\n             WHERE c.organization_id = $1 AND m.user_id = $2\n             ORDER BY c.created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "organization_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "db94581c9ff8d65e16c31fec8072c9baae8ad7868908b6feaa80102225fb25b4"
+}

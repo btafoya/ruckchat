@@ -7,6 +7,7 @@
 pub mod error;
 pub mod handlers;
 pub mod mcp;
+pub mod migrate;
 pub mod plugins;
 pub mod repositories;
 pub mod services;

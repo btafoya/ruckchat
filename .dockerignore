@@ -1,0 +1,37 @@
+# Build artifacts
+target/
+**/*.rs.bk
+
+# Node / frontend
+desktop/node_modules/
+desktop/dist/
+web/node_modules/
+# Keep pre-built web assets for embedding.
+# web/dist/
+
+# Environment and secrets
+.env*
+!.env.example
+*.key
+*.pem
+
+# Version control
+.git/
+.gitignore
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Documentation and misc
+*.md
+book/
+docs/
+scripts/
+
+# Test artifacts
+*.log
+coverage/

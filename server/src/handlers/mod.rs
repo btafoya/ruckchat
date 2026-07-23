@@ -102,6 +102,7 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route("/web-push/vapid-key", get(web_push::vapid_key))
         .route("/web-push/subscribe", post(web_push::subscribe))
         .route("/web-push/unsubscribe", post(web_push::unsubscribe))
+        .route("/", get(web_assets::serve_root))
         .route("/{*path}", get(web_assets::serve_asset))
         .layer(TraceLayer::new_for_http())
         .layer(cors_layer(web_config, base_url))

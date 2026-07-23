@@ -82,7 +82,10 @@ A feature is complete when:
 
 ## Current Status
 
-- Handbook: in progress.
-- Workspace: not yet bootstrapped beyond top-level `Cargo.toml`.
-- CI: not configured.
-- First executable code: planned for Sprint 1.
+- Phases 1–12 are complete.
+- The server runs as a single Rust binary or Docker container and supports
+  schema migrations, domain-data export/import, WebSocket real-time events,
+  MCP, plugins, runtime YAML configuration, and the browser Web UI.
+- The desktop client builds cross-platform installers via GitHub Actions on
+  version tags.
+- Phase 13 (mobile Flutter client) is planned next.

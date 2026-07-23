@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO message_files (message_id, file_id)\n             VALUES ($1, $2)\n             ON CONFLICT (message_id, file_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce3752b9e6076eb2d86d467db5dc73a4ec049c8268329822effb53b455757575"
+}

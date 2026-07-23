@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at\n             FROM messages\n             WHERE deleted_at IS NULL\n               AND content_tsv @@ plainto_tsquery('english', $1)\n               AND (\n                 (\n                   conversation_type = 'channel'\n                   AND conversation_id IN (\n                     SELECT id FROM channels\n                     WHERE organization_id = $2 AND is_private = false\n                   )\n                 )\n                 OR\n                 (\n                   conversation_type = 'channel'\n                   AND conversation_id IN (\n                     SELECT c.id FROM channels c\n                     JOIN channel_memberships cm ON cm.channel_id = c.id\n                     WHERE c.organization_id = $2 AND c.is_private = true AND cm.user_id = $3\n                   )\n                 )\n                 OR\n                 (\n                   conversation_type = 'dm'\n                   AND conversation_id IN (\n                     SELECT dmc.id FROM direct_message_conversations dmc\n                     JOIN dm_members dmm ON dmm.conversation_id = dmc.id\n                     WHERE dmc.organization_id = $2 AND dmm.user_id = $3\n                   )\n                 )\n               )\n             ORDER BY created_at DESC\n             LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "conversation_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "conversation_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "author_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "2bf6eb7ac84aa2afe7bbc33b20670a331ea6300ce3d84ea0bf98ffba5d456b76"
+}

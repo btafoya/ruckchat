@@ -71,3 +71,69 @@ SQLx maintains a `_sqlx_migrations` table in the database to track applied migra
 - Bulk data migrations are performed with dedicated SQL scripts in `migrations/scripts/`.
 - Data migrations are reviewed separately from schema migrations.
 - Large data migrations run outside of the automated migration flow to avoid long transactions.
+
+## Domain Snapshot Migration
+
+The server CLI can export and import a versioned JSON snapshot of domain data
+(users, organizations, memberships, settings, channels, direct-message
+conversations, messages, reactions, files, and message-file links). This is
+intended for backups, instance cloning, and migrating between self-hosted
+deployments.
+
+### Export a snapshot
+
+```bash
+ruckchat-server --config /etc/ruckchat/ruckchat.yaml migrate export --output ruckchat-export.json
+```
+
+### Import a snapshot
+
+```bash
+ruckchat-server --config /etc/ruckchat/ruckchat.yaml migrate import --input ruckchat-export.json
+```
+
+Import is idempotent: each row is inserted with `ON CONFLICT DO NOTHING`, so
+re-running the same import does not duplicate data. Conflicting existing rows
+are skipped, not updated.
+
+### Dry-run import
+
+Preview the number of rows that would be inserted without writing anything:
+
+```bash
+ruckchat-server --config /etc/ruckchat/ruckchat.yaml migrate import --input ruckchat-export.json --dry-run
+```
+
+### Snapshot format
+
+The snapshot is a single JSON object with one array per aggregate:
+
+```json
+{
+  "version": 1,
+  "users": [...],
+  "organizations": [...],
+  "memberships": [...],
+  "settings": [...],
+  "channels": [...],
+  "dm_conversations": [...],
+  "messages": [...],
+  "reactions": [...],
+  "files": [...],
+  "message_file_links": [...]
+}
+```
+
+File payloads are not embedded in the snapshot. Restore the file storage backend
+(local disk or object store) separately, then import the metadata snapshot.
+
+### Refreshing SQLx offline metadata
+
+The Docker build uses SQLx offline mode and requires up-to-date query metadata
+in `.sqlx/`:
+
+```bash
+cargo sqlx prepare --workspace
+```
+
+Run this after any schema or query change that affects the server crate.
