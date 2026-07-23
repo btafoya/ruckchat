@@ -21,6 +21,11 @@ PUSH="${PUSH:-0}"
 
 cd "${PROJECT_ROOT}"
 
+echo "Installing shared desktop frontend dependencies..."
+cd desktop
+pnpm install
+cd "${PROJECT_ROOT}"
+
 echo "Building Web UI assets..."
 cd web
 pnpm install
