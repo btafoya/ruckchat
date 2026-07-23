@@ -407,9 +407,11 @@ run_builds() {
 
 commit_and_tag() {
     local version="$1"
-    local sign_flags=()
+    local commit_sign_flags=()
+    local tag_sign_flags=()
     if gpg_configured; then
-        sign_flags=("-S")
+        commit_sign_flags=("-S")
+        tag_sign_flags=("-s")
     fi
 
     log "Committing version bump and changelog..."
@@ -417,16 +419,16 @@ commit_and_tag() {
         git add -A
         GIT_AUTHOR_NAME="${AUTHOR_NAME}" GIT_AUTHOR_EMAIL="${AUTHOR_EMAIL}" \
         GIT_COMMITTER_NAME="${AUTHOR_NAME}" GIT_COMMITTER_EMAIL="${AUTHOR_EMAIL}" \
-        git commit "${sign_flags[@]}" -m "Release ${version}"
+        git commit "${commit_sign_flags[@]}" -m "Release ${version}"
     else
         echo "[dry-run] git commit -m \"Release ${version}\""
     fi
 
     log "Creating annotated tag ${version}..."
     if [[ "${DRY_RUN}" == "0" ]]; then
-        git tag "${sign_flags[@]}" -a "${version}" -m "Release ${version}"
+        git tag "${tag_sign_flags[@]}" "${version}" -m "Release ${version}"
     else
-        echo "[dry-run] git tag -a ${version} -m \"Release ${version}\""
+        echo "[dry-run] git tag -s ${version} -m \"Release ${version}\""
     fi
 }
 
