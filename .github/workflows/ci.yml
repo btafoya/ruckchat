@@ -51,6 +51,29 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Cache pnpm dependencies
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Build Web UI assets
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -102,6 +125,29 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Cache pnpm dependencies
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Build Web UI assets
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
 
       - name: Install sqlx-cli
         run: cargo install sqlx-cli --no-default-features --features postgres --locked
