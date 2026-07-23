@@ -109,6 +109,9 @@ Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
   crate in `crates/rocketchat2ruckchat/` with RocketChat and RuckChat REST clients,
   a SQLite mapping store, deterministic UUIDv5 transforms, file/emoji upload
   pipeline, dry-run, and interactive prompts.
+- `scripts/release.sh vX.Y.Z` automates the release pipeline: version bumps,
+  CHANGELOG generation, validation checks, local server and desktop builds,
+  GPG-signed commit/tag, and push.
 - Mobile support (Flutter) is planned for a later phase.
 
 ## Commands
@@ -253,6 +256,7 @@ root/
 - `Dockerfile` — Multi-stage SQLx-offline server image build.
 - `docker-compose.yml` — PostgreSQL 17 + server orchestration.
 - `scripts/build-server.sh` — Build Web UI assets, refresh `.sqlx/`, and build the Docker image.
+- `scripts/release.sh` — Automate `vx.x.x` releases: bump versions, run checks/builds, generate CHANGELOG, GPG-sign commit/tag, and push.
 - `.github/workflows/release.yml` — Cross-platform Tauri desktop installer releases on `v*` tags.
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
   `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md`,
@@ -388,6 +392,33 @@ codegraph index
 ```
 
 Or use the equivalent CodeGraph MCP server action.
+
+## Release Workflow
+
+Use `scripts/release.sh` to create a release:
+
+```bash
+./scripts/release.sh --dry-run v0.2.0
+./scripts/release.sh v0.2.0
+```
+
+The script expects a GPG signing key (`git config user.signingkey`) and operates
+on `origin/main`. It will:
+
+1. Validate the requested `vx.x.x` (or `vx.x.x-<prerelease>`) tag.
+2. Bump versions in `Cargo.toml`, `desktop/package.json`, `web/package.json`,
+   and `desktop/src-tauri/tauri.conf.json`.
+3. Generate a `CHANGELOG.md` entry from commits since the last tag.
+4. Run `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features`,
+   and `cargo test --workspace`.
+5. Build the server Docker image via `scripts/build-server.sh`.
+6. Build desktop Tauri bundles for the host OS and cross-compile for
+   Windows/macOS when the Rust targets are installed.
+7. Commit and GPG-sign as `Brian Tafoya <btafoya@briantafoya.com>`, create an
+   annotated GPG-signed tag, and push both to `origin/main`.
+
+Pushing the tag triggers `.github/workflows/release.yml`, which publishes the
+server image and builds cross-platform desktop installers.
 
 ## Gotchas
 

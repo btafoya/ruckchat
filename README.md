@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/Rust-1.94+-000000?logo=rust&logoColor=white)](https://www.rust-lang.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Axum](https://img.shields.io/badge/Axum-0.8-000000?logo=rust&logoColor=white)](https://github.com/tokio-rs/axum)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-btafoya%2Fruckchat-181717?logo=github&logoColor=white)](https://github.com/btafoya/ruckchat)
 
@@ -45,7 +45,7 @@ notifications.
 ## Tech Stack
 
 - **Server**: Rust, Axum, Tokio, SQLx
-- **Database**: PostgreSQL 16+
+- **Database**: PostgreSQL 17+
 - **Authentication**: Argon2 password hashing, SHA-256 session tokens
 - **Validation**: Custom domain validators in `ruckchat-common`
 - **Configuration**: Runtime YAML (`ruckchat.yaml`) via `ruckchat-config`
@@ -62,7 +62,7 @@ notifications.
 ### Prerequisites
 
 - [Rust](https://www.rust-lang.org/tools/install) 1.94 or later
-- [PostgreSQL](https://www.postgresql.org/download/) 16 or later
+- [PostgreSQL](https://www.postgresql.org/download/) 17 or later
 - A running PostgreSQL database
 
 ### Run the Server
@@ -129,6 +129,31 @@ If you do not have `cargo nextest`, use `cargo test --workspace`.
 Schema/migration tests that create isolated per-test databases read
 `RUCKCHAT_TEST_ADMIN_DATABASE_URL` (default:
 `postgres://postgres:postgres@localhost:5445/postgres`).
+
+### Make a Release
+
+Releases use annotated tags in the form `vX.Y.Z` (e.g. `v0.2.0`) and can
+optionally include a prerelease suffix (e.g. `v1.0.0-rc.1`).
+
+Use the release automation script:
+
+```bash
+# Preview the release without making changes
+./scripts/release.sh --dry-run v0.2.0
+
+# Run the full release pipeline interactively
+./scripts/release.sh v0.2.0
+```
+
+The script checks out `origin/main`, bumps version numbers in `Cargo.toml`,
+`desktop/package.json`, `web/package.json`, and `desktop/src-tauri/tauri.conf.json`,
+generates a `CHANGELOG.md` entry, runs `cargo fmt`/`clippy`/`test`, builds the
+server Docker image, builds desktop Tauri bundles for the current host (and
+attempts Windows/macOS cross-compilation when the Rust targets are installed),
+GPG-signs a commit and an annotated tag, and pushes both to `origin/main`.
+
+Pushing the tag triggers `.github/workflows/release.yml`, which publishes the
+server Docker image and builds cross-platform desktop installers.
 
 ## API
 
@@ -224,6 +249,13 @@ cargo nextest run --workspace
 
 See [CLAUDE.md](CLAUDE.md) for the project's development contract and
 implementation loop.
+
+### GitHub Actions
+
+- `CI` — runs on every push/PR to `main`: formatting, clippy, docs, and the
+  full workspace test suite against PostgreSQL 17.
+- `Release` — triggers on `v*` tags: builds and publishes the server Docker
+  image, and builds Tauri desktop installers for Linux, macOS, and Windows.
 
 ## License
 
