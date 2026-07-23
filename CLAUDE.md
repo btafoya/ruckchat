@@ -60,7 +60,7 @@ Never reason from assumptions, always reason from the actual data. You need to r
 
 ## Current Status
 
-Phases 1–9 are complete. Phases 10–13 are not yet implemented.
+Phases 1–9 are complete. Phase 10 (Web UI) and Phases 11–13 are not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -93,7 +93,12 @@ Phases 1–9 are complete. Phases 10–13 are not yet implemented.
   file from a platform default path or a path supplied via `--config`. The file is
   the sole source of truth for runtime settings; no `.env` files or `RUCKCHAT_*`
   environment variable overrides are read.
-- Mobile support and migration tooling are added in later phases.
+- Phase 10: Browser-based Web UI that reuses `desktop/src` React code through a
+  `desktop/src/platform/` abstraction layer, is served by the Rust server as
+  static assets (embedded or from a configured directory), supports PWA
+  install/service-worker offline caching, and adds Web Push notifications using a
+  server-managed VAPID key.
+- Mobile support (Flutter) and migration tooling are added in later phases.
 
 ## Commands
 
@@ -155,10 +160,19 @@ root/
 │   │   │                     Composer, MessageItem, ThreadPane, etc.)
 │   │   ├── context/        # React context providers for state stores
 │   │   ├── hooks/          # State hooks, unread tracking, and WebSocket manager
+│   │   ├── platform/       # Platform abstraction (desktop/web shims)
 │   │   ├── App.tsx         # Router and provider tree
 │   │   └── main.tsx        # Vite/Tauri entry point
 │   ├── src-tauri/          # Tauri Rust shell
 │   └── README.md           # Desktop developer guide
+├── web/                    # Vite React web client (shares desktop/src)
+│   ├── src/
+│   │   ├── App.tsx         # Web entry point with web platform hooks
+│   │   └── main.tsx
+│   ├── public/             # PWA manifest, icons, service worker
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── README.md
 ├── book/                   # mdBook-style project documentation
 ├── docs/
 │   └── ADR-*.md            # Architecture Decision Records
@@ -367,6 +381,7 @@ Or use the equivalent CodeGraph MCP server action.
 
 1. Cargo workspace → 2. Shared crates → 3. Database schema → 4. Domain layer →
 5. Services → 6. REST API → 7. WebSocket server → 8. MCP server → 9. Plugin SDK →
-10. Desktop → 11. Runtime YAML configuration → 12. Mobile → 13. Migration tools.
+10. Desktop → 11. Runtime YAML configuration → 12. Web UI → 13. Mobile →
+14. Migration tools.
 
 Ship unit tests, integration tests, OpenAPI updates, and docs with every feature.

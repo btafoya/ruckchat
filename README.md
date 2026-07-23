@@ -34,8 +34,9 @@ failed-send retry.
 | 7 | ✅ Complete | Plugin SDK and native dynamic plugins |
 | 8 | ✅ Complete | Desktop client (Tauri + React) |
 | 9 | ✅ Complete | Runtime YAML configuration |
-| 10 | Planned | Mobile client (Flutter) |
-| 11 | Planned | Migration and packaging tools |
+| 10 | Planned | Web UI (browser client with PWA and Web Push) |
+| 11 | Planned | Mobile client (Flutter) |
+| 12 | Planned | Migration and packaging tools |
 
 ## Tech Stack
 
@@ -47,6 +48,8 @@ failed-send retry.
 - **Real-time**: WebSocket with in-memory connection manager
 - **MCP**: `rmcp` Streamable HTTP transport at `/mcp/v1/sse`
 - **Plugins**: Native Rust dynamic libraries loaded at startup
+- **Web UI**: Vite React build sharing `desktop/src`, served by the server,
+  PWA-ready with Web Push notifications
 - **Tracing**: `tracing` + `tracing-subscriber`
 - **Desktop**: Tauri v2, React 19, TypeScript, Vite, Tailwind CSS v4
 
@@ -152,9 +155,10 @@ root/
 │   ├── src/plugins/        # Dynamic plugin loader, manager, host API, event bus
 │   └── tests/              # HTTP integration tests
 ├── desktop/                # Tauri v2 + React desktop client
-│   ├── src/                # React + TypeScript frontend
+│   ├── src/                # React + TypeScript frontend (shared with Web UI)
 │   ├── src-tauri/          # Tauri Rust shell
 │   └── README.md           # Desktop developer guide
+├── web/                    # Vite React web client (shares desktop/src)
 ├── migrations/             # SQLx migrations
 ├── book/                   # Project documentation
 └── docs/                   # ADRs and implementation plans

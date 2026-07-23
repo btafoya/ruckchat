@@ -9,12 +9,13 @@ Sprint 6: Channels
 Sprint 7: Messaging
 Sprint 8: WebSockets
 Sprint 9: Desktop client
-Sprint 10: Mobile client
-Sprint 11: Search
-Sprint 12: File uploads
-Sprint 13: Notifications
-Sprint 14: Plugin SDK
-Sprint 15: Packaging & Release
+Sprint 10: Web UI
+Sprint 11: Mobile client
+Sprint 12: Search
+Sprint 13: File uploads
+Sprint 14: Notifications
+Sprint 15: Plugin SDK
+Sprint 16: Packaging & Release
 
 Definition of Done:
 - Tests pass
