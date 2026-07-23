@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, email, display_name, password_hash, avatar_url, created_at, updated_at FROM users WHERE email = $1",
+  "query": "SELECT id, organization_id, name, description, created_by, created_at, updated_at FROM teams ORDER BY created_at",
   "describe": {
     "columns": [
       {
@@ -10,23 +10,23 @@
       },
       {
         "ordinal": 1,
-        "name": "email",
-        "type_info": "Text"
+        "name": "organization_id",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 2,
-        "name": "display_name",
+        "name": "name",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "password_hash",
+        "name": "description",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "avatar_url",
-        "type_info": "Text"
+        "name": "created_by",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 5,
@@ -40,19 +40,17 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
       false,
       false,
-      false,
       true,
+      false,
       false,
       false
     ]
   },
-  "hash": "ae8e910da857c08ea9f2add905b07a10ad95e46f870b21a879e6d4ab42ee8310"
+  "hash": "31301b0ed8ac26df89bc3f713a3d078fac6b26da5fe7b6081f76b0a15cd81b12"
 }

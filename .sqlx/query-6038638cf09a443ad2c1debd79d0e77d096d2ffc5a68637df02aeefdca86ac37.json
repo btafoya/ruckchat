@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO team_memberships (team_id, user_id, role, joined_at)\n             VALUES ($1, $2, $3, $4)\n             ON CONFLICT (team_id, user_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6038638cf09a443ad2c1debd79d0e77d096d2ffc5a68637df02aeefdca86ac37"
+}

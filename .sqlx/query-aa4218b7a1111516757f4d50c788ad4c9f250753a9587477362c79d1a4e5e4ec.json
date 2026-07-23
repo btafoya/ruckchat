@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, email, display_name, password_hash, avatar_url, created_at, updated_at FROM users ORDER BY created_at",
+  "query": "SELECT id, email, display_name, password_hash, avatar_url, deactivated_at, created_at, updated_at FROM users ORDER BY created_at",
   "describe": {
     "columns": [
       {
@@ -30,11 +30,16 @@
       },
       {
         "ordinal": 5,
-        "name": "created_at",
+        "name": "deactivated_at",
         "type_info": "Timestamptz"
       },
       {
         "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
@@ -48,9 +53,10 @@
       false,
       false,
       true,
+      true,
       false,
       false
     ]
   },
-  "hash": "49624dd921eba479b03e416e035cb9b8334f6a9fe8fba5e3850d8c8b8abd1bb1"
+  "hash": "aa4218b7a1111516757f4d50c788ad4c9f250753a9587477362c79d1a4e5e4ec"
 }

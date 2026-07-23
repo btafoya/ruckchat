@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, email, display_name, password_hash, avatar_url, created_at, updated_at FROM users WHERE id = $1",
+  "query": "SELECT id, organization_id, shortcode, file_id, created_by, created_at FROM custom_emoji WHERE organization_id = $1 ORDER BY shortcode",
   "describe": {
     "columns": [
       {
@@ -10,32 +10,27 @@
       },
       {
         "ordinal": 1,
-        "name": "email",
-        "type_info": "Text"
+        "name": "organization_id",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 2,
-        "name": "display_name",
+        "name": "shortcode",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "password_hash",
-        "type_info": "Text"
+        "name": "file_id",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 4,
-        "name": "avatar_url",
-        "type_info": "Text"
+        "name": "created_by",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 5,
         "name": "created_at",
-        "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 6,
-        "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
@@ -49,10 +44,9 @@
       false,
       false,
       false,
-      true,
       false,
       false
     ]
   },
-  "hash": "9c57f8d7f0407bd3ccc24a7f1cd03d889a96b43ac8b247ee1b59251e32cf5f53"
+  "hash": "c41fb5a3d5335c81c82f21c8942aa83c09bf8b5c2fc8aee0204f30abc0a48572"
 }

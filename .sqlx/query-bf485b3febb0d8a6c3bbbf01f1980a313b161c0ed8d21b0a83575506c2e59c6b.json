@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO organization_roles (id, organization_id, name, description, created_at, updated_at)\n             VALUES ($1, $2, $3, $4, $5, $6)\n             ON CONFLICT (id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bf485b3febb0d8a6c3bbbf01f1980a313b161c0ed8d21b0a83575506c2e59c6b"
+}
