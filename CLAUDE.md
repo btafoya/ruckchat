@@ -129,6 +129,7 @@ Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
 | `cargo run -p rocketchat2ruckchat -- --interactive` | Run the migration tool with interactive prompts |
 | `cargo sqlx prepare --workspace` | Generate SQLx offline metadata for Docker builds |
 | `./scripts/build-server.sh` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image |
+| `./scripts/release.sh vX.Y.Z` | Automate a release: bump versions, run checks/builds, tag, sign, and push |
 | `docker compose up -d` | Start the server and PostgreSQL via Docker Compose (pre-built image) |
 | `docker compose -f docker-compose.build.yml up -d` | Build and start the server from source |
 | `cd desktop && pnpm install` | Install desktop client dependencies |
