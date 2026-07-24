@@ -79,6 +79,18 @@ The service worker only caches same-origin `GET` requests and static assets.
 Outgoing messages are not queued offline in this phase; the desktop draft
 persistence behavior is not replicated in the browser.
 
+Each build injects a unique `CACHE_NAME` (`injectServiceWorkerHash` in
+`web/vite.config.ts`). On `install`, the worker checks whether any other
+cache name already exists: if so, this is a genuine update (not a first-ever
+install), and on `activate` it force-navigates every open window client to
+its current URL after `clients.claim()`. This is necessary because an
+already-open tab's in-memory JavaScript has no way to notice a new deploy on
+its own — without it, a tab left open across a redeploy keeps running the
+old bundle indefinitely. Service workers require a secure context, so this
+only applies when the Web UI is served over HTTPS or from `localhost`; a
+plain-HTTP LAN address (e.g. `http://192.168.x.x:3922`) has no service
+worker at all, and a stale tab there needs a manual reload.
+
 ## Web Push
 
 The server stores a VAPID key pair in `ruckchat.yaml` under `web_push`:

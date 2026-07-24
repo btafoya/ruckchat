@@ -4,23 +4,39 @@ const CACHE_NAME = 'ruckchat-assets-__BUILD_HASH__';
 const STATIC_PATHS =
   /^\/(?:assets\/(?:index-[^/]+\.(?:js|css)|[^/]+\.(?:js|css|png|svg|woff2)))?$|^\/(?:icons\/[^/]+|manifest\.json|favicon\.ico|index\.html)?$/;
 
+// Set during install: true when an older cache (from a previous deploy)
+// existed, false on a genuine first-ever install. Used in activate to decide
+// whether already-open tabs are running stale JS and need a forced reload -
+// their in-memory app code has no way to notice the update on its own.
+let isUpdate = false;
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((names) =>
-        Promise.all(
+      .then((names) => {
+        isUpdate = names.length > 0 && !names.includes(CACHE_NAME);
+        return Promise.all(
           names
             .filter((name) => name !== CACHE_NAME)
             .map((name) => caches.delete(name)),
-        ),
-      )
+        );
+      })
       .then(() => self.skipWaiting()),
   );
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    self.clients.claim().then(() => {
+      if (!isUpdate) {
+        return undefined;
+      }
+      return self.clients.matchAll({ type: 'window' }).then((clientList) =>
+        Promise.all(clientList.map((client) => client.navigate(client.url))),
+      );
+    }),
+  );
 });
 
 self.addEventListener('push', (event) => {
