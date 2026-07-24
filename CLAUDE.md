@@ -133,8 +133,15 @@ Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
 | `cargo sqlx prepare --workspace` | Generate SQLx offline metadata for Docker builds |
 | `./scripts/build-server.sh` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image |
 | `./scripts/release.sh vX.Y.Z` | Automate a release: bump versions, run checks/builds, tag, sign, and push |
-| `docker compose up -d` | Start the server and PostgreSQL via Docker Compose (pre-built image) |
-| `docker compose -f docker-compose.build.yml up -d` | Build and start the server from source |
+| `./scripts/server.sh start` | Start the server and PostgreSQL via Docker Compose (pre-built image; always recreates) |
+| `./scripts/server.sh start --build` | Start the server and PostgreSQL from source via `docker-compose.build.yml` |
+| `./scripts/server.sh stop` | Stop and remove the Docker Compose stack |
+| `./scripts/server.sh stop --keep` | Stop containers but keep state for a fast restart |
+| `./scripts/server.sh restart` | Stop then start the Docker Compose stack |
+| `./scripts/server.sh status` | Show running Docker Compose containers |
+| `./scripts/server.sh logs` | Follow Docker Compose container logs |
+| `docker compose up -d` | Start the server and PostgreSQL via Docker Compose directly (pre-built image) |
+| `docker compose -f docker-compose.build.yml up -d` | Build and start the server from source directly |
 | `cd desktop && pnpm install` | Install desktop client dependencies |
 | `cd desktop && pnpm tauri dev` | Run the desktop client in dev mode |
 | `cd desktop && pnpm tauri build` | Build desktop installers |
@@ -255,6 +262,7 @@ root/
 - `server/openapi.yaml` — Full REST API specification for the REST API, WebSocket upgrade, and MCP endpoint.
 - `Dockerfile` — Multi-stage SQLx-offline server image build.
 - `docker-compose.yml` — PostgreSQL 17 + server orchestration.
+- `scripts/server.sh` — Start, stop, restart, and inspect the Docker Compose stack.
 - `scripts/build-server.sh` — Build Web UI assets, refresh `.sqlx/`, and build the Docker image.
 - `scripts/release.sh` — Automate `vx.x.x` releases: bump versions, run checks/builds, generate CHANGELOG, GPG-sign commit/tag, and push.
 - `.github/workflows/release.yml` — Cross-platform Tauri desktop installer releases on `v*` tags.

@@ -178,7 +178,35 @@ Two Docker Compose files are provided:
 - `docker-compose.build.yml` — builds the server image from the local checkout.
   Use this for development and self-hosting from source.
 
+The `scripts/server.sh` helper wraps Docker Compose for common operations:
+
+```bash
+# Start the pre-built image stack (always recreates containers)
+./scripts/server.sh start
+
+# Start the source-build stack
+./scripts/server.sh start --build
+
+# Use a custom runtime config file
+./scripts/server.sh start --config /etc/ruckchat/ruckchat.yaml
+
+# Stop and remove the stack
+./scripts/server.sh stop
+
+# Stop containers but keep them for a fast restart
+./scripts/server.sh stop --keep
+
+# Restart, show status, or follow logs
+./scripts/server.sh restart
+./scripts/server.sh status
+./scripts/server.sh logs
+```
+
+Pass `-f <path>` to use a custom compose file, overriding `--build`.
+
 ## Running the server
+
+Without Docker, generate a config and run the binary directly:
 
 ```bash
 ruckchat-server --init-config /etc/ruckchat/ruckchat.yaml

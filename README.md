@@ -67,6 +67,26 @@ notifications.
 
 ### Run the Server
 
+#### With Docker (recommended for self-hosting)
+
+```bash
+# Generate a default config next to the compose file
+cargo run -p ruckchat-server -- --init-config ./ruckchat.yaml
+# edit ./ruckchat.yaml, then:
+./scripts/server.sh start
+```
+
+The helper script uses `docker-compose.yml` by default. Use `--build` to build
+from source instead:
+
+```bash
+./scripts/server.sh start --build
+```
+
+See `server/README.md` for more options, including `--config` and `--keep`.
+
+#### From source
+
 ```bash
 set -a
 source .env.testing

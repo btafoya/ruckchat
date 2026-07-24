@@ -9,6 +9,10 @@
 #
 # For GitHub Container Registry images built by the release workflow, the
 # default image is: ghcr.io/btafoya/ruckchat-server:latest
+#
+# Override the mounted runtime config with the RUCKCHAT_CONFIG environment
+# variable (the scripts/server.sh helper sets this automatically):
+#   RUCKCHAT_CONFIG=/etc/ruckchat/ruckchat.yaml docker compose up -d
 
 services:
   postgres:
@@ -35,7 +39,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./ruckchat.yaml:/etc/ruckchat/ruckchat.yaml:ro
+      - ${RUCKCHAT_CONFIG:-./ruckchat.yaml}:/etc/ruckchat/ruckchat.yaml:ro
       - ruckchat_files:/var/lib/ruckchat/files
       - ruckchat_plugins:/var/lib/ruckchat/plugins
     networks:
