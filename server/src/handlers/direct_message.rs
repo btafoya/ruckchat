@@ -71,6 +71,19 @@ pub async fn list_messages(
     Ok(Json(ListResponse::new(messages)))
 }
 
+/// Hides a direct message conversation from the caller's sidebar.
+pub async fn hide(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(conversation_id): Path<Uuid>,
+) -> Result<StatusCode, Error> {
+    state
+        .direct_messages
+        .hide_conversation(auth_user.id, conversation_id)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// Posts a message to a direct message conversation.
 pub async fn post_message(
     State(state): State<AppState>,

@@ -21,6 +21,13 @@ export class DirectMessagesApi {
     });
   }
 
+  async hide(token: string, conversationId: string): Promise<void> {
+    await this.client.request<void>(`/direct_messages/${conversationId}/hide`, {
+      method: 'POST',
+      token,
+    });
+  }
+
   async listMessages(
     token: string,
     conversationId: string,

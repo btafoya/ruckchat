@@ -4,6 +4,7 @@ export { useDirectMessages } from './useDirectMessages';
 export { useMessages } from './useMessages';
 export { useNotifications, type NotificationState } from './useNotifications';
 export { useOrganizations } from './useOrganizations';
+export { useOrgMembers } from './useOrgMembers';
 export { usePresence } from './usePresence';
 export { useRealtimeStore } from './useRealtimeStore';
 export { useSettings, type Settings, type SettingsState } from './useSettings';

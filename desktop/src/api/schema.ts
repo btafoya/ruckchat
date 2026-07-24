@@ -631,6 +631,49 @@ export interface paths {
         };
         trace?: never;
     };
+    "/channels/{channel_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived channel */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    channel_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Channel restored */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Channel"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/channels/{channel_id}/members": {
         parameters: {
             query?: never;
@@ -964,6 +1007,50 @@ export interface paths {
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/direct_messages/{conversation_id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hide a DM conversation from the caller's sidebar
+         * @description The conversation remains visible to other members and reappears for the caller once a new message is posted or the DM is started again.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversation_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conversation hidden */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
             };
         };
         delete?: never;

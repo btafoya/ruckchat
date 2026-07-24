@@ -3,6 +3,7 @@ import type { components } from './schema';
 export type User = components['schemas']['UserResponse'];
 export type Organization = components['schemas']['Organization'];
 export type Channel = components['schemas']['Channel'];
+export type ChannelMembership = components['schemas']['ChannelMembership'];
 export type DirectMessageConversation = components['schemas']['DirectMessageConversation'];
 export type Message = components['schemas']['Message'];
 export type MessageList = components['schemas']['MessageList'];

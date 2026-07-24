@@ -114,3 +114,64 @@ async fn start_dm_and_post_message(pool: sqlx::PgPool) {
     let body = body_json(response).await;
     assert_eq!(body["content"], "hello there");
 }
+
+#[sqlx::test]
+async fn hide_dm_reappears_on_new_message(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (owner_token, member_token, member_id, org_id) = setup_two_members(&client).await;
+
+    let response = client
+        .auth_request(
+            "POST",
+            "/direct_messages",
+            &owner_token,
+            Some(json!({
+                "organization_id": org_id,
+                "member_ids": [member_id]
+            })),
+        )
+        .await;
+    let body = body_json(response).await;
+    let conversation_id = body["id"].as_str().unwrap().to_string();
+
+    let response = client
+        .auth_request(
+            "POST",
+            &format!("/direct_messages/{conversation_id}/hide"),
+            &owner_token,
+            None,
+        )
+        .await;
+    assert_status(&response, StatusCode::NO_CONTENT);
+
+    let response = client
+        .auth_request(
+            "GET",
+            &format!("/direct_messages?organization_id={org_id}"),
+            &owner_token,
+            None,
+        )
+        .await;
+    let body = body_json(response).await;
+    assert_eq!(body["items"].as_array().unwrap().len(), 0);
+
+    client
+        .auth_request(
+            "POST",
+            &format!("/direct_messages/{conversation_id}/messages"),
+            &member_token,
+            Some(json!({ "content": "still here?" })),
+        )
+        .await;
+
+    let response = client
+        .auth_request(
+            "GET",
+            &format!("/direct_messages?organization_id={org_id}"),
+            &owner_token,
+            None,
+        )
+        .await;
+    let body = body_json(response).await;
+    assert_eq!(body["items"].as_array().unwrap().len(), 1);
+}

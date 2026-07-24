@@ -93,6 +93,10 @@ impl DirectMessageConversationRepository for DirectMessageConversationRepository
              FROM direct_message_conversations c
              JOIN dm_members m ON m.conversation_id = c.id
              WHERE c.organization_id = $1 AND m.user_id = $2
+               AND NOT EXISTS (
+                   SELECT 1 FROM direct_message_conversation_hides h
+                   WHERE h.conversation_id = c.id AND h.user_id = $2
+               )
              ORDER BY c.created_at DESC",
             organization_id.as_uuid(),
             user_id.as_uuid()
@@ -115,6 +119,84 @@ impl DirectMessageConversationRepository for DirectMessageConversationRepository
         }
 
         Ok(conversations)
+    }
+
+    async fn find_by_members(
+        &self,
+        organization_id: OrganizationId,
+        member_ids: &[UserId],
+    ) -> Result<Option<DirectMessageConversation>> {
+        let members: Vec<uuid::Uuid> = member_ids.iter().map(UserId::as_uuid).collect();
+        let row = sqlx::query_as!(
+            ConversationRow,
+            "SELECT c.id, c.organization_id, c.created_at
+             FROM direct_message_conversations c
+             WHERE c.organization_id = $1
+               AND (SELECT array_agg(m.user_id ORDER BY m.user_id) FROM dm_members m WHERE m.conversation_id = c.id) = $2::uuid[]",
+            organization_id.as_uuid(),
+            &members,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        let Some(row) = row else {
+            return Ok(None);
+        };
+        let members = sqlx::query_scalar!(
+            "SELECT user_id FROM dm_members WHERE conversation_id = $1 ORDER BY user_id",
+            row.id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        Ok(Some(into_conversation(row, members)))
+    }
+
+    async fn hide(
+        &self,
+        user_id: UserId,
+        conversation_id: DirectMessageConversationId,
+    ) -> Result<()> {
+        sqlx::query!(
+            "INSERT INTO direct_message_conversation_hides (conversation_id, user_id)
+             VALUES ($1, $2)
+             ON CONFLICT DO NOTHING",
+            conversation_id.as_uuid(),
+            user_id.as_uuid(),
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(())
+    }
+
+    async fn unhide(
+        &self,
+        user_id: UserId,
+        conversation_id: DirectMessageConversationId,
+    ) -> Result<()> {
+        sqlx::query!(
+            "DELETE FROM direct_message_conversation_hides WHERE conversation_id = $1 AND user_id = $2",
+            conversation_id.as_uuid(),
+            user_id.as_uuid(),
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(())
+    }
+
+    async fn unhide_all(&self, conversation_id: DirectMessageConversationId) -> Result<()> {
+        sqlx::query!(
+            "DELETE FROM direct_message_conversation_hides WHERE conversation_id = $1",
+            conversation_id.as_uuid(),
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(())
     }
 }
 

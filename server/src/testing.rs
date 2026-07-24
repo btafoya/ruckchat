@@ -581,6 +581,7 @@ impl ChannelMembershipRepository for MockChannelMembershipRepository {
 #[derive(Debug, Default, Clone)]
 pub struct MockDirectMessageConversationRepository {
     conversations: Arc<Mutex<Vec<DirectMessageConversation>>>,
+    hidden: Arc<Mutex<std::collections::HashSet<(UserId, DirectMessageConversationId)>>>,
 }
 
 impl MockDirectMessageConversationRepository {
@@ -619,14 +620,68 @@ impl DirectMessageConversationRepository for MockDirectMessageConversationReposi
         user_id: UserId,
         organization_id: OrganizationId,
     ) -> Result<Vec<DirectMessageConversation>> {
+        let hidden = self.hidden.lock().unwrap();
         Ok(self
             .conversations
             .lock()
             .unwrap()
             .iter()
-            .filter(|c| c.organization_id == organization_id && c.member_ids.contains(&user_id))
+            .filter(|c| {
+                c.organization_id == organization_id
+                    && c.member_ids.contains(&user_id)
+                    && !hidden.contains(&(user_id, c.id))
+            })
             .cloned()
             .collect())
+    }
+
+    async fn find_by_members(
+        &self,
+        organization_id: OrganizationId,
+        member_ids: &[UserId],
+    ) -> Result<Option<DirectMessageConversation>> {
+        let mut wanted = member_ids.to_vec();
+        wanted.sort_unstable();
+        wanted.dedup();
+        Ok(self
+            .conversations
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|c| c.organization_id == organization_id && c.member_ids == wanted)
+            .cloned())
+    }
+
+    async fn hide(
+        &self,
+        user_id: UserId,
+        conversation_id: DirectMessageConversationId,
+    ) -> Result<()> {
+        self.hidden
+            .lock()
+            .unwrap()
+            .insert((user_id, conversation_id));
+        Ok(())
+    }
+
+    async fn unhide(
+        &self,
+        user_id: UserId,
+        conversation_id: DirectMessageConversationId,
+    ) -> Result<()> {
+        self.hidden
+            .lock()
+            .unwrap()
+            .remove(&(user_id, conversation_id));
+        Ok(())
+    }
+
+    async fn unhide_all(&self, conversation_id: DirectMessageConversationId) -> Result<()> {
+        self.hidden
+            .lock()
+            .unwrap()
+            .retain(|(_, c)| *c != conversation_id);
+        Ok(())
     }
 }
 

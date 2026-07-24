@@ -80,6 +80,20 @@ impl MessageService {
                     .by_ids(caller_id, channel_id)
                     .await?;
 
+                // Any organization member may post in a public channel without
+                // an explicit invite; auto-join them on their first post.
+                let channel_membership = if channel_membership.is_none() && !channel.is_private {
+                    let new_membership =
+                        ruckchat_domain::ChannelMembership::new(caller_id, channel_id)?;
+                    self.deps
+                        .channel_memberships
+                        .create(&new_membership)
+                        .await?;
+                    Some(new_membership)
+                } else {
+                    channel_membership
+                };
+
                 self.deps.authorization.require_can_post_in_channel(
                     &channel,
                     caller_membership.as_ref(),
@@ -152,6 +166,7 @@ impl MessageService {
                     .by_id(message.id)
                     .await?
                     .ok_or_else(|| Error::Internal("created message disappeared".into()))?;
+                self.deps.conversations.unhide_all(conversation.id).await?;
                 self.deps.events.publish_message_created(&message).await?;
                 self.publish_mentions(&message).await?;
                 Ok(message)
@@ -652,9 +667,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn non_member_cannot_post_in_channel() {
+    async fn non_member_cannot_post_in_private_channel() {
         let (svc, _events) = service();
-        let (_author_id, org_id, channel_id) = seed_channel(&svc, false).await;
+        let (_author_id, org_id, channel_id) = seed_channel(&svc, true).await;
         let outsider = User::new("outsider@example.com", "Outsider", "hash").unwrap();
         svc.deps
             .memberships
@@ -675,6 +690,38 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Forbidden(_)));
+    }
+
+    #[tokio::test]
+    async fn non_channel_member_auto_joins_public_channel_on_post() {
+        let (svc, _events) = service();
+        let (_author_id, org_id, channel_id) = seed_channel(&svc, false).await;
+        let member = User::new("member@example.com", "Member", "hash").unwrap();
+        svc.deps
+            .memberships
+            .create(&OrganizationMembership::new(member.id, org_id, Role::Member).unwrap())
+            .await
+            .unwrap();
+
+        svc.post_message(
+            member.id,
+            PostMessageRequest {
+                conversation_id: channel_id.as_uuid(),
+                conversation_type: ConversationType::Channel,
+                parent_id: None,
+                content: "hello".into(),
+            },
+        )
+        .await
+        .unwrap();
+
+        let membership = svc
+            .deps
+            .channel_memberships
+            .by_ids(member.id, channel_id)
+            .await
+            .unwrap();
+        assert!(membership.is_some());
     }
 
     #[tokio::test]

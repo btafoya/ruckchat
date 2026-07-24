@@ -190,12 +190,38 @@ pub trait DirectMessageConversationRepository {
         id: DirectMessageConversationId,
     ) -> Result<Option<DirectMessageConversation>>;
 
-    /// Lists DM conversations a user participates in within an organization.
+    /// Lists DM conversations a user participates in within an organization,
+    /// excluding conversations the user has hidden.
     async fn list_by_user_and_organization(
         &self,
         user_id: UserId,
         organization_id: OrganizationId,
     ) -> Result<Vec<DirectMessageConversation>>;
+
+    /// Finds an existing conversation with exactly the given member set.
+    async fn find_by_members(
+        &self,
+        organization_id: OrganizationId,
+        member_ids: &[UserId],
+    ) -> Result<Option<DirectMessageConversation>>;
+
+    /// Hides a conversation from a user's own conversation list.
+    async fn hide(
+        &self,
+        user_id: UserId,
+        conversation_id: DirectMessageConversationId,
+    ) -> Result<()>;
+
+    /// Un-hides a conversation for a single user.
+    async fn unhide(
+        &self,
+        user_id: UserId,
+        conversation_id: DirectMessageConversationId,
+    ) -> Result<()>;
+
+    /// Un-hides a conversation for every member, used when a new message
+    /// arrives so the conversation reappears for anyone who hid it.
+    async fn unhide_all(&self, conversation_id: DirectMessageConversationId) -> Result<()>;
 }
 
 /// Message data access.

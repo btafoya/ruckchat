@@ -6,6 +6,7 @@ import {
   ChannelProvider,
   DirectMessageProvider,
   MessageProvider,
+  OrgMemberProvider,
   OrganizationProvider,
   PlatformProvider,
   PresenceProvider,
@@ -141,48 +142,57 @@ function renderPane(initialEntries = ['/org/org-1/channel/chan-1']) {
             refresh: vi.fn(),
           }}
         >
-          <ChannelProvider
+          <OrgMemberProvider
             value={{
-              channels: [mockChannel],
+              members: [],
               isLoading: false,
               error: null,
               refresh: vi.fn(),
             }}
           >
-            <DirectMessageProvider
+            <ChannelProvider
               value={{
-                conversations: [] as DirectMessageConversation[],
+                channels: [mockChannel],
                 isLoading: false,
                 error: null,
                 refresh: vi.fn(),
               }}
             >
-              <MessageProvider value={mockMessageState}>
-                <PresenceProvider value={{ presence: {}, setUserPresence: vi.fn() }}>
-                  <TypingProvider
-                    value={{
-                      typingUsers: { 'chan-1': ['user-2'] },
-                      addTypingUser: vi.fn(),
-                      removeTypingUser: vi.fn(),
-                    }}
-                  >
-                    <RealtimeProvider value={{ status: 'open', send: vi.fn() }}>
-                      <PlatformProvider platform={mockPlatform}>
-                        <Routes>
-                          <Route path="/org/:organizationId/channel/:channelId" element={<MessagePane />} />
-                          <Route
-                            path="/org/:organizationId/channel/:channelId/thread/:messageId"
-                            element={<MessagePane />}
-                          />
-                          <Route path="/org/:organizationId/dm/:dmId" element={<MessagePane />} />
-                        </Routes>
-                      </PlatformProvider>
-                    </RealtimeProvider>
-                  </TypingProvider>
-                </PresenceProvider>
-              </MessageProvider>
-            </DirectMessageProvider>
-          </ChannelProvider>
+              <DirectMessageProvider
+                value={{
+                  conversations: [] as DirectMessageConversation[],
+                  isLoading: false,
+                  error: null,
+                  refresh: vi.fn(),
+                }}
+              >
+                <MessageProvider value={mockMessageState}>
+                  <PresenceProvider value={{ presence: {}, setUserPresence: vi.fn() }}>
+                    <TypingProvider
+                      value={{
+                        typingUsers: { 'chan-1': ['user-2'] },
+                        addTypingUser: vi.fn(),
+                        removeTypingUser: vi.fn(),
+                      }}
+                    >
+                      <RealtimeProvider value={{ status: 'open', send: vi.fn() }}>
+                        <PlatformProvider platform={mockPlatform}>
+                          <Routes>
+                            <Route path="/org/:organizationId/channel/:channelId" element={<MessagePane />} />
+                            <Route
+                              path="/org/:organizationId/channel/:channelId/thread/:messageId"
+                              element={<MessagePane />}
+                            />
+                            <Route path="/org/:organizationId/dm/:dmId" element={<MessagePane />} />
+                          </Routes>
+                        </PlatformProvider>
+                      </RealtimeProvider>
+                    </TypingProvider>
+                  </PresenceProvider>
+                </MessageProvider>
+              </DirectMessageProvider>
+            </ChannelProvider>
+          </OrgMemberProvider>
         </OrganizationProvider>
       </SessionProvider>
     </MemoryRouter>,

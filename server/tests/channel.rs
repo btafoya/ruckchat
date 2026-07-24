@@ -116,3 +116,89 @@ async fn archive_channel(pool: sqlx::PgPool) {
     let body = body_json(response).await;
     assert!(!body["archived_at"].is_null());
 }
+
+#[sqlx::test]
+async fn unarchive_channel(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (token, org_id) = setup_owner(&client).await;
+
+    let response = client
+        .auth_request(
+            "POST",
+            &format!("/organizations/{org_id}/channels"),
+            &token,
+            Some(json!({ "name": "temp", "is_private": false })),
+        )
+        .await;
+    let body = body_json(response).await;
+    let channel_id = body["id"].as_str().unwrap().to_string();
+
+    client
+        .auth_request("DELETE", &format!("/channels/{channel_id}"), &token, None)
+        .await;
+
+    let response = client
+        .auth_request(
+            "POST",
+            &format!("/channels/{channel_id}/unarchive"),
+            &token,
+            None,
+        )
+        .await;
+    assert_status(&response, StatusCode::OK);
+
+    let body = body_json(response).await;
+    assert!(body["archived_at"].is_null());
+}
+
+#[sqlx::test]
+async fn member_can_create_channel(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (owner_token, org_id) = setup_owner(&client).await;
+
+    let member_email = test_email("channel-member");
+    client
+        .request(
+            "POST",
+            "/auth/register",
+            Some(json!({
+                "email": member_email,
+                "display_name": "Member",
+                "password": "correct horse battery staple",
+                "organization_name": "Other",
+                "organization_slug": uuid::Uuid::new_v4().to_string()
+            })),
+        )
+        .await;
+    client
+        .auth_request(
+            "POST",
+            &format!("/organizations/{org_id}/members"),
+            &owner_token,
+            Some(json!({ "email": member_email, "role": "member" })),
+        )
+        .await;
+
+    let response = client
+        .request(
+            "POST",
+            "/auth/login",
+            Some(json!({
+                "email": member_email,
+                "password": "correct horse battery staple"
+            })),
+        )
+        .await;
+    let body = body_json(response).await;
+    let member_token = body["token"].as_str().unwrap().to_string();
+
+    let response = client
+        .auth_request(
+            "POST",
+            &format!("/organizations/{org_id}/channels"),
+            &member_token,
+            Some(json!({ "name": "member-made", "is_private": false })),
+        )
+        .await;
+    assert_status(&response, StatusCode::CREATED);
+}

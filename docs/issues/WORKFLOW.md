@@ -14,10 +14,18 @@ of it.
   - ISSUES0 — @mentions support: complete (commit `ba9ca30`).
   - ISSUES2 — Tiptap composer complete; `@farscrl/tiptap-extension-spellchecker`
     integration with the embedded `ruckchat-spelling` Hunspell API is complete.
-- **Phase 3 — Conversation Discovery** ⏸ Pending Phase 2.
-  - ISSUES3 — Single-organization auto-redirect.
-  - ISSUES4 — Channel creation and management UI.
-  - ISSUES5 — Complete direct message functionality.
+- **Phase 3 — Conversation Discovery** ✅ Complete.
+  - ISSUES3 — Single-organization auto-redirect to the last-selected channel
+    (or `#general`) implemented via `OrgIndexRoute` / `ChannelIndexRoute` and
+    `desktop/src/lastConversation.ts`.
+  - ISSUES4 — Channel creation and management UI complete: any organization
+    member can create channels; the creator or an organization manager can
+    edit/archive/unarchive and manage private-channel membership; any member
+    can self-join a public channel (auto-join on first post).
+  - ISSUES5 — Direct message functionality complete: start (with reuse of an
+    existing conversation), list with resolved display names, hide/reappear
+    on new message, all wired through `desktop/src/components/StartDmModal.tsx`
+    and `Sidebar.tsx`.
 - **Phase 4 — Admin UI Polish** ⏸ Pending Phase 2.
   - ISSUES6 — Back-to-chat link in admin UIs.
   - ISSUES7 — Complete organization admin UI.
@@ -243,11 +251,22 @@ of it.
 
 ### Verification
 
-- Backend integration tests for channel creation, archive, and member management
-  pass.
-- Frontend type checks and tests pass.
-- Manual check: login with one org lands on `general`; create a private channel,
-  invite a member, archive it; start a group DM and send messages.
+- `cargo fmt --all` passes.
+- `cargo check --workspace` passes.
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes.
+- `cargo nextest run --workspace` passes (255 tests), including new
+  `services::channel`, `services::direct_message`, `channel.rs`, and
+  `direct_message.rs` integration tests for member-created channels, self-join,
+  creator-managed channels, unarchive, DM conversation reuse, and DM
+  hide/reappear-on-new-message.
+- `cd desktop && pnpm typecheck && pnpm test` passes (25 tests).
+- `cd web && pnpm typecheck && pnpm build` succeeds.
+- Manual check (Playwright against a local server + `web` dev server): login
+  with one org auto-redirects to `#general`; created a private channel with
+  `+`, verified topic/purpose edit, archive, and unarchive via the channel
+  settings modal; started a DM with a second test user, confirmed the sidebar
+  and message-pane title resolve display names (not raw IDs), and confirmed
+  hiding a DM removes it from the sidebar.
 
 ---
 

@@ -446,6 +446,33 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
+  /channels/{channel_id}/unarchive:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    post:
+      summary: Restore an archived channel
+      tags: [Channels]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Channel restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /channels/{channel_id}/members:
     parameters:
       - name: channel_id
@@ -453,6 +480,25 @@ paths:
         required: true
         schema:
           $ref: '#/components/schemas/Uuid'
+    get:
+      summary: List the explicit members of a channel
+      tags: [Channels]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Channel members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelMembershipList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
     post:
       summary: Add a member to a channel
       tags: [Channels]
@@ -710,6 +756,32 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
+
+  /direct_messages/{conversation_id}/hide:
+    parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    post:
+      summary: Hide a DM conversation from the caller's sidebar
+      description: >-
+        The conversation remains visible to other members and reappears for
+        the caller once a new message is posted or the DM is started again.
+      tags: [Direct Messages]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Conversation hidden
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /direct_messages/{conversation_id}/messages:
     parameters:
@@ -2512,6 +2584,15 @@ components:
         joined_at:
           type: string
           format: date-time
+
+    ChannelMembershipList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelMembership'
 
     Message:
       type: object

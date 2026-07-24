@@ -1,5 +1,12 @@
 import { ApiClient } from './client';
-import type { Channel, Message, MessageList, PostChannelMessageRequest, UpdateChannelRequest } from './types';
+import type {
+  Channel,
+  ChannelMembership,
+  Message,
+  MessageList,
+  PostChannelMessageRequest,
+  UpdateChannelRequest,
+} from './types';
 
 export class ChannelsApi {
   constructor(private readonly client: ApiClient) {}
@@ -23,6 +30,41 @@ export class ChannelsApi {
       method: 'DELETE',
       token,
     });
+  }
+
+  async unarchive(token: string, channelId: string): Promise<Channel> {
+    return this.client.request<Channel>(`/channels/${channelId}/unarchive`, {
+      method: 'POST',
+      token,
+    });
+  }
+
+  async listMembers(token: string, channelId: string): Promise<ChannelMembership[]> {
+    const response = await this.client.request<{ items: ChannelMembership[] }>(
+      `/channels/${channelId}/members`,
+      { token },
+    );
+    return response.items;
+  }
+
+  async addMember(token: string, channelId: string, userId: string): Promise<ChannelMembership> {
+    return this.client.request<ChannelMembership>(
+      `/channels/${channelId}/members?user_id=${encodeURIComponent(userId)}`,
+      {
+        method: 'POST',
+        token,
+      },
+    );
+  }
+
+  async removeMember(token: string, channelId: string, userId: string): Promise<void> {
+    await this.client.request<void>(
+      `/channels/${channelId}/members?user_id=${encodeURIComponent(userId)}`,
+      {
+        method: 'DELETE',
+        token,
+      },
+    );
   }
 
   async listMessages(

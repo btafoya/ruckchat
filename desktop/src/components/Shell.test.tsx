@@ -6,6 +6,7 @@ import {
   ChannelProvider,
   DirectMessageProvider,
   MessageProvider,
+  OrgMemberProvider,
   OrganizationProvider,
   PresenceProvider,
   RealtimeProvider,
@@ -17,6 +18,7 @@ import { AuthScreen } from './AuthScreen';
 import {
   useMessages,
   useOrganizations,
+  useOrgMembers,
   useChannels,
   usePresence,
   useTyping,
@@ -35,6 +37,7 @@ vi.mock('../api', async () => {
       organizations: {
         list: mockListOrganizations,
         listChannels: mockListChannels,
+        searchMembers: vi.fn().mockResolvedValue([]),
       },
       channels: {
         listMessages: mockListMessages,
@@ -75,6 +78,7 @@ function Wrapper({ session, children }: { session: import('../hooks/useSession')
   const organizationsState = useOrganizations(session?.token);
   const channelsState = useChannels(session?.token, undefined);
   const directMessagesState = useDirectMessages(session?.token, undefined);
+  const orgMembersState = useOrgMembers(session?.token, undefined);
   const messagesState = useMessages(session?.token, undefined, undefined, session?.user.id);
   const presenceState = usePresence();
   const typingState = useTyping();
@@ -91,19 +95,21 @@ function Wrapper({ session, children }: { session: import('../hooks/useSession')
       }}
     >
       <OrganizationProvider value={organizationsState}>
-        <ChannelProvider value={channelsState}>
-          <DirectMessageProvider value={directMessagesState}>
-            <MessageProvider value={messagesState}>
-              <PresenceProvider value={presenceState}>
-                <TypingProvider value={typingState}>
-                  <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
-                    {children}
-                  </RealtimeProvider>
-                </TypingProvider>
-              </PresenceProvider>
-            </MessageProvider>
-          </DirectMessageProvider>
-        </ChannelProvider>
+        <OrgMemberProvider value={orgMembersState}>
+          <ChannelProvider value={channelsState}>
+            <DirectMessageProvider value={directMessagesState}>
+              <MessageProvider value={messagesState}>
+                <PresenceProvider value={presenceState}>
+                  <TypingProvider value={typingState}>
+                    <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
+                      {children}
+                    </RealtimeProvider>
+                  </TypingProvider>
+                </PresenceProvider>
+              </MessageProvider>
+            </DirectMessageProvider>
+          </ChannelProvider>
+        </OrgMemberProvider>
       </OrganizationProvider>
     </SessionProvider>
   );

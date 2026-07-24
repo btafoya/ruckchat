@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO direct_message_conversation_hides (conversation_id, user_id)\n             VALUES ($1, $2)\n             ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f34c535df9a9d36785141cc494c7a725334ff7683c900a2ff7c6f996aff13ec1"
+}

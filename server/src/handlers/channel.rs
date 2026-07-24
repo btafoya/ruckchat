@@ -94,6 +94,32 @@ pub async fn archive(
     Ok(Json(channel))
 }
 
+/// Restores an archived channel.
+pub async fn unarchive(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(channel_id): Path<Uuid>,
+) -> Result<Json<ruckchat_domain::Channel>, Error> {
+    let channel = state
+        .channels
+        .unarchive_channel(auth_user.id, ChannelId::from_uuid(channel_id))
+        .await?;
+    Ok(Json(channel))
+}
+
+/// Lists the explicit members of a channel.
+pub async fn list_members(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(channel_id): Path<Uuid>,
+) -> Result<Json<ListResponse<ruckchat_domain::ChannelMembership>>, Error> {
+    let members = state
+        .channels
+        .list_members(auth_user.id, ChannelId::from_uuid(channel_id))
+        .await?;
+    Ok(Json(ListResponse::new(members)))
+}
+
 /// Adds a member to a channel.
 pub async fn add_member(
     State(state): State<AppState>,

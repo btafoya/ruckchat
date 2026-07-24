@@ -5,6 +5,7 @@ import {
   useChannelContext,
   useDirectMessageContext,
   useMessageContext,
+  useOrgMemberContext,
   useOrganizationContext,
   useSessionContext,
   useTypingContext,
@@ -24,6 +25,7 @@ export function MessagePane(): JSX.Element {
   const { organizations } = useOrganizationContext();
   const { channels } = useChannelContext();
   const { conversations } = useDirectMessageContext();
+  const { members: orgMembers } = useOrgMemberContext();
   const {
     messages,
     isLoading,
@@ -45,10 +47,11 @@ export function MessagePane(): JSX.Element {
     }
     if (conversation) {
       const others = conversation.member_ids.filter((id) => id !== session?.user.id);
-      return `DM: ${others.length > 0 ? others.join(', ') : 'You'}`;
+      const names = others.map((id) => orgMembers.find((m) => m.id === id)?.display_name ?? id);
+      return `DM: ${names.length > 0 ? names.join(', ') : 'You'}`;
     }
     return null;
-  }, [channel, conversation, session?.user.id]);
+  }, [channel, conversation, session?.user.id, orgMembers]);
 
   const typingList = useMemo(() => {
     if (!conversationId) {

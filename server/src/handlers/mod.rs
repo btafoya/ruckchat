@@ -68,10 +68,12 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route("/channels/{channel_id}", get(channel::get))
         .route("/channels/{channel_id}", patch(channel::update))
         .route("/channels/{channel_id}", delete(channel::archive))
-        .route("/channels/{channel_id}/members", post(channel::add_member))
+        .route("/channels/{channel_id}/unarchive", post(channel::unarchive))
         .route(
             "/channels/{channel_id}/members",
-            delete(channel::remove_member),
+            get(channel::list_members)
+                .post(channel::add_member)
+                .delete(channel::remove_member),
         )
         .route(
             "/channels/{channel_id}/messages",
@@ -95,6 +97,10 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route(
             "/direct_messages/{conversation_id}/messages",
             post(direct_message::post_message),
+        )
+        .route(
+            "/direct_messages/{conversation_id}/hide",
+            post(direct_message::hide),
         )
         .route("/files", get(file::list))
         .route("/files", post(file::upload))
