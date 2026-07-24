@@ -72,7 +72,7 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
   return (
     <article className="flex flex-col gap-1 rounded-md p-2 hover:bg-gray-800/50">
       <div className="flex items-baseline gap-2">
-        <span className="text-sm font-semibold text-green-400">{message.author_id}</span>
+        <span className="text-sm font-semibold text-green-400">{message.author_display_name ?? message.author_id}</span>
         <span className="text-xs text-gray-500">{new Date(message.created_at).toLocaleString()}</span>
         {isPending && <span className="text-xs text-yellow-500">Sending...</span>}
       </div>

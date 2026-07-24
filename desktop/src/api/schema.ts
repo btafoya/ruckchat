@@ -3066,6 +3066,7 @@ export interface components {
             conversation_type: components["schemas"]["ConversationType"];
             parent_id?: components["schemas"]["Uuid"];
             author_id: components["schemas"]["Uuid"];
+            author_display_name?: string | null;
             content: string;
             /** Format: date-time */
             created_at: string;

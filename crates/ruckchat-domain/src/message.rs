@@ -56,6 +56,9 @@ pub struct Message {
     pub parent_id: Option<MessageId>,
     /// User who authored the message.
     pub author_id: UserId,
+    /// Display name of the message author, populated when reading messages.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author_display_name: Option<String>,
     /// Message content.
     pub content: String,
     /// Timestamp when the message was created.
@@ -100,6 +103,7 @@ impl Message {
             conversation_type,
             parent_id,
             author_id,
+            author_display_name: None,
             content,
             created_at: now,
             updated_at: now,

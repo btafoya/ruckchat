@@ -52,22 +52,28 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+const STATIC_PATHS = /^\/(?:assets\/|icons\/|manifest\.json|favicon\.ico|index\.html)?$/;
+
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  const requestUrl = new URL(event.request.url);
+  if (
+    requestUrl.origin !== self.location.origin ||
+    !STATIC_PATHS.test(requestUrl.pathname)
+  ) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) {
         return cached;
       }
       return fetch(event.request).then((response) => {
-        const requestUrl = new URL(event.request.url);
-        if (
-          event.request.method === 'GET' &&
-          (requestUrl.origin === self.location.origin ||
-            requestUrl.pathname.match(/\.(js|css|html|png|svg|woff2)$/))
-        ) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         return response;
       });
     }),

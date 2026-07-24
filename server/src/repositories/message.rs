@@ -47,7 +47,10 @@ impl MessageRepository for MessageRepositorySqlx {
     async fn by_id(&self, id: MessageId) -> Result<Option<Message>> {
         let row = sqlx::query_as!(
             MessageRow,
-            "SELECT id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at FROM messages WHERE id = $1",
+            "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.created_at, m.updated_at, m.deleted_at
+             FROM messages m
+             LEFT JOIN users u ON u.id = m.author_id
+             WHERE m.id = $1",
             id.as_uuid()
         )
         .fetch_optional(&self.pool)
@@ -65,10 +68,11 @@ impl MessageRepository for MessageRepositorySqlx {
     ) -> Result<Vec<Message>> {
         let rows = sqlx::query_as!(
             MessageRow,
-            "SELECT id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at
-             FROM messages
-             WHERE conversation_id = $1 AND deleted_at IS NULL
-             ORDER BY created_at DESC
+            "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.created_at, m.updated_at, m.deleted_at
+             FROM messages m
+             LEFT JOIN users u ON u.id = m.author_id
+             WHERE m.conversation_id = $1 AND m.deleted_at IS NULL
+             ORDER BY m.created_at DESC
              LIMIT $2 OFFSET $3",
             conversation_id,
             limit,
@@ -115,22 +119,23 @@ impl MessageRepository for MessageRepositorySqlx {
     ) -> Result<Vec<Message>> {
         let rows = sqlx::query_as!(
             MessageRow,
-            r#"SELECT id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at
-             FROM messages
-             WHERE deleted_at IS NULL
-               AND content_tsv @@ plainto_tsquery('english', $1)
+            r#"SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.created_at, m.updated_at, m.deleted_at
+             FROM messages m
+             LEFT JOIN users u ON u.id = m.author_id
+             WHERE m.deleted_at IS NULL
+               AND m.content_tsv @@ plainto_tsquery('english', $1)
                AND (
                  (
-                   conversation_type = 'channel'
-                   AND conversation_id IN (
+                   m.conversation_type = 'channel'
+                   AND m.conversation_id IN (
                      SELECT id FROM channels
                      WHERE organization_id = $2 AND is_private = false
                    )
                  )
                  OR
                  (
-                   conversation_type = 'channel'
-                   AND conversation_id IN (
+                   m.conversation_type = 'channel'
+                   AND m.conversation_id IN (
                      SELECT c.id FROM channels c
                      JOIN channel_memberships cm ON cm.channel_id = c.id
                      WHERE c.organization_id = $2 AND c.is_private = true AND cm.user_id = $3
@@ -138,15 +143,15 @@ impl MessageRepository for MessageRepositorySqlx {
                  )
                  OR
                  (
-                   conversation_type = 'dm'
-                   AND conversation_id IN (
+                   m.conversation_type = 'dm'
+                   AND m.conversation_id IN (
                      SELECT dmc.id FROM direct_message_conversations dmc
                      JOIN dm_members dmm ON dmm.conversation_id = dmc.id
                      WHERE dmc.organization_id = $2 AND dmm.user_id = $3
                    )
                  )
                )
-             ORDER BY created_at DESC
+             ORDER BY m.created_at DESC
              LIMIT $4 OFFSET $5"#,
             query,
             organization_id.as_uuid(),
@@ -171,6 +176,7 @@ struct MessageRow {
     conversation_type: String,
     parent_id: Option<uuid::Uuid>,
     author_id: uuid::Uuid,
+    author_display_name: Option<String>,
     content: String,
     created_at: time::OffsetDateTime,
     updated_at: time::OffsetDateTime,
@@ -189,6 +195,7 @@ fn into_message(row: MessageRow) -> Result<Message> {
         conversation_type,
         parent_id: row.parent_id.map(MessageId::from_uuid),
         author_id: ruckchat_id::UserId::from_uuid(row.author_id),
+        author_display_name: row.author_display_name,
         content: row.content,
         created_at: row.created_at,
         updated_at: row.updated_at,

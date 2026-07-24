@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at\n             FROM messages\n             WHERE conversation_id = $1 AND deleted_at IS NULL\n             ORDER BY created_at DESC\n             LIMIT $2 OFFSET $3",
+  "query": "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.created_at, m.updated_at, m.deleted_at\n             FROM messages m\n             LEFT JOIN users u ON u.id = m.author_id\n             WHERE m.conversation_id = $1 AND m.deleted_at IS NULL\n             ORDER BY m.created_at DESC\n             LIMIT $2 OFFSET $3",
   "describe": {
     "columns": [
       {
@@ -30,21 +30,26 @@
       },
       {
         "ordinal": 5,
-        "name": "content",
+        "name": "author_display_name",
         "type_info": "Text"
       },
       {
         "ordinal": 6,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "deleted_at",
         "type_info": "Timestamptz"
       }
@@ -65,8 +70,9 @@
       false,
       false,
       false,
+      false,
       true
     ]
   },
-  "hash": "1f2383642cfcebcb9b664d10588ad0c28d60952ecc4840025c7788702a6e8e3c"
+  "hash": "edc91f2b82baaf49c46f4be1489f35818ffad58136273d7755bd8fac2b943309"
 }

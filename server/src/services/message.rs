@@ -91,6 +91,12 @@ impl MessageService {
                     request.parent_id,
                 )?;
                 self.deps.messages.create(&message).await?;
+                let message = self
+                    .deps
+                    .messages
+                    .by_id(message.id)
+                    .await?
+                    .ok_or_else(|| Error::Internal("created message disappeared".into()))?;
                 self.deps.events.publish_message_created(&message).await?;
                 Ok(message)
             }
@@ -126,6 +132,12 @@ impl MessageService {
                     request.parent_id,
                 )?;
                 self.deps.messages.create(&message).await?;
+                let message = self
+                    .deps
+                    .messages
+                    .by_id(message.id)
+                    .await?
+                    .ok_or_else(|| Error::Internal("created message disappeared".into()))?;
                 self.deps.events.publish_message_created(&message).await?;
                 Ok(message)
             }

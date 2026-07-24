@@ -74,6 +74,7 @@ function AuthenticatedShell({ platform }: { platform: Platform }): JSX.Element {
     conversationId,
     session?.user.id,
     { apiUrl },
+    session?.user.display_name,
   );
   const presenceState = usePresence();
   const typingState = useTyping();

@@ -36,6 +36,7 @@ export function useMessages(
   conversationId: string | undefined,
   userId: string | undefined,
   options: UseMessagesOptions = {},
+  userDisplayName?: string,
 ): MessagesState {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -122,6 +123,7 @@ export function useMessages(
         conversation_type: conversationType,
         parent_id: parentId,
         author_id: userId,
+        author_display_name: userDisplayName ?? null,
         content: trimmed,
         created_at: now,
         updated_at: now,

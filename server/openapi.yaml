@@ -2399,6 +2399,9 @@ components:
           nullable: true
         author_id:
           $ref: '#/components/schemas/Uuid'
+        author_display_name:
+          type: string
+          nullable: true
         content:
           type: string
         created_at:
