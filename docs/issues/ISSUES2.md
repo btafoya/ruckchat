@@ -8,50 +8,109 @@
 
 ### Current state
 
-- The composer uses a plain `textarea` (`desktop/src/components/Composer.tsx:189-196`).
-- It supports a markdown preview toggle (`Composer.tsx:151-160`) but no inline formatting.
-- Basic `@` mention autocomplete is implemented by manually positioning a dropdown over the textarea (`Composer.tsx:198-212`).
-- File attachments are handled outside the editor via a `pendingFiles` list (`Composer.tsx:43`, `164-183`).
-- Dependencies are not yet checked for Tiptap packages.
+- The composer has been rewritten with Tiptap:
+  - `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-mention`,
+    `@tiptap/extension-placeholder`, `@tiptap/suggestion`, `tippy.js`.
+- Message content is now stored as ProseMirror JSON.
+- `@display_name` mentions are first-class Tiptap `mention` nodes with
+  `id` (user_id) and `label` (display_name) attributes.
+- `MessageContent.tsx` renders ProseMirror JSON including styled mention nodes,
+  inline marks (bold, italic, strike, code, link), and block nodes (paragraph,
+  lists, blockquote, code block).
+- Browser spell-check is enabled on the contenteditable surface via
+  `spellcheck="true"`.
 
 ### Gaps
 
-1. **Editor replacement** — replace the textarea with `@tiptap/react` and `@tiptap/starter-kit` (or a custom extension set).
-2. **Mention extension** — migrate the existing `@` autocomplete to a Tiptap mention node that stores `user_id` and renders `@display_name`.
-3. **Spell check** — integrate the requested `farscrl/tiptap-extension-spellchecker` extension, or verify browser spell-check behavior if Tiptap content-editable supports it.
-4. **Markdown parity** — decide whether to keep markdown preview, keep a markdown mode, or rely on Tiptap's WYSIWYG output.
-5. **File attachments** — ensure the editor can coexist with the existing attachment UI, or move attachments into the editor as nodes.
-6. **Keyboard shortcuts** — preserve `Enter` to send and `Shift+Enter` for newline, which currently rely on textarea key handling (`Composer.tsx:141-149`).
+1. **farscrl spell-checker integration** — the third-party
+   `@farscrl/tiptap-extension-spellchecker` extension is not yet wired.
+2. **Server-side spelling API** — no backend endpoint exists for the Tiptap
+   proofreader to call.
+3. **Dictionary/backend proofreader** — no dictionary service is integrated yet.
 
-### Affected files
+### Decisions
 
-- `desktop/package.json` / `web/package.json` — add Tiptap and spell-check dependencies.
-- `desktop/src/components/Composer.tsx` — replace textarea with Tiptap editor.
-- `desktop/src/components/MessageItem.tsx` — render Tiptap/mention nodes if stored as structured JSON.
-- `desktop/src/hooks/useMessages.ts` — ensure message `content` format agreement with backend.
-- `server/openapi.yaml` and message service — clarify whether `content` remains plain text, Markdown, or ProseMirror JSON.
+- Message content format: ProseMirror JSON (already implemented).
+- Markdown preview: removed; WYSIWYG is the preview.
+- Spell checking: integrate `@farscrl/tiptap-extension-spellchecker` with a
+  server-side Hunspell-based API embedded in the Rust server.
+- Dictionaries: embed LibreOffice en-US Hunspell `.aff` / `.dic` files in the
+  new `ruckchat-spelling` crate via `include_bytes!`.
 
-## Open Questions
+## Proposed implementation
 
-1. **What should the message `content` format be after the switch?**
-   - Continue storing plain text/Markdown and render it through Tiptap on read.
-   - Store ProseMirror JSON in the database and render it directly.
+1. **New crate `crates/ruckchat-spelling`**
+   - Wrap `hunspell-sys` with the `bundled` feature.
+   - Embed LibreOffice `en-US.aff` / `en-US.dic` dictionaries at compile time.
+   - Provide `SpellingEngine` that is `Send + Sync` (serialized with a Mutex).
+   - APIs:
+     - `SpellingEngine::new(aff: &[u8], dic: &[u8])`
+     - `check(text: &str, max_suggestions: usize) -> Vec<Misspelling>`
+     - `suggest(word: &str, max: usize) -> Vec<String>`
+     - `language() -> "en-US"`
 
-2. **Which Tiptap extensions are required for MVP?**
-   - Starter kit only (bold, italic, headings, lists, blockquote, code).
-   - Starter kit plus mention and spell-check only.
-   - Full Slack-like formatting (inline code, code blocks, strikethrough).
+2. **Server changes**
+   - Add `spelling_enabled` and `spelling_default_language` to
+     `ruckchat_domain::ServerSettings`, the SQLx repository, and
+     `ruckchat_config::ServerSettingsOverride`.
+   - Add `server/src/services/spelling.rs` with input validation, per-user
+     token-bucket rate limiting (10 req/s burst, 100 req/min), and
+     `check`/`suggest`/`languages`.
+   - Add `server/src/handlers/spelling.rs` for:
+     - `POST /api/v1/spelling/check`
+     - `POST /api/v1/spelling/suggest`
+     - `GET /api/v1/spelling/languages`
+   - Wire routes in `server/src/handlers/mod.rs`.
+   - Add `pub spelling: Option<SpellingService>` to `AppState` and initialize
+     it from the embedded dictionary.
 
-3. **How should spell check behave?**
-   - Use the third-party `tiptap-extension-spellchecker` with a backend or local dictionary.
-   - Rely on browser spell-check via `spellCheck={true}` on the content-editable surface.
+3. **Frontend changes**
+   - Add `@farscrl/tiptap-extension-spellchecker` to `desktop/package.json` and
+     `web/package.json`.
+   - Create `desktop/src/spelling/SpellingProofreader.ts` implementing
+     `IProofreaderInterface`:
+     - `proofreadText` calls `POST /api/v1/spelling/check` and returns
+       `{ offset, length, word }[]`.
+     - `getSuggestions` calls `POST /api/v1/spelling/suggest` and returns
+       suggestions; cache results for 1 minute keyed by normalized word.
+     - `normalizeTextForLanguage` lowercases and strips diacritics.
+   - Wire the proofreader into `Composer.tsx` via
+     `SpellcheckerExtension.configure({ proofreader })`.
 
-4. **Should the existing Markdown preview feature survive?**
-   - Keep it as an alternate view.
-   - Remove it because WYSIWYG is the preview.
+4. **API / docs**
+   - Update `server/openapi.yaml` with `SpellingCheckRequest`,
+     `SpellingCheckResponse`, `SpellingSuggestRequest`,
+     `SpellingSuggestResponse`, `SpellingLanguageList`, and the three endpoints.
+   - Update `book/019-Web-UI.md` to document the spell-checker feature.
+   - Add or update an ADR covering the decision to embed Hunspell instead of a
+     separate container.
 
-## Decisions
+## Affected files
 
-- Message content format after Tiptap: store ProseMirror JSON.
-- Spell checking: integrate `tiptap-extension-spellchecker` with a dictionary/backend service.
-- Markdown preview: remove; WYSIWYG replaces it.
+- `crates/ruckchat-spelling/Cargo.toml`
+- `crates/ruckchat-spelling/src/lib.rs`
+- `crates/ruckchat-spelling/src/engine.rs`
+- `crates/ruckchat-spelling/src/dictionary.rs`
+- `crates/ruckchat-spelling/dictionaries/en-US.aff`
+- `crates/ruckchat-spelling/dictionaries/en-US.dic`
+- `server/Cargo.toml` — add `ruckchat-spelling` dependency.
+- `server/src/services/spelling.rs`
+- `server/src/handlers/spelling.rs`
+- `server/src/handlers/mod.rs`
+- `server/src/state.rs`
+- `server/src/services/server_settings.rs`
+- `server/src/repositories/server_settings.rs`
+- `crates/ruckchat-domain/src/server_settings.rs`
+- `crates/ruckchat-config/src/lib.rs`
+- `server/openapi.yaml`
+- `desktop/package.json`
+- `desktop/src/spelling/SpellingProofreader.ts`
+- `desktop/src/components/Composer.tsx`
+- `desktop/src/api/schema.ts`
+- `book/019-Web-UI.md`
+- `docs/ADR-*.md`
+
+## Status
+
+⏳ In progress — backend mention/Tiptap composer complete; spell-checker
+integration pending implementation.

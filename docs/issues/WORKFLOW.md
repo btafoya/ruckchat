@@ -11,11 +11,9 @@ of it.
   - ISSUES1 — Light/dark theme system implemented.
   - ISSUES9 — `allow_registration` site setting implemented.
 - **Phase 2 — Composer and Message Format** 🚧 In progress.
-  - ISSUES0 — @mentions support: backend storage, event bus, WebSocket delivery,
-    organization member search, and frontend Tiptap composer/renderer complete.
-  - ISSUES2 — WYSIWYG Tiptap composer is in place; browser spell-check attribute
-    enabled; `farscrl/tiptap-extension-spellchecker` integration with a
-    dictionary/backend proofreader remains.
+  - ISSUES0 — @mentions support: complete (commit `ba9ca30`).
+  - ISSUES2 — Tiptap composer is in place; `@farscrl/tiptap-extension-spellchecker`
+    integration with a server-side Hunspell API is the remaining work.
 - **Phase 3 — Conversation Discovery** ⏸ Pending Phase 2.
   - ISSUES3 — Single-organization auto-redirect.
   - ISSUES4 — Channel creation and management UI.
