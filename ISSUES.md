@@ -2,6 +2,7 @@
 
 ## Overall UI
 
+- This is meant to be a slack replcement - some features such as mention @ are missing - open
 - Needs a light theme with light/dark toggle - open
 - Implement WYSIWYG Tiptap (<https://github.com/ueberdosis/tiptap>) in place of current text area with spell check (<https://github.com/farscrl/tiptap-extension-spellchecker>) - open
 
