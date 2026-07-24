@@ -49,6 +49,12 @@ impl ServerSettingsRepository for ServerSettingsRepositorySqlx {
                 "allow_registration" => {
                     settings.allow_registration = row.value.parse().unwrap_or(true);
                 }
+                "spelling_enabled" => {
+                    settings.spelling_enabled = row.value.parse().unwrap_or(true);
+                }
+                "spelling_default_language" => {
+                    settings.spelling_default_language = row.value.clone();
+                }
                 _ => {}
             }
         }
@@ -79,6 +85,11 @@ impl ServerSettingsRepository for ServerSettingsRepositorySqlx {
             (
                 "allow_registration",
                 settings.allow_registration.to_string(),
+            ),
+            ("spelling_enabled", settings.spelling_enabled.to_string()),
+            (
+                "spelling_default_language",
+                settings.spelling_default_language.clone(),
             ),
         ];
 

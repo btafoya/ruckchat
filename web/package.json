@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@farscrl/tiptap-extension-spellchecker": "^2.0.2",
+    "@tiptap/core": "^3.28.0",
     "@tiptap/extension-mention": "^3.28.0",
     "@tiptap/extension-placeholder": "^3.28.0",
     "@tiptap/react": "^3.28.0",

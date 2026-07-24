@@ -34,6 +34,7 @@ impl ErrorBody {
             DomainError::Unauthorized(message) => ("unauthorized", message.clone()),
             DomainError::Conflict(message) => ("conflict", message.clone()),
             DomainError::Internal(message) => ("internal", message.clone()),
+            DomainError::TooManyRequests(message) => ("too_many_requests", message.clone()),
         };
         Self { code, error }
     }
@@ -67,6 +68,7 @@ fn domain_status(err: &DomainError) -> StatusCode {
         DomainError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
         DomainError::Conflict(_) => StatusCode::CONFLICT,
         DomainError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        DomainError::TooManyRequests(_) => StatusCode::TOO_MANY_REQUESTS,
     }
 }
 

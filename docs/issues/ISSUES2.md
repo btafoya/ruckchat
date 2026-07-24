@@ -20,13 +20,16 @@
 - Browser spell-check is enabled on the contenteditable surface via
   `spellcheck="true"`.
 
-### Gaps
+### Gaps (resolved)
 
-1. **farscrl spell-checker integration** — the third-party
-   `@farscrl/tiptap-extension-spellchecker` extension is not yet wired.
-2. **Server-side spelling API** — no backend endpoint exists for the Tiptap
-   proofreader to call.
-3. **Dictionary/backend proofreader** — no dictionary service is integrated yet.
+1. **farscrl spell-checker integration** — wired into `Composer.tsx` via
+   `SpellcheckerExtension.configure({ proofreader })`.
+2. **Server-side spelling API** — `POST /api/v1/spelling/check`,
+   `POST /api/v1/spelling/suggest`, and `GET /api/v1/spelling/languages` are
+   implemented and rate-limited per user.
+3. **Dictionary/backend proofreader** — `crates/ruckchat-spelling` embeds the
+   `en-US` Hunspell dictionary via the pure-Rust `spellbook` crate; the
+   frontend `SpellingProofreader` calls the REST endpoints.
 
 ### Decisions
 
@@ -35,19 +38,22 @@
 - Spell checking: integrate `@farscrl/tiptap-extension-spellchecker` with a
   server-side Hunspell-based API embedded in the Rust server.
 - Dictionaries: embed LibreOffice en-US Hunspell `.aff` / `.dic` files in the
-  new `ruckchat-spelling` crate via `include_bytes!`.
+  new `ruckchat-spelling` crate via `include_str!`.
+- Engine: use the pure-Rust `spellbook` crate instead of `hunspell-sys`,
+  avoiding a C++ compiler dependency in the build and Docker images (see
+  `docs/ADR-014-Spell-Checker.md`).
 
 ## Proposed implementation
 
 1. **New crate `crates/ruckchat-spelling`**
-   - Wrap `hunspell-sys` with the `bundled` feature.
+   - Wrap the pure-Rust `spellbook` Hunspell implementation.
    - Embed LibreOffice `en-US.aff` / `en-US.dic` dictionaries at compile time.
-   - Provide `SpellingEngine` that is `Send + Sync` (serialized with a Mutex).
+   - Provide `SpellingEngine`, `Send + Sync` via an internal `Arc<Dictionary>`.
    - APIs:
-     - `SpellingEngine::new(aff: &[u8], dic: &[u8])`
+     - `SpellingEngine::embedded_en_us()` / `SpellingEngine::new(aff: &str, dic: &str, language)`
      - `check(text: &str, max_suggestions: usize) -> Vec<Misspelling>`
      - `suggest(word: &str, max: usize) -> Vec<String>`
-     - `language() -> "en-US"`
+     - `language() -> &'static str`
 
 2. **Server changes**
    - Add `spelling_enabled` and `spelling_default_language` to
@@ -112,5 +118,6 @@
 
 ## Status
 
-⏳ In progress — backend mention/Tiptap composer complete; spell-checker
-integration pending implementation.
+✅ Complete — Tiptap composer, mentions, and the `@farscrl` spell-checker
+integration backed by the embedded `ruckchat-spelling` Hunspell engine are all
+implemented, tested, and documented.

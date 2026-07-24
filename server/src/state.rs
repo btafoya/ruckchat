@@ -34,11 +34,13 @@ use crate::{
         server_settings::{
             ServerSettingsOverride, ServerSettingsService, ServerSettingsServiceDeps,
         },
+        spelling::{SpellingService, SpellingServiceDeps},
         user::{UserService, UserServiceDeps},
         web_push::{WebPushService, WebPushServiceConfig, WebPushServiceDeps},
     },
     websocket::{ConnectionManager, WebSocketEventBus, WebSocketEventBusDeps},
 };
+use ruckchat_spelling::SpellingEngine;
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -93,6 +95,8 @@ pub struct AppState {
     pub server_admin: ServerAdminService,
     /// Server-wide settings service.
     pub server_settings: ServerSettingsService,
+    /// Spell-checking service, if enabled.
+    pub spelling: Option<SpellingService>,
     /// Audit log service.
     pub audit: AuditService,
 }
@@ -116,6 +120,10 @@ impl std::fmt::Debug for AppState {
             .field("admin", &"AdminService")
             .field("server_admin", &"ServerAdminService")
             .field("server_settings", &"ServerSettingsService")
+            .field(
+                "spelling",
+                &self.spelling.as_ref().map(|_| "SpellingService"),
+            )
             .field("audit", &"AuditService")
             .finish_non_exhaustive()
     }
@@ -156,6 +164,8 @@ impl AppState {
             default_storage_quota_bytes: config.server_settings.default_storage_quota_bytes,
             allowed_signup_domains: config.server_settings.allowed_signup_domains.clone(),
             allow_registration: config.server_settings.allow_registration,
+            spelling_enabled: config.server_settings.spelling_enabled,
+            spelling_default_language: config.server_settings.spelling_default_language.clone(),
         };
         Self::build(
             pool,
@@ -352,6 +362,14 @@ impl AppState {
             overrides: server_settings_overrides,
         });
 
+        let spelling = SpellingEngine::embedded_en_us()
+            .map(|engine| SpellingService::new(SpellingServiceDeps { engine }))
+            .map_err(|err| {
+                tracing::warn!(%err, "failed to initialize spell-checker; continuing without spelling");
+                err
+            })
+            .ok();
+
         let server_admin = ServerAdminService::new(ServerAdminServiceDeps {
             users: users_repo.clone(),
             organizations: organizations_repo.clone(),
@@ -387,6 +405,7 @@ impl AppState {
             admin,
             server_admin,
             server_settings,
+            spelling,
             audit,
         }
     }

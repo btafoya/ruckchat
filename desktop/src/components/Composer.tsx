@@ -5,6 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
 import suggestion from '@tiptap/suggestion';
+import SpellcheckerExtension from '@farscrl/tiptap-extension-spellchecker';
 import tippy, { type Instance } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import { createApi } from '../api';
@@ -17,6 +18,7 @@ import {
 } from '../context';
 import { MentionList, type MentionItem, type MentionListHandle, type MentionListProps } from './MentionList';
 import { MessageContent } from './MessageContent';
+import { SpellingProofreader } from '../spelling/SpellingProofreader';
 
 const TYPING_DEBOUNCE_MS = 1500;
 const DRAFT_KEY = (conversationId: string) => `ruckchat_draft_${conversationId}`;
@@ -68,6 +70,11 @@ export function Composer({
   const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string }>>([]);
   const [showPreview, setShowPreview] = useState(false);
   const lastTypingRef = useRef(0);
+
+  const proofreader = useMemo(
+    () => new SpellingProofreader(api, () => session?.token),
+    [api, session],
+  );
 
   const sendTyping = useCallback(() => {
     const now = Date.now();
@@ -164,6 +171,7 @@ export function Composer({
           },
         },
       }),
+      SpellcheckerExtension.configure({ proofreader }),
     ],
     content: loadDraft(conversationId),
     editorProps: {

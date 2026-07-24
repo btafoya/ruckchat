@@ -12,6 +12,7 @@ pub mod organization;
 pub mod plugins;
 pub mod reaction;
 pub mod server_admin;
+pub mod spelling;
 pub mod user;
 pub mod web_assets;
 pub mod web_push;
@@ -107,6 +108,10 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route("/web-push/vapid-key", get(web_push::vapid_key))
         .route("/web-push/subscribe", post(web_push::subscribe))
         .route("/web-push/unsubscribe", post(web_push::unsubscribe))
+        // Spelling
+        .route("/api/v1/spelling/check", post(spelling::check))
+        .route("/api/v1/spelling/suggest", post(spelling::suggest))
+        .route("/api/v1/spelling/languages", get(spelling::languages))
         // Server-wide administration
         .route(
             "/api/v1/server/organizations",

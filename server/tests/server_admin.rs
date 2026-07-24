@@ -333,7 +333,9 @@ async fn server_settings_get_and_update(pool: PgPool) {
                 "default_max_file_size_bytes": 5242880i64,
                 "default_storage_quota_bytes": 5368709120i64,
                 "allowed_signup_domains": ["example.com"],
-                "allow_registration": false
+                "allow_registration": false,
+                "spelling_enabled": false,
+                "spelling_default_language": "en-US"
             })),
         )
         .await;
@@ -347,6 +349,8 @@ async fn server_settings_get_and_update(pool: PgPool) {
     assert!(get_body["maintenance_mode_enabled"].as_bool().unwrap());
     assert_eq!(get_body["allowed_signup_domains"], json![["example.com"]]);
     assert!(!get_body["allow_registration"].as_bool().unwrap());
+    assert!(!get_body["spelling_enabled"].as_bool().unwrap());
+    assert_eq!(get_body["spelling_default_language"], "en-US");
 }
 
 #[sqlx::test]

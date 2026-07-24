@@ -47,6 +47,12 @@ export type ImpersonateRequest = components['schemas']['ImpersonateRequest'];
 export type ImpersonateResponse = components['schemas']['ImpersonateResponse'];
 export type EndImpersonateRequest = components['schemas']['EndImpersonateRequest'];
 
+export type SpellingCheckRequest = components['schemas']['SpellingCheckRequest'];
+export type SpellingCheckResponse = components['schemas']['SpellingCheckResponse'];
+export type SpellingSuggestRequest = components['schemas']['SpellingSuggestRequest'];
+export type SpellingSuggestResponse = components['schemas']['SpellingSuggestResponse'];
+export type SpellingLanguageList = components['schemas']['SpellingLanguageList'];
+
 export type OrganizationSettings = components['schemas']['OrganizationSettings'];
 export type UpdateOrganizationSettingsRequest =
   components['schemas']['UpdateOrganizationSettingsRequest'];

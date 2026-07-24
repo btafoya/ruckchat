@@ -65,3 +65,33 @@ html.light {
   --color-link: #9333ea;
   --color-link-hover: #7e22ce;
 }
+
+.spell-error {
+  text-decoration: underline wavy var(--color-danger);
+  text-underline-offset: 2px;
+}
+
+#suggestions-box {
+  position: absolute;
+  z-index: 50;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  background-color: var(--color-surface-elevated);
+  color: var(--color-text);
+  box-shadow: 0 2px 8px var(--color-overlay);
+}
+
+#suggestions-box ul.suggestion-list {
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+}
+
+#suggestions-box li {
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+}
+
+#suggestions-box li:hover {
+  background-color: var(--color-message-hover);
+}

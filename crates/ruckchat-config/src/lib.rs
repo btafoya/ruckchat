@@ -108,6 +108,10 @@ pub struct ServerSettingsConfig {
     pub allowed_signup_domains: Option<Vec<String>>,
     /// Override for whether new user registrations are allowed.
     pub allow_registration: Option<bool>,
+    /// Override for whether the server-side spell checker is enabled.
+    pub spelling_enabled: Option<bool>,
+    /// Override for the default spell-checker language tag.
+    pub spelling_default_language: Option<String>,
 }
 
 /// Web Push notification configuration.
@@ -476,6 +480,8 @@ server_settings:
   # allowed_signup_domains:
   #   - "example.com"
   # allow_registration: true
+  # spelling_enabled: true
+  # spelling_default_language: "en-US"
 
 # Placeholders for future phases. These keys are ignored today.
 # retention:

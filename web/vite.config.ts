@@ -41,6 +41,7 @@ export default defineConfig({
       '/files': API_TARGET,
       '/plugins': API_TARGET,
       '/web-push': API_TARGET,
+      '/api': API_TARGET,
       '/mcp': API_TARGET,
       '/websocket': {
         target: 'ws://localhost:3000',

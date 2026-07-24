@@ -20,6 +20,8 @@
     "@tauri-apps/plugin-dialog": "^2.2.1",
     "@tauri-apps/plugin-notification": "^2.2.2",
     "@tauri-apps/plugin-shell": "^2.2.1",
+    "@farscrl/tiptap-extension-spellchecker": "^2.0.2",
+    "@tiptap/core": "^3.28.0",
     "@tiptap/extension-mention": "^3.28.0",
     "@tiptap/extension-placeholder": "^3.28.0",
     "@tiptap/react": "^3.28.0",

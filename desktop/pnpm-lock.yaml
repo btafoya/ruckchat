@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@farscrl/tiptap-extension-spellchecker':
+        specifier: ^2.0.2
+        version: 2.0.2(@tiptap/core@3.28.0(@tiptap/pm@3.28.0))
       '@tauri-apps/api':
         specifier: ^2.5.0
         version: 2.11.1
@@ -23,6 +26,9 @@ importers:
       '@tauri-apps/plugin-shell':
         specifier: ^2.2.1
         version: 2.3.5
+      '@tiptap/core':
+        specifier: ^3.28.0
+        version: 3.28.0(@tiptap/pm@3.28.0)
       '@tiptap/extension-mention':
         specifier: ^3.28.0
         version: 3.28.0(@tiptap/core@3.28.0(@tiptap/pm@3.28.0))(@tiptap/pm@3.28.0)(@tiptap/suggestion@3.28.0(@floating-ui/dom@1.8.0)(@tiptap/core@3.28.0(@tiptap/pm@3.28.0))(@tiptap/pm@3.28.0))
@@ -369,6 +375,11 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@farscrl/tiptap-extension-spellchecker@2.0.2':
+    resolution: {integrity: sha512-wWWVjYT1N7P9KO0zxj4VnxZjSb5xdCo8u0nfZ6DxmvCRUjrv8pSPmUn6VyDcgs2xSGW3Jgy/EBsKUZ3HJySkCg==}
+    peerDependencies:
+      '@tiptap/core': ^3.0.1
 
   '@floating-ui/core@1.8.0':
     resolution: {integrity: sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ==}
@@ -1879,6 +1890,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.12':
     optional: true
+
+  '@farscrl/tiptap-extension-spellchecker@2.0.2(@tiptap/core@3.28.0(@tiptap/pm@3.28.0))':
+    dependencies:
+      '@tiptap/core': 3.28.0(@tiptap/pm@3.28.0)
 
   '@floating-ui/core@1.8.0':
     dependencies:

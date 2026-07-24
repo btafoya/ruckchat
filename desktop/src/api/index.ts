@@ -8,6 +8,7 @@ import { OrganizationsApi } from './organizations';
 import { OrgAdminApi } from './orgAdmin';
 import { ReactionsApi } from './reactions';
 import { ServerAdminApi } from './serverAdmin';
+import { SpellingApi } from './spelling';
 import { WebPushApi } from './webPush';
 
 export interface RuckChatApi {
@@ -20,6 +21,7 @@ export interface RuckChatApi {
   webPush: WebPushApi;
   serverAdmin: ServerAdminApi;
   orgAdmin: OrgAdminApi;
+  spelling: SpellingApi;
 }
 
 export function createApi(baseUrl = DEFAULT_API_URL): RuckChatApi {
@@ -34,6 +36,7 @@ export function createApi(baseUrl = DEFAULT_API_URL): RuckChatApi {
     webPush: new WebPushApi(client),
     serverAdmin: new ServerAdminApi(client),
     orgAdmin: new OrgAdminApi(client),
+    spelling: new SpellingApi(client),
   };
 }
 
@@ -49,5 +52,6 @@ export {
   OrgAdminApi,
   ReactionsApi,
   ServerAdminApi,
+  SpellingApi,
   WebPushApi,
 };

@@ -15,6 +15,10 @@ pub struct ServerSettings {
     pub allowed_signup_domains: Vec<String>,
     /// Whether new user registrations are allowed.
     pub allow_registration: bool,
+    /// Whether the server-side spell checker is enabled.
+    pub spelling_enabled: bool,
+    /// Default language tag for the spell checker.
+    pub spelling_default_language: String,
 }
 
 impl ServerSettings {
@@ -27,6 +31,8 @@ impl ServerSettings {
             default_storage_quota_bytes: 10 * 1024 * 1024 * 1024,
             allowed_signup_domains: Vec::new(),
             allow_registration: true,
+            spelling_enabled: true,
+            spelling_default_language: "en-US".to_string(),
         }
     }
 }

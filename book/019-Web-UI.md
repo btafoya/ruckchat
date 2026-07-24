@@ -104,6 +104,32 @@ Mentions are stored as first-class Tiptap `mention` nodes with `id` (user ID)
 and `label` (display name) attributes. Channel members who are not mentioned do
 not receive push notifications.
 
+## Spell Checking
+
+The Tiptap composer (`desktop/src/components/Composer.tsx`, shared by the web
+client) uses `@farscrl/tiptap-extension-spellchecker` for inline spell-check
+underlines and suggestion popups. The extension does not implement checking
+itself; `desktop/src/spelling/SpellingProofreader.ts` implements its
+`IProofreaderInterface` and calls the server:
+
+- `POST /api/v1/spelling/check` — checks a block of text and returns
+  misspellings with byte offsets and suggestions.
+- `POST /api/v1/spelling/suggest` — returns suggestions for a single word.
+  Results are cached client-side for one minute, keyed by the
+  diacritic-stripped, lowercased word.
+- `GET /api/v1/spelling/languages` — lists supported language tags.
+
+The server-side engine lives in `crates/ruckchat-spelling` and wraps the
+pure-Rust [`spellbook`](https://crates.io/crates/spellbook) Hunspell
+implementation with embedded LibreOffice `en-US` `.aff`/`.dic` dictionaries
+(`include_str!`), avoiding a C++ toolchain dependency at build time.
+`server/src/services/spelling.rs` adds per-user token-bucket rate limiting
+(10 requests/second burst, 100/minute) on top of the engine. The feature is
+gated by the `spelling_enabled` and `spelling_default_language` server
+settings (`server/src/services/server_settings.rs`); when disabled, the
+endpoints return empty results instead of an error so the composer degrades
+silently. See `docs/ADR-014-Spell-Checker.md` for the embedding decision.
+
 ## Cross-Origin Support
 
 The server CORS layer is explicit and credentials-aware. Allowed origins default

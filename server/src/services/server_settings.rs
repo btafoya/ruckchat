@@ -27,6 +27,10 @@ pub struct ServerSettingsOverride {
     pub allowed_signup_domains: Option<Vec<String>>,
     /// Override for whether new user registrations are allowed.
     pub allow_registration: Option<bool>,
+    /// Override for whether the server-side spell checker is enabled.
+    pub spelling_enabled: Option<bool>,
+    /// Override for the default spell-checker language tag.
+    pub spelling_default_language: Option<String>,
 }
 
 /// Reads and updates server-wide settings.
@@ -65,6 +69,12 @@ impl ServerSettingsService {
         }
         if let Some(value) = self.deps.overrides.allow_registration {
             settings.allow_registration = value;
+        }
+        if let Some(value) = self.deps.overrides.spelling_enabled {
+            settings.spelling_enabled = value;
+        }
+        if let Some(value) = self.deps.overrides.spelling_default_language.clone() {
+            settings.spelling_default_language = value;
         }
         Ok(settings)
     }

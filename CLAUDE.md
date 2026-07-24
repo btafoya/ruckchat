@@ -121,6 +121,15 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   `/api/v1/server/*`, org admin additions under `/api/v1/admin/organizations/{id}/*`,
   OpenAPI updates, backend integration tests, and shared React admin components
   with routes in `desktop/src/PlatformShell.tsx`.
+- Composer/message-format issue work (`docs/issues/WORKFLOW.md` Phase 2):
+  @mentions as first-class Tiptap nodes with `mentioned_user_ids` on messages,
+  and a server-side spell-checker. The `crates/ruckchat-spelling` crate embeds
+  a Hunspell `en-US` dictionary via the pure-Rust `spellbook` crate; the
+  `SpellingService` rate-limits `POST /api/v1/spelling/check`,
+  `POST /api/v1/spelling/suggest`, and `GET /api/v1/spelling/languages`;
+  `desktop/src/spelling/SpellingProofreader.ts` wires
+  `@farscrl/tiptap-extension-spellchecker` into the shared composer. Gated by
+  the `spelling_enabled` / `spelling_default_language` server settings.
 - Mobile support (Flutter) is planned for a later phase.
 
 ## Commands
@@ -187,6 +196,7 @@ root/
 │   ├── ruckchat-config/    # Configuration primitives, `AuthenticatedUser`, and runtime YAML parsing
 │   ├── ruckchat-domain/    # Entities, value objects, and repository traits
 │   ├── ruckchat-plugin-sdk/ # Plugin SDK trait, types, and `declare_plugin!` macro
+│   ├── ruckchat-spelling/  # Embedded Hunspell spelling engine (`spellbook`-backed)
 │   └── rocketchat2ruckchat/ # Standalone RocketChat → RuckChat migration tool
 ├── server/                 # Service layer, SQLx repositories, HTTP, WebSocket, MCP, and plugins
 │   ├── src/handlers/       # Axum route handlers and HTTP DTOs
@@ -275,6 +285,12 @@ root/
 - `desktop/src/api/serverAdmin.ts` and `desktop/src/api/orgAdmin.ts` — Admin API clients.
 - `desktop/src/components/admin/*.tsx` — Server and org admin React components.
 - `desktop/src/components/Sidebar.tsx` — Admin navigation links gated by role.
+- `crates/ruckchat-spelling/src/lib.rs` — Embedded Hunspell `SpellingEngine`.
+- `server/src/services/spelling.rs` — Rate-limited spell-checker service.
+- `server/src/handlers/spelling.rs` — Spell-checker REST handlers.
+- `server/tests/spelling.rs` — Spell-checker endpoint integration tests.
+- `desktop/src/spelling/SpellingProofreader.ts` — `IProofreaderInterface` implementation calling the spelling REST endpoints.
+- `desktop/src/api/spelling.ts` — Spelling REST API client.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
 - `server/openapi.yaml` — Full REST API specification for the REST API, WebSocket upgrade, and MCP endpoint.
 - `Dockerfile` — Multi-stage SQLx-offline server image build.
@@ -288,7 +304,7 @@ root/
   `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md`,
   `docs/ADR-009-Plugin-SDK.md`, `docs/ADR-010-Runtime-YAML-Configuration.md`,
   `docs/ADR-011-Web-UI.md`, `docs/ADR-012-Migration-and-Packaging.md`,
-  `docs/ADR-013-Web-UI-Admin-Panel.md` — Active ADRs.
+  `docs/ADR-013-Web-UI-Admin-Panel.md`, `docs/ADR-014-Spell-Checker.md` — Active ADRs.
 
 ## Environment
 

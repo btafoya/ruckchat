@@ -18,6 +18,8 @@ export function ServerAdminSettings(): JSX.Element {
     default_storage_quota_bytes: 0,
     allowed_signup_domains: [],
     allow_registration: true,
+    spelling_enabled: true,
+    spelling_default_language: 'en-US',
   });
 
   const token = session?.token ?? '';
@@ -35,6 +37,8 @@ export function ServerAdminSettings(): JSX.Element {
         default_storage_quota_bytes: data.default_storage_quota_bytes,
         allowed_signup_domains: data.allowed_signup_domains,
         allow_registration: data.allow_registration,
+        spelling_enabled: data.spelling_enabled,
+        spelling_default_language: data.spelling_default_language,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -99,6 +103,35 @@ export function ServerAdminSettings(): JSX.Element {
             />
             <span>Allow new user registrations</span>
           </label>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.spelling_enabled}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  spelling_enabled: e.target.checked,
+                }))
+              }
+            />
+            <span>Enable server-side spell checker</span>
+          </label>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-text-muted">Spell-checker language</label>
+            <input
+              type="text"
+              value={form.spelling_default_language}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  spelling_default_language: e.target.value,
+                }))
+              }
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
+            />
+          </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-sm text-text-muted">Default max file size (bytes)</label>

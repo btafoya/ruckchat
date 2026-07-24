@@ -10,10 +10,10 @@ of it.
 - **Phase 1 — Foundation** ✅ Complete (commit `2279700`).
   - ISSUES1 — Light/dark theme system implemented.
   - ISSUES9 — `allow_registration` site setting implemented.
-- **Phase 2 — Composer and Message Format** 🚧 In progress.
+- **Phase 2 — Composer and Message Format** ✅ Complete.
   - ISSUES0 — @mentions support: complete (commit `ba9ca30`).
-  - ISSUES2 — Tiptap composer is in place; `@farscrl/tiptap-extension-spellchecker`
-    integration with a server-side Hunspell API is the remaining work.
+  - ISSUES2 — Tiptap composer complete; `@farscrl/tiptap-extension-spellchecker`
+    integration with the embedded `ruckchat-spelling` Hunspell API is complete.
 - **Phase 3 — Conversation Discovery** ⏸ Pending Phase 2.
   - ISSUES3 — Single-organization auto-redirect.
   - ISSUES4 — Channel creation and management UI.
@@ -167,11 +167,18 @@ of it.
 
 ### Verification
 
-- All backend checks pass (`cargo fmt`, `cargo check`, `cargo clippy`,
-  `cargo nextest`).
-- Frontend type checks and unit tests pass.
+- `cargo fmt --all` passes.
+- `cargo check --workspace --all-targets` passes.
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes.
+- `cargo nextest run --workspace` passes (242 tests), including
+  `server/tests/spelling.rs` and the updated `server_admin.rs` /
+  `auth.rs` settings-update tests.
+- `cd desktop && pnpm typecheck && pnpm test` passes (25 tests).
+- `cd web && pnpm typecheck && pnpm build` succeeds.
 - Manual check: type `@` in the composer, select a user by display name, send,
    and see the rendered mention; the mentioned user receives a notification.
+- Manual check: type a misspelled word in the composer and see the wavy
+  underline and suggestion popup from the spell-checker.
 
 ---
 

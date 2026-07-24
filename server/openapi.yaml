@@ -26,6 +26,7 @@ tags:
   - name: Web Push
   - name: Admin
   - name: Server Admin
+  - name: Spelling
 
 paths:
   /auth/register:
@@ -1172,6 +1173,77 @@ paths:
       responses:
         '204':
           description: Subscription removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/spelling/check:
+    post:
+      summary: Check text for misspellings
+      tags: [Spelling]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpellingCheckRequest'
+      responses:
+        '200':
+          description: Detected misspellings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpellingCheckResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: Rate limit exceeded
+
+  /api/v1/spelling/suggest:
+    post:
+      summary: Get suggestions for a single misspelled word
+      tags: [Spelling]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpellingSuggestRequest'
+      responses:
+        '200':
+          description: Suggested corrections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpellingSuggestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: Rate limit exceeded
+
+  /api/v1/spelling/languages:
+    get:
+      summary: List supported spell-checker languages
+      tags: [Spelling]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Supported language tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpellingLanguageList'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -3331,7 +3403,7 @@ components:
 
     ServerSettings:
       type: object
-      required: [maintenance_mode_enabled, default_max_file_size_bytes, default_storage_quota_bytes, allowed_signup_domains, allow_registration]
+      required: [maintenance_mode_enabled, default_max_file_size_bytes, default_storage_quota_bytes, allowed_signup_domains, allow_registration, spelling_enabled, spelling_default_language]
       properties:
         maintenance_mode_enabled:
           type: boolean
@@ -3347,10 +3419,14 @@ components:
             type: string
         allow_registration:
           type: boolean
+        spelling_enabled:
+          type: boolean
+        spelling_default_language:
+          type: string
 
     UpdateServerSettingsRequest:
       type: object
-      required: [maintenance_mode_enabled, default_max_file_size_bytes, default_storage_quota_bytes, allowed_signup_domains, allow_registration]
+      required: [maintenance_mode_enabled, default_max_file_size_bytes, default_storage_quota_bytes, allowed_signup_domains, allow_registration, spelling_enabled, spelling_default_language]
       properties:
         maintenance_mode_enabled:
           type: boolean
@@ -3366,6 +3442,76 @@ components:
             type: string
         allow_registration:
           type: boolean
+        spelling_enabled:
+          type: boolean
+        spelling_default_language:
+          type: string
+
+    SpellingMisspelling:
+      type: object
+      required: [offset, length, word, suggestions]
+      properties:
+        offset:
+          type: integer
+          format: int64
+        length:
+          type: integer
+          format: int64
+        word:
+          type: string
+        suggestions:
+          type: array
+          items:
+            type: string
+
+    SpellingCheckRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+        max_suggestions:
+          type: integer
+          format: int64
+          nullable: true
+
+    SpellingCheckResponse:
+      type: object
+      required: [misspellings]
+      properties:
+        misspellings:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpellingMisspelling'
+
+    SpellingSuggestRequest:
+      type: object
+      required: [word]
+      properties:
+        word:
+          type: string
+        max:
+          type: integer
+          format: int64
+          nullable: true
+
+    SpellingSuggestResponse:
+      type: object
+      required: [suggestions]
+      properties:
+        suggestions:
+          type: array
+          items:
+            type: string
+
+    SpellingLanguageList:
+      type: object
+      required: [languages]
+      properties:
+        languages:
+          type: array
+          items:
+            type: string
 
     RegistrationStatusResponse:
       type: object

@@ -36,6 +36,10 @@ pub enum Error {
     /// An external or internal service failure.
     #[error("internal error: {0}")]
     Internal(String),
+
+    /// The caller has exceeded a rate limit.
+    #[error("too many requests: {0}")]
+    TooManyRequests(String),
 }
 
 impl Error {

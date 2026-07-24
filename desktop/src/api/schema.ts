@@ -1671,6 +1671,141 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/spelling/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check text for misspellings */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SpellingCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description Detected misspellings */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SpellingCheckResponse"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                /** @description Rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spelling/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get suggestions for a single misspelled word */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SpellingSuggestRequest"];
+                };
+            };
+            responses: {
+                /** @description Suggested corrections */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SpellingSuggestResponse"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                /** @description Rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spelling/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List supported spell-checker languages */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Supported language tags */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SpellingLanguageList"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/organizations/{organization_id}/import": {
         parameters: {
             query?: never;
@@ -3568,6 +3703,8 @@ export interface components {
             default_storage_quota_bytes: number;
             allowed_signup_domains: string[];
             allow_registration: boolean;
+            spelling_enabled: boolean;
+            spelling_default_language: string;
         };
         UpdateServerSettingsRequest: {
             maintenance_mode_enabled: boolean;
@@ -3577,6 +3714,35 @@ export interface components {
             default_storage_quota_bytes: number;
             allowed_signup_domains: string[];
             allow_registration: boolean;
+            spelling_enabled: boolean;
+            spelling_default_language: string;
+        };
+        SpellingMisspelling: {
+            /** Format: int64 */
+            offset: number;
+            /** Format: int64 */
+            length: number;
+            word: string;
+            suggestions: string[];
+        };
+        SpellingCheckRequest: {
+            text: string;
+            /** Format: int64 */
+            max_suggestions?: number | null;
+        };
+        SpellingCheckResponse: {
+            misspellings: components["schemas"]["SpellingMisspelling"][];
+        };
+        SpellingSuggestRequest: {
+            word: string;
+            /** Format: int64 */
+            max?: number | null;
+        };
+        SpellingSuggestResponse: {
+            suggestions: string[];
+        };
+        SpellingLanguageList: {
+            languages: string[];
         };
         RegistrationStatusResponse: {
             allow_registration: boolean;

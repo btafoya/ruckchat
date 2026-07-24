@@ -1,0 +1,19 @@
+[package]
+name = "ruckchat-spelling"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Embedded Hunspell spelling engine for RuckChat."
+readme = "README.md"
+keywords = ["ruckchat", "spell", "hunspell"]
+categories = ["text-processing"]
+
+[dependencies]
+spellbook = "0.4.2"
+tracing = { workspace = true }
+
+[lints]
+workspace = true

@@ -17,6 +17,7 @@ ruckchat-common = { path = "../crates/ruckchat-common" }
 ruckchat-config = { path = "../crates/ruckchat-config" }
 ruckchat-domain = { path = "../crates/ruckchat-domain" }
 ruckchat-plugin-sdk = { path = "../crates/ruckchat-plugin-sdk" }
+ruckchat-spelling = { path = "../crates/ruckchat-spelling" }
 ruckchat-migrations = { path = "../migrations" }
 async-trait = { workspace = true }
 secrecy = { workspace = true }

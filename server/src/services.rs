@@ -18,6 +18,7 @@ pub mod organization;
 pub mod reaction;
 pub mod server_admin;
 pub mod server_settings;
+pub mod spelling;
 pub mod user;
 pub mod web_push;
 
@@ -37,5 +38,6 @@ pub use server_admin::{ServerAdminService, ServerAdminServiceDeps};
 pub use server_settings::{
     ServerSettingsOverride, ServerSettingsService, ServerSettingsServiceDeps,
 };
+pub use spelling::{SpellingService, SpellingServiceDeps};
 pub use user::UserService;
 pub use web_push::{WebPushService, WebPushServiceConfig, WebPushServiceDeps};

@@ -182,7 +182,9 @@ async fn register_fails_when_disabled(pool: sqlx::PgPool) {
                 "default_max_file_size_bytes": 26214400i64,
                 "default_storage_quota_bytes": 10737418240i64,
                 "allowed_signup_domains": [],
-                "allow_registration": false
+                "allow_registration": false,
+                "spelling_enabled": true,
+                "spelling_default_language": "en-US"
             })),
         )
         .await;
