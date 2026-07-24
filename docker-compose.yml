@@ -39,7 +39,7 @@ services:
     # The container target port (right side) must match the port in base_url
     # inside ruckchat.yaml. Change the left side to select the host port.
     ports:
-      - "3922:3922"
+      - "3922:3000"
     # Override the Dockerfile healthcheck so the pre-built image probes the
     # actual base_url port instead of assuming port 3000.
     healthcheck:

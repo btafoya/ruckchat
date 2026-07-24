@@ -43,7 +43,7 @@ services:
     # The container target port (right side) must match the port in base_url
     # inside ruckchat.yaml. Change the left side to select the host port.
     ports:
-      - "3922:3922"
+      - "3922:3000"
     # Keep the healthcheck definition in the compose file even though the
     # Dockerfile also defines one; this makes the expected port explicit.
     healthcheck:
