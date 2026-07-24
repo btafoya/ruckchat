@@ -13,6 +13,13 @@ pnpm dev
 The dev server proxies API requests and WebSocket upgrades to
 `http://localhost:3000`.
 
+## Styling
+
+`web/src/index.css` imports Tailwind CSS v4 and adds an `@source "../../desktop/src"`
+directive so Tailwind scans the shared `desktop/src` components for utility
+classes during the Web UI production build. Without it, the generated CSS omits
+classes used only by the shared components and the rendered layout breaks.
+
 ## Production build
 
 ```bash

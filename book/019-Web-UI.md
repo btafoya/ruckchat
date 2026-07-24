@@ -34,6 +34,23 @@ in `desktop/src/platform/`:
 provider tree. This keeps browser-only and desktop-only code out of the shared
 components.
 
+## Styling
+
+The Web UI and desktop client share the same Tailwind CSS v4 utility classes.
+Tailwind's Vite plugin discovers source files automatically within the project
+root, so `web/src/index.css` explicitly registers the shared components with an
+`@source` directive:
+
+```css
+@import "tailwindcss";
+@source "../../desktop/src";
+```
+
+`web/src/main.tsx` imports this local stylesheet instead of the one in
+`desktop/src/`. Without the `@source` directive, the production `web/dist`
+stylesheet omits classes used only in the shared `desktop/src` components,
+causing broken layout in the browser.
+
 ## Static Asset Serving
 
 The server embeds the contents of `web/dist/` at compile time using
