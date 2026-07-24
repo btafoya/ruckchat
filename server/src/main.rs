@@ -194,10 +194,9 @@ fn init_tracing(log_level: &str) {
 
 async fn parse_server_addr(base_url: &str) -> Result<SocketAddr, String> {
     let url = url::Url::parse(base_url).map_err(|e| format!("invalid base_url: {e}"))?;
-    let host = url.host_str().unwrap_or("127.0.0.1").to_string();
     let port = url.port().unwrap_or(3000);
 
-    tokio::net::lookup_host((host, port))
+    tokio::net::lookup_host(("0.0.0.0", port))
         .await
         .map_err(|e| format!("invalid server address: {e}"))?
         .next()

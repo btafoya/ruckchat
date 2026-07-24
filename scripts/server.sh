@@ -147,6 +147,9 @@ warn_port_alignment() {
     fi
 }
 
+: "${RUCKCHAT_IMAGE:=ruckchat-server}"
+export RUCKCHAT_IMAGE
+
 compose() {
     cd "${PROJECT_ROOT}"
     docker compose -f "${COMPOSE_FILE}" "$@"
