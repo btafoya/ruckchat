@@ -116,7 +116,7 @@ const mockMessageState: MessagesState = {
 
 const mockSession = {
   token: 'token',
-  user: { id: 'user-1', email: 'user@example.com', display_name: 'User', avatar_url: null },
+  user: { id: 'user-1', email: 'user@example.com', display_name: 'User', avatar_url: null, is_server_admin: false },
 };
 
 function renderPane(initialEntries = ['/org/org-1/channel/chan-1']) {

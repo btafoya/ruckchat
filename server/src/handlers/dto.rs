@@ -18,6 +18,8 @@ pub struct UserResponse {
     pub display_name: String,
     /// Optional URL to an avatar image.
     pub avatar_url: Option<String>,
+    /// Whether the user is a server-wide administrator.
+    pub is_server_admin: bool,
 }
 
 impl UserResponse {
@@ -29,6 +31,7 @@ impl UserResponse {
             email: user.email.clone(),
             display_name: user.display_name.clone(),
             avatar_url: user.avatar_url.clone(),
+            is_server_admin: user.is_server_admin,
         }
     }
 }

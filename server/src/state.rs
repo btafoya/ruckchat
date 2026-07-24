@@ -10,15 +10,17 @@ use crate::{
         manager::{PluginManager, PluginManagerDeps},
     },
     repositories::{
-        ChannelMembershipRepositorySqlx, ChannelRepositorySqlx, CustomEmojiRepositorySqlx,
-        DirectMessageConversationRepositorySqlx, FileRepositorySqlx, MessageRepositorySqlx,
-        OrganizationMembershipRepositorySqlx, OrganizationRepositorySqlx,
+        AuditLogRepositorySqlx, ChannelMembershipRepositorySqlx, ChannelRepositorySqlx,
+        CustomEmojiRepositorySqlx, DirectMessageConversationRepositorySqlx, FileRepositorySqlx,
+        MessageRepositorySqlx, OrganizationMembershipRepositorySqlx, OrganizationRepositorySqlx,
         OrganizationRoleRepositorySqlx, OrganizationSettingsRepositorySqlx,
-        PermissionRepositorySqlx, ReactionRepositorySqlx, SessionRepositorySqlx,
-        TeamRepositorySqlx, UserRepositorySqlx, WebPushSubscriptionRepositorySqlx,
+        PermissionRepositorySqlx, ReactionRepositorySqlx, ServerSettingsRepositorySqlx,
+        SessionRepositorySqlx, TeamRepositorySqlx, UserRepositorySqlx,
+        WebPushSubscriptionRepositorySqlx,
     },
     services::{
         admin::{AdminService, AdminServiceDeps},
+        audit::{AuditService, AuditServiceDeps},
         auth::{AuthService, AuthServiceDeps},
         authorization::AuthorizationService,
         channel::{ChannelService, ChannelServiceDeps},
@@ -28,6 +30,10 @@ use crate::{
         message::{MessageService, MessageServiceDeps},
         organization::{OrganizationService, OrganizationServiceDeps},
         reaction::{ReactionService, ReactionServiceDeps},
+        server_admin::{ServerAdminService, ServerAdminServiceDeps},
+        server_settings::{
+            ServerSettingsOverride, ServerSettingsService, ServerSettingsServiceDeps,
+        },
         user::{UserService, UserServiceDeps},
         web_push::{WebPushService, WebPushServiceConfig, WebPushServiceDeps},
     },
@@ -83,6 +89,12 @@ pub struct AppState {
     pub web_push: Option<WebPushService>,
     /// Administrative service for imports and organization metadata.
     pub admin: AdminService,
+    /// Server-wide administrative service.
+    pub server_admin: ServerAdminService,
+    /// Server-wide settings service.
+    pub server_settings: ServerSettingsService,
+    /// Audit log service.
+    pub audit: AuditService,
 }
 
 impl std::fmt::Debug for AppState {
@@ -102,6 +114,9 @@ impl std::fmt::Debug for AppState {
                 &self.web_push.as_ref().map(|_| "WebPushService"),
             )
             .field("admin", &"AdminService")
+            .field("server_admin", &"ServerAdminService")
+            .field("server_settings", &"ServerSettingsService")
+            .field("audit", &"AuditService")
             .finish_non_exhaustive()
     }
 }
@@ -127,6 +142,7 @@ impl AppState {
             ruckchat_config::WebConfig::default(),
             &ruckchat_config::WebPushConfig::default(),
             &files_directory,
+            ServerSettingsOverride::default(),
         )
     }
 
@@ -134,6 +150,12 @@ impl AppState {
     #[must_use]
     pub fn from_config(pool: PgPool, config: &ruckchat_config::AppConfig) -> Self {
         let secure_cookies = matches!(config.environment, ruckchat_config::Environment::Production);
+        let server_settings_overrides = ServerSettingsOverride {
+            maintenance_mode_enabled: config.server_settings.maintenance_mode_enabled,
+            default_max_file_size_bytes: config.server_settings.default_max_file_size_bytes,
+            default_storage_quota_bytes: config.server_settings.default_storage_quota_bytes,
+            allowed_signup_domains: config.server_settings.allowed_signup_domains.clone(),
+        };
         Self::build(
             pool,
             secure_cookies,
@@ -143,6 +165,7 @@ impl AppState {
             config.web.clone(),
             &config.web_push,
             &config.files.directory,
+            server_settings_overrides,
         )
     }
 
@@ -156,6 +179,7 @@ impl AppState {
         web_config: ruckchat_config::WebConfig,
         web_push_config: &ruckchat_config::WebPushConfig,
         files_directory: &str,
+        server_settings_overrides: ServerSettingsOverride,
     ) -> Self {
         let users_repo = Arc::new(UserRepositorySqlx::new(pool.clone()));
         let sessions_repo = Arc::new(SessionRepositorySqlx::new(pool.clone()));
@@ -175,6 +199,8 @@ impl AppState {
         let permissions_repo = Arc::new(PermissionRepositorySqlx::new(pool.clone()));
         let custom_emoji_repo = Arc::new(CustomEmojiRepositorySqlx::new(pool.clone()));
         let teams_repo = Arc::new(TeamRepositorySqlx::new(pool.clone()));
+        let server_settings_repo = Arc::new(ServerSettingsRepositorySqlx::new(pool.clone()));
+        let audit_log_repo = Arc::new(AuditLogRepositorySqlx::new(pool.clone()));
 
         let web_push = WebPushServiceConfig::from_config(web_push_config)
             .and_then(|svc_config| {
@@ -305,12 +331,33 @@ impl AppState {
         let admin = AdminService::new(AdminServiceDeps {
             pool: pool.clone(),
             organizations: organizations_repo.clone(),
+            users: users_repo.clone(),
             memberships: memberships_repo.clone(),
             roles: organization_roles_repo.clone(),
             permissions: permissions_repo.clone(),
             emoji: custom_emoji_repo.clone(),
             teams: teams_repo.clone(),
+            organization_settings: settings_repo.clone(),
             files: files_repo.clone(),
+        });
+
+        let audit = AuditService::new(AuditServiceDeps {
+            audit_log: audit_log_repo.clone(),
+        });
+
+        let server_settings = ServerSettingsService::new(ServerSettingsServiceDeps {
+            repository: server_settings_repo.clone(),
+            overrides: server_settings_overrides,
+        });
+
+        let server_admin = ServerAdminService::new(ServerAdminServiceDeps {
+            users: users_repo.clone(),
+            organizations: organizations_repo.clone(),
+            memberships: memberships_repo.clone(),
+            organization_settings: settings_repo.clone(),
+            server_settings: server_settings_repo.clone(),
+            auth: auth.clone(),
+            audit: audit.clone(),
         });
 
         Self {
@@ -336,6 +383,9 @@ impl AppState {
             web_config,
             web_push,
             admin,
+            server_admin,
+            server_settings,
+            audit,
         }
     }
 

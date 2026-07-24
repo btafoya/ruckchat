@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO server_settings (key, value, updated_at, updated_by)\n                 VALUES ($1, $2, NOW(), $3)\n                 ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW(), updated_by = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "37a3c8437f79046084fd5da7e457ee448f0b5d1df2dfae416749e06aa9e69a23"
+}

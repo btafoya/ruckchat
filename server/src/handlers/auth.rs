@@ -21,6 +21,10 @@ pub struct AuthUser {
     pub id: UserId,
     /// Plain session token used to authenticate the request.
     pub token: String,
+    /// User id this request effectively acts as, when impersonating.
+    pub effective_user_id: UserId,
+    /// Server admin who started the impersonation session, if any.
+    pub impersonated_by: Option<UserId>,
 }
 
 impl AuthUser {
@@ -31,6 +35,15 @@ impl AuthUser {
         let mut hasher = Sha256::new();
         hasher.update(self.token.as_bytes());
         hex::encode(hasher.finalize())
+    }
+
+    /// Returns the actor id for authorization and audit purposes.
+    ///
+    /// For impersonation sessions this is the server admin who started the
+    /// session; otherwise it is the authenticated user.
+    #[must_use]
+    pub fn actor_id(&self) -> UserId {
+        self.impersonated_by.unwrap_or(self.id)
     }
 }
 
@@ -43,12 +56,20 @@ impl FromRequestParts<AppState> for AuthUser {
     ) -> Result<Self, Self::Rejection> {
         let token = extract_token(parts)
             .ok_or_else(|| unauthorized_response("missing session cookie or bearer token"))?;
-        let user_id = state
+        let session = state
             .auth
-            .authenticate(&token)
+            .session_by_token(&token)
             .await
             .map_err(|err| err.into_response())?;
-        Ok(Self { id: user_id, token })
+        if session.is_expired() {
+            return Err(unauthorized_response("session expired"));
+        }
+        Ok(Self {
+            id: session.user_id,
+            token,
+            effective_user_id: session.user_id,
+            impersonated_by: session.impersonated_by,
+        })
     }
 }
 

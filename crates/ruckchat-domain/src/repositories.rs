@@ -4,10 +4,10 @@
 //! Concrete implementations using SQLx live in the server crate.
 
 use crate::{
-    Channel, ChannelMembership, CustomEmoji, DirectMessageConversation, File, Message,
-    Organization, OrganizationMembership, OrganizationRole, OrganizationRolePermission,
-    OrganizationSettings, Permission, Reaction, Role, Session, Team, TeamMembership, TeamRoom,
-    User, WebPushSubscription,
+    AuditLogEntry, Channel, ChannelMembership, CustomEmoji, DirectMessageConversation, File,
+    Message, Organization, OrganizationMembership, OrganizationRole, OrganizationRolePermission,
+    OrganizationSettings, Permission, Reaction, Role, ServerSettings, Session, Team,
+    TeamMembership, TeamRoom, User, WebPushSubscription,
 };
 use async_trait::async_trait;
 use ruckchat_common::Result;
@@ -31,6 +31,18 @@ pub trait UserRepository {
 
     /// Updates an existing user.
     async fn update(&self, user: &User) -> Result<()>;
+
+    /// Counts all users in the system.
+    async fn count(&self) -> Result<i64>;
+
+    /// Lists all users with pagination.
+    async fn list_all(&self, limit: i64, offset: i64) -> Result<Vec<User>>;
+
+    /// Counts users with server administrator privileges.
+    async fn count_admins(&self) -> Result<i64>;
+
+    /// Lists users with server administrator privileges.
+    async fn list_admins(&self) -> Result<Vec<User>>;
 }
 
 /// Session data access.
@@ -66,6 +78,15 @@ pub trait OrganizationRepository {
 
     /// Lists organizations a user belongs to.
     async fn list_for_user(&self, user_id: UserId) -> Result<Vec<Organization>>;
+
+    /// Lists all organizations on the server.
+    async fn list_all(&self) -> Result<Vec<Organization>>;
+
+    /// Updates an existing organization.
+    async fn update(&self, organization: &Organization) -> Result<()>;
+
+    /// Deletes an organization by id.
+    async fn delete(&self, id: OrganizationId) -> Result<Option<()>>;
 }
 
 /// Organization membership data access.
@@ -251,6 +272,12 @@ pub trait OrganizationRoleRepository {
         &self,
         organization_id: OrganizationId,
     ) -> Result<Vec<OrganizationRole>>;
+
+    /// Updates an existing role.
+    async fn update(&self, role: &OrganizationRole) -> Result<()>;
+
+    /// Deletes a role by id.
+    async fn delete(&self, id: OrganizationRoleId) -> Result<Option<()>>;
 }
 
 /// Permission data access.
@@ -259,11 +286,20 @@ pub trait PermissionRepository {
     /// Persists a new permission.
     async fn create(&self, permission: &Permission) -> Result<()>;
 
+    /// Loads a permission by id.
+    async fn by_id(&self, id: PermissionId) -> Result<Option<Permission>>;
+
     /// Lists permissions in an organization.
     async fn list_by_organization(
         &self,
         organization_id: OrganizationId,
     ) -> Result<Vec<Permission>>;
+
+    /// Updates an existing permission.
+    async fn update(&self, permission: &Permission) -> Result<()>;
+
+    /// Deletes a permission by id.
+    async fn delete(&self, id: PermissionId) -> Result<Option<()>>;
 }
 
 /// Role-permission grant data access.
@@ -290,6 +326,9 @@ pub trait CustomEmojiRepository {
         &self,
         organization_id: OrganizationId,
     ) -> Result<Vec<CustomEmoji>>;
+
+    /// Deletes an emoji by id.
+    async fn delete(&self, id: CustomEmojiId) -> Result<Option<()>>;
 }
 
 /// Team data access.
@@ -303,6 +342,12 @@ pub trait TeamRepository {
 
     /// Lists teams in an organization.
     async fn list_by_organization(&self, organization_id: OrganizationId) -> Result<Vec<Team>>;
+
+    /// Updates an existing team.
+    async fn update(&self, team: &Team) -> Result<()>;
+
+    /// Deletes a team by id.
+    async fn delete(&self, id: TeamId) -> Result<Option<()>>;
 }
 
 /// Team membership data access.
@@ -337,4 +382,35 @@ pub trait WebPushSubscriptionRepository {
 
     /// Deletes a subscription by user and endpoint.
     async fn delete_by_endpoint(&self, user_id: UserId, endpoint: &str) -> Result<()>;
+}
+
+/// Server-wide settings data access.
+#[async_trait]
+pub trait ServerSettingsRepository {
+    /// Loads all server settings.
+    async fn load(&self) -> Result<ServerSettings>;
+
+    /// Persists settings, replacing existing values.
+    async fn save(&self, settings: &ServerSettings, updated_by: UserId) -> Result<()>;
+}
+
+/// Audit log data access.
+#[async_trait]
+pub trait AuditLogRepository {
+    /// Appends a new audit log entry.
+    async fn create(&self, entry: &AuditLogEntry) -> Result<()>;
+
+    /// Queries audit log entries with optional filters.
+    #[allow(clippy::too_many_arguments)]
+    async fn query(
+        &self,
+        actor_id: Option<UserId>,
+        organization_id: Option<OrganizationId>,
+        action: Option<&str>,
+        resource_type: Option<&str>,
+        from: Option<ruckchat_common::time::OffsetDateTime>,
+        to: Option<ruckchat_common::time::OffsetDateTime>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<AuditLogEntry>>;
 }

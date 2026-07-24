@@ -2,7 +2,7 @@
 
 use crate::{
     Error,
-    handlers::{auth::AuthUser, dto::ListResponse},
+    handlers::{auth::AuthUser, dto::ListResponse, dto::UserResponse},
     services::dto::{ChangeRoleRequest, CreateOrganizationRequest, InviteMemberRequest},
     state::AppState,
 };
@@ -97,4 +97,33 @@ pub async fn remove_member(
         )
         .await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Lists members of the organization.
+pub async fn list_members(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(organization_id): Path<Uuid>,
+) -> Result<Json<ListResponse<MemberResponse>>, Error> {
+    let members = state
+        .organizations
+        .list_members(auth_user.id, OrganizationId::from_uuid(organization_id))
+        .await?;
+    let items = members
+        .into_iter()
+        .map(|(membership, user)| MemberResponse {
+            user: UserResponse::from_domain(&user),
+            role: membership.role,
+        })
+        .collect();
+    Ok(Json(ListResponse::new(items)))
+}
+
+/// Organization member response.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct MemberResponse {
+    /// Public user information.
+    pub user: UserResponse,
+    /// Role within the organization.
+    pub role: ruckchat_domain::Role,
 }

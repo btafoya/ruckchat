@@ -2594,12 +2594,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ipnetwork"
-version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf370abdafd54d13e54a620e8c3e1145f28e46cc9d704bc6d94414559df41763"
-
-[[package]]
 name = "is-docker"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4483,6 +4477,7 @@ dependencies = [
  "ruckchat-common",
  "ruckchat-id",
  "serde",
+ "serde_json",
  "thiserror 2.0.19",
  "time",
  "uuid",
@@ -4533,7 +4528,7 @@ dependencies = [
  "hex",
  "http-body-util",
  "include_dir",
- "ipnetwork 0.21.1",
+ "ipnetwork",
  "libloading 0.8.9",
  "rand 0.8.7",
  "rand_core 0.6.4",
@@ -5299,7 +5294,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "hashlink 0.10.0",
  "indexmap 2.14.0",
- "ipnetwork 0.20.0",
+ "ipnetwork",
  "log",
  "memchr",
  "once_cell",
@@ -5421,7 +5416,7 @@ dependencies = [
  "hkdf",
  "hmac",
  "home",
- "ipnetwork 0.20.0",
+ "ipnetwork",
  "itoa",
  "log",
  "md-5",

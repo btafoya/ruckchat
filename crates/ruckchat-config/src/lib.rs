@@ -43,6 +43,9 @@ pub struct AppConfig {
     /// Web Push notification configuration.
     #[serde(default)]
     pub web_push: WebPushConfig,
+    /// Server-wide soft settings overrides.
+    #[serde(default)]
+    pub server_settings: ServerSettingsConfig,
 }
 
 /// MCP endpoint configuration.
@@ -89,6 +92,20 @@ pub struct WebConfig {
     /// the origin implied by `base_url` is used.
     #[serde(default)]
     pub allowed_origins: Vec<String>,
+}
+
+/// Server-wide soft settings that can be overridden in runtime configuration.
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct ServerSettingsConfig {
+    /// Override for maintenance mode.
+    pub maintenance_mode_enabled: Option<bool>,
+    /// Override for default maximum file upload size in bytes.
+    pub default_max_file_size_bytes: Option<i64>,
+    /// Override for default storage quota in bytes.
+    pub default_storage_quota_bytes: Option<i64>,
+    /// Override for allowed signup email domains.
+    pub allowed_signup_domains: Option<Vec<String>>,
 }
 
 /// Web Push notification configuration.
@@ -446,6 +463,16 @@ web_push:
   # vapid_public_key: ""
   # VAPID private key (base64url) used to sign push messages.
   # vapid_private_key: ""
+
+# Server-wide soft settings. Values set here take precedence over the database
+# and are intended for operators who prefer configuration-as-code.
+server_settings:
+  # Uncomment to override values stored in the server_settings table.
+  # maintenance_mode_enabled: false
+  # default_max_file_size_bytes: 26214400
+  # default_storage_quota_bytes: 10737418240
+  # allowed_signup_domains:
+  #   - "example.com"
 
 # Placeholders for future phases. These keys are ignored today.
 # retention:

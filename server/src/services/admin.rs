@@ -7,7 +7,8 @@ use ruckchat_common::{Error, Result};
 use ruckchat_domain::{
     CustomEmoji, CustomEmojiRepository, Organization, OrganizationMembership,
     OrganizationMembershipRepository, OrganizationRepository, OrganizationRole,
-    OrganizationRoleRepository, Permission, PermissionRepository, Team, TeamRepository,
+    OrganizationRoleRepository, OrganizationSettings, OrganizationSettingsRepository, Permission,
+    PermissionRepository, Role, Team, TeamRepository, UserRepository,
 };
 use ruckchat_id::{FileId, OrganizationId, UserId};
 use sqlx::PgPool;
@@ -20,6 +21,8 @@ pub struct AdminServiceDeps {
     pub pool: PgPool,
     /// Organization repository.
     pub organizations: Arc<dyn OrganizationRepository + Send + Sync>,
+    /// User repository.
+    pub users: Arc<dyn UserRepository + Send + Sync>,
     /// Organization membership repository.
     pub memberships: Arc<dyn OrganizationMembershipRepository + Send + Sync>,
     /// Custom role repository.
@@ -30,6 +33,8 @@ pub struct AdminServiceDeps {
     pub emoji: Arc<dyn CustomEmojiRepository + Send + Sync>,
     /// Team repository.
     pub teams: Arc<dyn TeamRepository + Send + Sync>,
+    /// Organization settings repository.
+    pub organization_settings: Arc<dyn OrganizationSettingsRepository + Send + Sync>,
     /// File repository, used to validate emoji file references.
     pub files: Arc<dyn ruckchat_domain::FileRepository + Send + Sync>,
 }
@@ -223,11 +228,249 @@ impl AdminService {
         Ok(team)
     }
 
+    /// Loads organization settings.
+    pub async fn get_organization_settings(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+    ) -> Result<OrganizationSettings> {
+        self.require_admin(caller_id, organization_id).await?;
+        self.deps
+            .organization_settings
+            .by_organization_id(organization_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("organization settings".into()))
+    }
+
+    /// Updates organization settings.
+    pub async fn update_organization_settings(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        max_file_size_bytes: i64,
+        storage_quota_bytes: i64,
+    ) -> Result<OrganizationSettings> {
+        self.require_admin(caller_id, organization_id).await?;
+        let mut settings = self
+            .get_organization_settings(caller_id, organization_id)
+            .await?;
+        settings.set_quotas(max_file_size_bytes, storage_quota_bytes)?;
+        self.deps.organization_settings.update(&settings).await?;
+        Ok(settings)
+    }
+
+    /// Updates a custom role.
+    pub async fn update_role(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        role_id: ruckchat_id::OrganizationRoleId,
+        name: String,
+        description: Option<String>,
+    ) -> Result<OrganizationRole> {
+        self.require_admin(caller_id, organization_id).await?;
+        let mut role = self
+            .deps
+            .roles
+            .by_id(role_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("organization role".into()))?;
+        if role.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "role does not belong to this organization".into(),
+            ));
+        }
+        role.set_name(name)?;
+        role.set_description(description);
+        self.deps.roles.update(&role).await?;
+        Ok(role)
+    }
+
+    /// Deletes a custom role.
+    pub async fn delete_role(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        role_id: ruckchat_id::OrganizationRoleId,
+    ) -> Result<()> {
+        self.require_admin(caller_id, organization_id).await?;
+        let role = self
+            .deps
+            .roles
+            .by_id(role_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("organization role".into()))?;
+        if role.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "role does not belong to this organization".into(),
+            ));
+        }
+        self.deps
+            .roles
+            .delete(role_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("organization role".into()))?;
+        Ok(())
+    }
+
+    /// Updates a permission.
+    pub async fn update_permission(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        permission_id: ruckchat_id::PermissionId,
+        key: String,
+        description: Option<String>,
+    ) -> Result<Permission> {
+        self.require_admin(caller_id, organization_id).await?;
+        let mut permission = self
+            .deps
+            .permissions
+            .by_id(permission_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("permission".into()))?;
+        if permission.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "permission does not belong to this organization".into(),
+            ));
+        }
+        permission.set_key(key)?;
+        permission.set_description(description);
+        self.deps.permissions.update(&permission).await?;
+        Ok(permission)
+    }
+
+    /// Deletes a permission.
+    pub async fn delete_permission(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        permission_id: ruckchat_id::PermissionId,
+    ) -> Result<()> {
+        self.require_admin(caller_id, organization_id).await?;
+        let permission = self
+            .deps
+            .permissions
+            .by_id(permission_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("permission".into()))?;
+        if permission.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "permission does not belong to this organization".into(),
+            ));
+        }
+        self.deps
+            .permissions
+            .delete(permission_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("permission".into()))?;
+        Ok(())
+    }
+
+    /// Deletes a custom emoji.
+    pub async fn delete_emoji(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        emoji_id: ruckchat_id::CustomEmojiId,
+    ) -> Result<()> {
+        self.require_admin(caller_id, organization_id).await?;
+        let emoji = self
+            .deps
+            .emoji
+            .by_id(emoji_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("custom emoji".into()))?;
+        if emoji.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "emoji does not belong to this organization".into(),
+            ));
+        }
+        self.deps
+            .emoji
+            .delete(emoji_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("custom emoji".into()))?;
+        Ok(())
+    }
+
+    /// Updates a team.
+    pub async fn update_team(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        team_id: ruckchat_id::TeamId,
+        name: String,
+        description: Option<String>,
+    ) -> Result<Team> {
+        self.require_admin(caller_id, organization_id).await?;
+        let mut team = self
+            .deps
+            .teams
+            .by_id(team_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("team".into()))?;
+        if team.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "team does not belong to this organization".into(),
+            ));
+        }
+        team.set_name(name)?;
+        team.set_description(description);
+        self.deps.teams.update(&team).await?;
+        Ok(team)
+    }
+
+    /// Deletes a team.
+    pub async fn delete_team(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        team_id: ruckchat_id::TeamId,
+    ) -> Result<()> {
+        self.require_admin(caller_id, organization_id).await?;
+        let team = self
+            .deps
+            .teams
+            .by_id(team_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("team".into()))?;
+        if team.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "team does not belong to this organization".into(),
+            ));
+        }
+        self.deps
+            .teams
+            .delete(team_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("team".into()))?;
+        Ok(())
+    }
+
     async fn require_admin(
         &self,
         caller_id: UserId,
         organization_id: OrganizationId,
     ) -> Result<OrganizationMembership> {
+        let caller = self
+            .deps
+            .users
+            .by_id(caller_id)
+            .await?
+            .ok_or_else(|| Error::Forbidden("must be an organization member".into()))?;
+        if caller.is_server_admin {
+            let membership = self
+                .deps
+                .memberships
+                .by_ids(caller_id, organization_id)
+                .await?;
+            return Ok(membership.unwrap_or_else(|| {
+                OrganizationMembership::new(caller_id, organization_id, Role::Admin)
+                    .expect("valid synthetic membership")
+            }));
+        }
+
         let membership = self
             .deps
             .memberships

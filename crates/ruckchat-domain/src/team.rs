@@ -58,6 +58,30 @@ impl Team {
             updated_at: now,
         })
     }
+
+    /// Updates the team name.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Validation`] when the name is empty or too long.
+    pub fn set_name(&mut self, name: impl Into<String>) -> Result<()> {
+        let name = name.into();
+        if name.is_empty() {
+            return Err(Error::validation("team name must not be empty"));
+        }
+        if name.len() > 64 {
+            return Err(Error::validation("team name must not exceed 64 characters"));
+        }
+        self.name = name;
+        self.updated_at = OffsetDateTime::now_utc();
+        Ok(())
+    }
+
+    /// Updates the team description.
+    pub fn set_description(&mut self, description: Option<impl Into<String>>) {
+        self.description = description.map(Into::into);
+        self.updated_at = OffsetDateTime::now_utc();
+    }
 }
 
 #[cfg(test)]

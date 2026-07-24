@@ -50,6 +50,33 @@ impl Permission {
             description,
         })
     }
+
+    /// Updates the permission key.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Validation`] when the key is empty or contains invalid characters.
+    pub fn set_key(&mut self, key: impl Into<String>) -> Result<()> {
+        let key = key.into();
+        if key.is_empty() {
+            return Err(Error::validation("permission key must not be empty"));
+        }
+        if !key
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        {
+            return Err(Error::validation(
+                "permission key must contain only letters, numbers, hyphens, and underscores",
+            ));
+        }
+        self.key = key;
+        Ok(())
+    }
+
+    /// Updates the permission description.
+    pub fn set_description(&mut self, description: Option<impl Into<String>>) {
+        self.description = description.map(Into::into);
+    }
 }
 
 #[cfg(test)]

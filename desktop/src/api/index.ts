@@ -5,7 +5,9 @@ import { ChannelsApi } from './channels';
 import { DirectMessagesApi } from './directMessages';
 import { FilesApi } from './files';
 import { OrganizationsApi } from './organizations';
+import { OrgAdminApi } from './orgAdmin';
 import { ReactionsApi } from './reactions';
+import { ServerAdminApi } from './serverAdmin';
 import { WebPushApi } from './webPush';
 
 export interface RuckChatApi {
@@ -16,6 +18,8 @@ export interface RuckChatApi {
   reactions: ReactionsApi;
   files: FilesApi;
   webPush: WebPushApi;
+  serverAdmin: ServerAdminApi;
+  orgAdmin: OrgAdminApi;
 }
 
 export function createApi(baseUrl = DEFAULT_API_URL): RuckChatApi {
@@ -28,6 +32,8 @@ export function createApi(baseUrl = DEFAULT_API_URL): RuckChatApi {
     reactions: new ReactionsApi(client),
     files: new FilesApi(client),
     webPush: new WebPushApi(client),
+    serverAdmin: new ServerAdminApi(client),
+    orgAdmin: new OrgAdminApi(client),
   };
 }
 
@@ -40,6 +46,8 @@ export {
   DirectMessagesApi,
   FilesApi,
   OrganizationsApi,
+  OrgAdminApi,
   ReactionsApi,
+  ServerAdminApi,
   WebPushApi,
 };

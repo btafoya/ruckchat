@@ -38,6 +38,19 @@ impl PermissionRepository for PermissionRepositorySqlx {
         Ok(())
     }
 
+    async fn by_id(&self, id: PermissionId) -> Result<Option<Permission>> {
+        let row = sqlx::query_as!(
+            PermissionRow,
+            "SELECT id, organization_id, key, description FROM permissions WHERE id = $1",
+            id.as_uuid()
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        Ok(row.map(into_permission))
+    }
+
     async fn list_by_organization(
         &self,
         organization_id: OrganizationId,
@@ -52,6 +65,34 @@ impl PermissionRepository for PermissionRepositorySqlx {
         .map_err(map_sqlx_err)?;
 
         Ok(rows.into_iter().map(into_permission).collect())
+    }
+
+    async fn update(&self, permission: &Permission) -> Result<()> {
+        let result = sqlx::query!(
+            "UPDATE permissions SET key = $2, description = $3 WHERE id = $1",
+            permission.id.as_uuid(),
+            permission.key,
+            permission.description,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        if result.rows_affected() == 0 {
+            return Err(ruckchat_common::Error::NotFound("permission".into()));
+        }
+        Ok(())
+    }
+
+    async fn delete(&self, id: PermissionId) -> Result<Option<()>> {
+        let result = sqlx::query!("DELETE FROM permissions WHERE id = $1", id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+        Ok(if result.rows_affected() == 0 {
+            None
+        } else {
+            Some(())
+        })
     }
 }
 

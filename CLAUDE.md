@@ -63,7 +63,7 @@ Never reason from assumptions, always reason from the actual data. You need to r
 
 ## Current Status
 
-Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
+Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
 
 - Phase 1: Cargo workspace, shared crates (`ruckchat-id`, `ruckchat-common`,
   `ruckchat-config`), database migrations, and schema integration tests.
@@ -115,6 +115,12 @@ Phases 1–12 are complete. Phase 13 (Mobile/Flutter) is not yet implemented.
 - `scripts/release.sh vX.Y.Z` automates the release pipeline: version bumps,
   CHANGELOG generation, validation checks, local server and desktop builds,
   GPG-signed commit/tag, and push.
+- Phase 14 (Web UI Admin Panel): server-wide `users.is_server_admin` flag,
+  database-backed `server_settings` with YAML override precedence, append-only
+  `audit_log`, server-admin impersonation, server admin REST endpoints under
+  `/api/v1/server/*`, org admin additions under `/api/v1/admin/organizations/{id}/*`,
+  OpenAPI updates, backend integration tests, and shared React admin components
+  with routes in `desktop/src/PlatformShell.tsx`.
 - Mobile support (Flutter) is planned for a later phase.
 
 ## Commands
@@ -261,6 +267,14 @@ root/
 - `server/tests/` — Integration tests against PostgreSQL.
 - `server/tests/mcp.rs` — MCP Streamable HTTP endpoint integration tests.
 - `server/tests/migrate.rs` — Domain snapshot export/import integration tests.
+- `server/tests/server_admin.rs` — Server admin endpoint integration tests.
+- `server/src/services/server_admin.rs` — Server admin, impersonation, and admin user operations.
+- `server/src/services/audit.rs` — Append-only audit log writer.
+- `server/src/services/server_settings.rs` — Database settings with YAML override merge.
+- `server/src/handlers/server_admin.rs` — Server admin and impersonation REST handlers.
+- `desktop/src/api/serverAdmin.ts` and `desktop/src/api/orgAdmin.ts` — Admin API clients.
+- `desktop/src/components/admin/*.tsx` — Server and org admin React components.
+- `desktop/src/components/Sidebar.tsx` — Admin navigation links gated by role.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
 - `server/openapi.yaml` — Full REST API specification for the REST API, WebSocket upgrade, and MCP endpoint.
 - `Dockerfile` — Multi-stage SQLx-offline server image build.
@@ -273,7 +287,8 @@ root/
   `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md`,
   `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md`,
   `docs/ADR-009-Plugin-SDK.md`, `docs/ADR-010-Runtime-YAML-Configuration.md`,
-  `docs/ADR-011-Web-UI.md`, `docs/ADR-012-Migration-and-Packaging.md` — Active ADRs.
+  `docs/ADR-011-Web-UI.md`, `docs/ADR-012-Migration-and-Packaging.md`,
+  `docs/ADR-013-Web-UI-Admin-Panel.md` — Active ADRs.
 
 ## Environment
 
@@ -461,6 +476,6 @@ server image and builds cross-platform desktop installers.
 1. Cargo workspace → 2. Shared crates → 3. Database schema → 4. Domain layer →
 5. Services → 6. REST API → 7. WebSocket server → 8. MCP server → 9. Plugin SDK →
 10. Desktop → 11. Runtime YAML configuration → 12. Web UI → 13. Migration and
-    packaging tools → 14. Mobile.
+    packaging tools → 14. Web UI Admin Panel → 15. Mobile.
 
 Ship unit tests, integration tests, OpenAPI updates, and docs with every feature.

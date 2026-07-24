@@ -22,6 +22,9 @@ pub struct User {
     pub password_hash: String,
     /// Optional URL to an avatar image.
     pub avatar_url: Option<String>,
+    /// Whether the user is a server-wide administrator.
+    #[serde(default)]
+    pub is_server_admin: bool,
     /// Timestamp when the user was deactivated, if applicable.
     #[serde(with = "time::serde::rfc3339::option")]
     pub deactivated_at: Option<OffsetDateTime>,
@@ -67,6 +70,7 @@ impl User {
             display_name,
             password_hash,
             avatar_url: None,
+            is_server_admin: false,
             deactivated_at: None,
             created_at: now,
             updated_at: now,
@@ -86,6 +90,21 @@ impl User {
             )));
         }
         self.display_name = display_name;
+        self.updated_at = OffsetDateTime::now_utc();
+        Ok(())
+    }
+
+    /// Updates the email address after validating format.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Validation`] when the email is invalid.
+    pub fn set_email(&mut self, email: impl Into<String>) -> Result<()> {
+        let email = email.into();
+        if !validate_email(&email) {
+            return Err(Error::validation(format!("invalid email: {email}")));
+        }
+        self.email = email;
         self.updated_at = OffsetDateTime::now_utc();
         Ok(())
     }
@@ -110,6 +129,12 @@ impl User {
             self.deactivated_at = None;
             self.updated_at = OffsetDateTime::now_utc();
         }
+    }
+
+    /// Sets the server administrator flag.
+    pub fn set_server_admin(&mut self, is_server_admin: bool) {
+        self.is_server_admin = is_server_admin;
+        self.updated_at = OffsetDateTime::now_utc();
     }
 
     /// Returns true if the user has been deactivated.

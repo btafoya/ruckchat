@@ -1,5 +1,6 @@
 //! SQLx repository implementations for the RuckChat domain traits.
 
+pub mod audit_log;
 pub mod channel;
 pub mod channel_membership;
 pub mod custom_emoji;
@@ -13,6 +14,7 @@ pub mod organization_settings;
 pub mod permission;
 pub mod reaction;
 pub mod role_permission;
+pub mod server_settings;
 pub mod session;
 pub mod team;
 pub mod team_membership;
@@ -20,6 +22,7 @@ pub mod team_room;
 pub mod user;
 pub mod web_push;
 
+pub use audit_log::AuditLogRepositorySqlx;
 pub use channel::ChannelRepositorySqlx;
 pub use channel_membership::ChannelMembershipRepositorySqlx;
 pub use custom_emoji::CustomEmojiRepositorySqlx;
@@ -33,6 +36,7 @@ pub use organization_settings::OrganizationSettingsRepositorySqlx;
 pub use permission::PermissionRepositorySqlx;
 pub use reaction::ReactionRepositorySqlx;
 pub use role_permission::RolePermissionRepositorySqlx;
+pub use server_settings::ServerSettingsRepositorySqlx;
 pub use session::SessionRepositorySqlx;
 pub use team::TeamRepositorySqlx;
 pub use team_membership::TeamMembershipRepositorySqlx;

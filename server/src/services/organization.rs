@@ -199,16 +199,59 @@ impl OrganizationService {
         Ok(())
     }
 
+    /// Lists members of the organization.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Forbidden`] when the caller is not an organization
+    /// owner or admin.
+    pub async fn list_members(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+    ) -> ruckchat_common::Result<Vec<(OrganizationMembership, ruckchat_domain::User)>> {
+        let caller_membership = self.require_membership(caller_id, organization_id).await?;
+        self.deps
+            .authorization
+            .require_role_permission(caller_membership.role, Permission::ManageOrganization)?;
+
+        let memberships = self
+            .deps
+            .memberships
+            .list_by_organization(organization_id)
+            .await?;
+        let mut result = Vec::with_capacity(memberships.len());
+        for membership in memberships {
+            if let Some(user) = self.deps.users.by_id(membership.user_id).await? {
+                result.push((membership, user));
+            }
+        }
+        Ok(result)
+    }
+
     async fn require_membership(
         &self,
         user_id: UserId,
         organization_id: OrganizationId,
     ) -> ruckchat_common::Result<OrganizationMembership> {
-        self.deps
+        if let Some(membership) = self
+            .deps
             .memberships
             .by_ids(user_id, organization_id)
             .await?
-            .ok_or_else(|| Error::Forbidden("must be an organization member".into()))
+        {
+            return Ok(membership);
+        }
+        let user = self
+            .deps
+            .users
+            .by_id(user_id)
+            .await?
+            .ok_or_else(|| Error::Forbidden("must be an organization member".into()))?;
+        if user.is_server_admin {
+            return OrganizationMembership::new(user_id, organization_id, Role::Admin);
+        }
+        Err(Error::Forbidden("must be an organization member".into()))
     }
 }
 

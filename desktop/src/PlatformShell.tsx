@@ -27,6 +27,21 @@ import {
   useWebSocket,
 } from './hooks';
 import { AuthScreen, Settings, Shell } from './components';
+import {
+  OrgAdminEmoji,
+  OrgAdminMembers,
+  OrgAdminPermissions,
+  OrgAdminRoles,
+  OrgAdminSettings,
+  OrgAdminShell,
+  OrgAdminTeams,
+  ServerAdminAdmins,
+  ServerAdminAuditLog,
+  ServerAdminOrganizations,
+  ServerAdminSettings,
+  ServerAdminShell,
+  ServerAdminUsers,
+} from './components/admin';
 import type { Platform } from './platform';
 
 interface PlatformShellProps {
@@ -94,6 +109,59 @@ function AuthenticatedShell({ platform }: { platform: Platform }): JSX.Element {
   );
 }
 
+function OrgAdminRoute(): JSX.Element {
+  const { session } = useSessionContext();
+  const { apiUrl } = useSettings();
+  const organizationsState = useOrganizations(session?.token, { apiUrl });
+  const params = useParams<{ organizationId: string }>();
+
+  return (
+    <OrganizationProvider value={organizationsState}>
+      <OrgAdminShell key={params.organizationId} />
+    </OrganizationProvider>
+  );
+}
+
+function OrgAdminSettingsRoute(): JSX.Element {
+  const { organizationId } = useParams<{ organizationId: string }>();
+  if (!organizationId) {
+    return <div className="text-gray-400">Organization not selected.</div>;
+  }
+  return <OrgAdminSettings organizationId={organizationId} />;
+}
+
+function OrgAdminRolesRoute(): JSX.Element {
+  const { organizationId } = useParams<{ organizationId: string }>();
+  if (!organizationId) {
+    return <div className="text-gray-400">Organization not selected.</div>;
+  }
+  return <OrgAdminRoles organizationId={organizationId} />;
+}
+
+function OrgAdminPermissionsRoute(): JSX.Element {
+  const { organizationId } = useParams<{ organizationId: string }>();
+  if (!organizationId) {
+    return <div className="text-gray-400">Organization not selected.</div>;
+  }
+  return <OrgAdminPermissions organizationId={organizationId} />;
+}
+
+function OrgAdminEmojiRoute(): JSX.Element {
+  const { organizationId } = useParams<{ organizationId: string }>();
+  if (!organizationId) {
+    return <div className="text-gray-400">Organization not selected.</div>;
+  }
+  return <OrgAdminEmoji organizationId={organizationId} />;
+}
+
+function OrgAdminTeamsRoute(): JSX.Element {
+  const { organizationId } = useParams<{ organizationId: string }>();
+  if (!organizationId) {
+    return <div className="text-gray-400">Organization not selected.</div>;
+  }
+  return <OrgAdminTeams organizationId={organizationId} />;
+}
+
 export default function PlatformShell({ platform }: PlatformShellProps): JSX.Element {
   const sessionState = useSession();
 
@@ -103,6 +171,23 @@ export default function PlatformShell({ platform }: PlatformShellProps): JSX.Ele
         <Routes>
           <Route path="/login" element={<AuthScreen />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/admin/server/*" element={<ServerAdminShell />}>
+            <Route index element={<Navigate to="organizations" replace />} />
+            <Route path="organizations" element={<ServerAdminOrganizations />} />
+            <Route path="users" element={<ServerAdminUsers />} />
+            <Route path="admins" element={<ServerAdminAdmins />} />
+            <Route path="settings" element={<ServerAdminSettings />} />
+            <Route path="audit-log" element={<ServerAdminAuditLog />} />
+          </Route>
+          <Route path="/org/:organizationId/admin/*" element={<OrgAdminRoute />}>
+            <Route index element={<Navigate to="settings" replace />} />
+            <Route path="settings" element={<OrgAdminSettingsRoute />} />
+            <Route path="members" element={<OrgAdminMembers />} />
+            <Route path="roles" element={<OrgAdminRolesRoute />} />
+            <Route path="permissions" element={<OrgAdminPermissionsRoute />} />
+            <Route path="emoji" element={<OrgAdminEmojiRoute />} />
+            <Route path="teams" element={<OrgAdminTeamsRoute />} />
+          </Route>
           <Route path="/*" element={<AuthenticatedShell platform={platform} />}>
             <Route index element={<Navigate to="/org" replace />} />
             <Route path="org" element={<div />} />

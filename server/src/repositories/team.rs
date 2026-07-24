@@ -66,6 +66,35 @@ impl TeamRepository for TeamRepositorySqlx {
 
         Ok(rows.into_iter().map(into_team).collect())
     }
+
+    async fn update(&self, team: &Team) -> Result<()> {
+        let result = sqlx::query!(
+            "UPDATE teams SET name = $2, description = $3, updated_at = $4 WHERE id = $1",
+            team.id.as_uuid(),
+            team.name,
+            team.description,
+            team.updated_at,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        if result.rows_affected() == 0 {
+            return Err(ruckchat_common::Error::NotFound("team".into()));
+        }
+        Ok(())
+    }
+
+    async fn delete(&self, id: TeamId) -> Result<Option<()>> {
+        let result = sqlx::query!("DELETE FROM teams WHERE id = $1", id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+        Ok(if result.rows_affected() == 0 {
+            None
+        } else {
+            Some(())
+        })
+    }
 }
 
 #[derive(sqlx::FromRow)]

@@ -98,6 +98,38 @@ impl UserRepository for MockUserRepository {
         users[existing_id] = user.clone();
         Ok(())
     }
+
+    async fn count(&self) -> Result<i64> {
+        let users = self.users.lock().unwrap();
+        Ok(users.len() as i64)
+    }
+
+    async fn list_all(&self, limit: i64, offset: i64) -> Result<Vec<User>> {
+        let users = self.users.lock().unwrap();
+        let start = offset.max(0) as usize;
+        let end = start + limit.max(0) as usize;
+        let mut result: Vec<User> = users.iter().rev().cloned().collect();
+        if start < result.len() {
+            result = result.into_iter().skip(start).take(end - start).collect();
+        } else {
+            result.clear();
+        }
+        Ok(result)
+    }
+
+    async fn count_admins(&self) -> Result<i64> {
+        let users = self.users.lock().unwrap();
+        Ok(users.iter().filter(|u| u.is_server_admin).count() as i64)
+    }
+
+    async fn list_admins(&self) -> Result<Vec<User>> {
+        let users = self.users.lock().unwrap();
+        Ok(users
+            .iter()
+            .filter(|u| u.is_server_admin)
+            .cloned()
+            .collect())
+    }
 }
 
 /// In-memory session repository.
@@ -117,7 +149,15 @@ impl MockSessionRepository {
 #[async_trait]
 impl SessionRepository for MockSessionRepository {
     async fn create(&self, session: &Session) -> Result<()> {
-        self.sessions.lock().unwrap().push(session.clone());
+        let mut sessions = self.sessions.lock().unwrap();
+        if let Some(existing) = sessions
+            .iter_mut()
+            .find(|s| s.token_hash == session.token_hash)
+        {
+            *existing = session.clone();
+            return Ok(());
+        }
+        sessions.push(session.clone());
         Ok(())
     }
 
@@ -225,6 +265,36 @@ impl OrganizationRepository for MockOrganizationRepository {
                     .cloned()
             })
             .collect())
+    }
+
+    async fn list_all(&self) -> Result<Vec<Organization>> {
+        let orgs = self.organizations.lock().unwrap();
+        Ok(orgs.iter().cloned().collect())
+    }
+
+    async fn update(&self, organization: &Organization) -> Result<()> {
+        let mut orgs = self.organizations.lock().unwrap();
+        let existing_id = orgs
+            .iter()
+            .position(|o| o.id == organization.id)
+            .ok_or_else(|| ruckchat_common::Error::NotFound("organization".into()))?;
+        if orgs
+            .iter()
+            .any(|o| o.slug == organization.slug && o.id != organization.id)
+        {
+            return Err(ruckchat_common::Error::Conflict(
+                "organization slug already exists".into(),
+            ));
+        }
+        orgs[existing_id] = organization.clone();
+        Ok(())
+    }
+
+    async fn delete(&self, id: OrganizationId) -> Result<Option<()>> {
+        let mut orgs = self.organizations.lock().unwrap();
+        let before = orgs.len();
+        orgs.retain(|o| o.id != id);
+        Ok(if orgs.len() == before { None } else { Some(()) })
     }
 }
 

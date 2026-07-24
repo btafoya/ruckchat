@@ -6,6 +6,7 @@ export const mockUser: User = {
   email: 'alice@example.com',
   display_name: 'Alice',
   avatar_url: null,
+  is_server_admin: false,
 };
 
 export const mockOrganization: Organization = {

@@ -82,6 +82,47 @@ impl OrganizationRepository for OrganizationRepositorySqlx {
 
         Ok(rows.into_iter().map(into_organization).collect())
     }
+
+    async fn list_all(&self) -> Result<Vec<Organization>> {
+        let rows = sqlx::query_as!(
+            OrganizationRow,
+            "SELECT id, name, slug, owner_id, created_at, updated_at FROM organizations ORDER BY name"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(rows.into_iter().map(into_organization).collect())
+    }
+
+    async fn update(&self, organization: &Organization) -> Result<()> {
+        let rows = sqlx::query!(
+            "UPDATE organizations SET name = $2, slug = $3, owner_id = $4, updated_at = $5 WHERE id = $1",
+            organization.id.as_uuid(),
+            organization.name,
+            organization.slug,
+            organization.owner_id.as_uuid(),
+            organization.updated_at,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        if rows.rows_affected() == 0 {
+            return Err(ruckchat_common::Error::NotFound("organization".into()));
+        }
+        Ok(())
+    }
+
+    async fn delete(&self, id: OrganizationId) -> Result<Option<()>> {
+        let result = sqlx::query!("DELETE FROM organizations WHERE id = $1", id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+        Ok(if result.rows_affected() == 0 {
+            None
+        } else {
+            Some(())
+        })
+    }
 }
 
 #[derive(sqlx::FromRow)]

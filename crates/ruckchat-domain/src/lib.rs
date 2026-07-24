@@ -4,6 +4,7 @@
 //! repository layers. It deliberately avoids infrastructure concerns such as
 //! SQLx, HTTP, or file storage backends.
 
+pub mod audit_log;
 pub mod channel;
 pub mod channel_membership;
 pub mod custom_emoji;
@@ -19,6 +20,7 @@ pub mod reaction;
 pub mod repositories;
 pub mod role;
 pub mod role_permission;
+pub mod server_settings;
 pub mod session;
 pub mod team;
 pub mod team_membership;
@@ -26,6 +28,7 @@ pub mod team_room;
 pub mod user;
 pub mod web_push_subscription;
 
+pub use audit_log::AuditLogEntry;
 pub use channel::Channel;
 pub use channel_membership::ChannelMembership;
 pub use custom_emoji::CustomEmoji;
@@ -39,15 +42,17 @@ pub use organization_settings::OrganizationSettings;
 pub use permission::Permission;
 pub use reaction::Reaction;
 pub use repositories::{
-    ChannelMembershipRepository, ChannelRepository, CustomEmojiRepository,
+    AuditLogRepository, ChannelMembershipRepository, ChannelRepository, CustomEmojiRepository,
     DirectMessageConversationRepository, FileRepository, MessageRepository,
     OrganizationMembershipRepository, OrganizationRepository, OrganizationRoleRepository,
     OrganizationSettingsRepository, PermissionRepository, ReactionRepository,
-    RolePermissionRepository, SessionRepository, TeamMembershipRepository, TeamRepository,
-    TeamRoomRepository, UserRepository, WebPushSubscriptionRepository,
+    RolePermissionRepository, ServerSettingsRepository, SessionRepository,
+    TeamMembershipRepository, TeamRepository, TeamRoomRepository, UserRepository,
+    WebPushSubscriptionRepository,
 };
 pub use role::Role;
 pub use role_permission::OrganizationRolePermission;
+pub use server_settings::ServerSettings;
 pub use session::Session;
 pub use team::Team;
 pub use team_membership::{ParseTeamRoleError, TeamMembership, TeamRole};

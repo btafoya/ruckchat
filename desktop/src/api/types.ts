@@ -26,3 +26,36 @@ export type UpdateProfileRequest = components['schemas']['UpdateProfileRequest']
 export type AddReactionRequest = components['schemas']['AddReactionRequest'];
 export type RecordUploadRequest = components['schemas']['RecordUploadRequest'];
 export type AttachFileRequest = components['schemas']['AttachFileRequest'];
+
+export type ServerUser = components['schemas']['ServerUserResponse'];
+export type ServerUserList = components['schemas']['ServerUserList'];
+export type ServerSettings = components['schemas']['ServerSettings'];
+export type UpdateServerSettingsRequest =
+  components['schemas']['UpdateServerSettingsRequest'];
+export type AuditLogEntry = components['schemas']['AuditLogEntry'];
+export type AuditLogList = components['schemas']['AuditLogList'];
+export type RenameOrganizationRequest =
+  components['schemas']['RenameOrganizationRequest'];
+export type UpdateServerUserRequest =
+  components['schemas']['UpdateServerUserRequest'];
+export type ResetPasswordResponse = components['schemas']['ResetPasswordResponse'];
+export type ImpersonateRequest = components['schemas']['ImpersonateRequest'];
+export type ImpersonateResponse = components['schemas']['ImpersonateResponse'];
+export type EndImpersonateRequest = components['schemas']['EndImpersonateRequest'];
+
+export type OrganizationSettings = components['schemas']['OrganizationSettings'];
+export type UpdateOrganizationSettingsRequest =
+  components['schemas']['UpdateOrganizationSettingsRequest'];
+export type Member = components['schemas']['MemberResponse'];
+export type MemberList = components['schemas']['MemberList'];
+export type OrganizationRole = components['schemas']['OrganizationRole'];
+export type Permission = components['schemas']['Permission'];
+export type Team = components['schemas']['Team'];
+export type CustomEmoji = components['schemas']['CustomEmoji'];
+export type CreateRoleRequest = components['schemas']['CreateRoleRequest'];
+export type CreatePermissionRequest = components['schemas']['CreatePermissionRequest'];
+export type CreateTeamRequest = components['schemas']['CreateTeamRequest'];
+export type CreateEmojiRequest = components['schemas']['CreateEmojiRequest'];
+export type UpdateRoleRequest = components['schemas']['UpdateRoleRequest'];
+export type UpdatePermissionRequest = components['schemas']['UpdatePermissionRequest'];
+export type UpdateTeamRequest = components['schemas']['UpdateTeamRequest'];

@@ -24,14 +24,15 @@ impl UserRepositorySqlx {
 impl UserRepository for UserRepositorySqlx {
     async fn create(&self, user: &User) -> Result<()> {
         sqlx::query!(
-            "INSERT INTO users (id, email, display_name, password_hash, avatar_url, deactivated_at, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            "INSERT INTO users (id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              ON CONFLICT (email) DO NOTHING",
             user.id.as_uuid(),
             user.email,
             user.display_name,
             user.password_hash,
             user.avatar_url,
+            user.is_server_admin,
             user.deactivated_at,
             user.created_at,
             user.updated_at,
@@ -45,7 +46,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn by_id(&self, id: UserId) -> Result<Option<User>> {
         let row = sqlx::query_as!(
             UserRow,
-            "SELECT id, email, display_name, password_hash, avatar_url, deactivated_at, created_at, updated_at FROM users WHERE id = $1",
+            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at FROM users WHERE id = $1",
             id.as_uuid()
         )
         .fetch_optional(&self.pool)
@@ -58,7 +59,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn by_email(&self, email: &str) -> Result<Option<User>> {
         let row = sqlx::query_as!(
             UserRow,
-            "SELECT id, email, display_name, password_hash, avatar_url, deactivated_at, created_at, updated_at FROM users WHERE email = $1",
+            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at FROM users WHERE email = $1",
             email
         )
         .fetch_optional(&self.pool)
@@ -71,13 +72,14 @@ impl UserRepository for UserRepositorySqlx {
     async fn update(&self, user: &User) -> Result<()> {
         let rows = sqlx::query!(
             "UPDATE users
-             SET email = $2, display_name = $3, password_hash = $4, avatar_url = $5, deactivated_at = $6, updated_at = $7
+             SET email = $2, display_name = $3, password_hash = $4, avatar_url = $5, is_server_admin = $6, deactivated_at = $7, updated_at = $8
              WHERE id = $1",
             user.id.as_uuid(),
             user.email,
             user.display_name,
             user.password_hash,
             user.avatar_url,
+            user.is_server_admin,
             user.deactivated_at,
             user.updated_at,
         )
@@ -90,6 +92,55 @@ impl UserRepository for UserRepositorySqlx {
         }
         Ok(())
     }
+
+    async fn count(&self) -> Result<i64> {
+        let row = sqlx::query_as!(CountRow, "SELECT COUNT(*) AS count FROM users")
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+        Ok(row.count.unwrap_or(0))
+    }
+
+    async fn list_all(&self, limit: i64, offset: i64) -> Result<Vec<User>> {
+        let rows = sqlx::query_as!(
+            UserRow,
+            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at
+             FROM users
+             ORDER BY created_at DESC
+             LIMIT $1 OFFSET $2",
+            limit,
+            offset
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(rows.into_iter().map(into_user).collect())
+    }
+
+    async fn count_admins(&self) -> Result<i64> {
+        let row = sqlx::query_as!(
+            CountRow,
+            "SELECT COUNT(*) AS count FROM users WHERE is_server_admin = TRUE"
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(row.count.unwrap_or(0))
+    }
+
+    async fn list_admins(&self) -> Result<Vec<User>> {
+        let rows = sqlx::query_as!(
+            UserRow,
+            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at
+             FROM users
+             WHERE is_server_admin = TRUE
+             ORDER BY created_at DESC"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(rows.into_iter().map(into_user).collect())
+    }
 }
 
 #[derive(sqlx::FromRow)]
@@ -99,9 +150,15 @@ struct UserRow {
     display_name: String,
     password_hash: String,
     avatar_url: Option<String>,
+    is_server_admin: bool,
     deactivated_at: Option<time::OffsetDateTime>,
     created_at: time::OffsetDateTime,
     updated_at: time::OffsetDateTime,
+}
+
+#[derive(sqlx::FromRow)]
+struct CountRow {
+    count: Option<i64>,
 }
 
 fn into_user(row: UserRow) -> User {
@@ -111,6 +168,7 @@ fn into_user(row: UserRow) -> User {
         display_name: row.display_name,
         password_hash: row.password_hash,
         avatar_url: row.avatar_url,
+        is_server_admin: row.is_server_admin,
         deactivated_at: row.deactivated_at,
         created_at: row.created_at,
         updated_at: row.updated_at,

@@ -23,6 +23,8 @@ pub struct Session {
     pub ip_address: Option<String>,
     /// Optional user agent string.
     pub user_agent: Option<String>,
+    /// User id of the server admin that started an impersonation session.
+    pub impersonated_by: Option<UserId>,
 }
 
 impl Session {
@@ -57,6 +59,7 @@ impl Session {
             created_at: OffsetDateTime::now_utc(),
             ip_address: ip_address.map(Into::into),
             user_agent: user_agent.map(Into::into),
+            impersonated_by: None,
         })
     }
 
@@ -105,6 +108,7 @@ mod tests {
             created_at: expires - time::Duration::hours(1),
             ip_address: None,
             user_agent: None,
+            impersonated_by: None,
         };
         assert!(session.is_expired());
     }

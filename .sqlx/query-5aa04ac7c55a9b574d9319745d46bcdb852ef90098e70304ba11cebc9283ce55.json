@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE organizations SET name = $2, slug = $3, owner_id = $4, updated_at = $5 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5aa04ac7c55a9b574d9319745d46bcdb852ef90098e70304ba11cebc9283ce55"
+}

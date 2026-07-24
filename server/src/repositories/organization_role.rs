@@ -68,6 +68,35 @@ impl OrganizationRoleRepository for OrganizationRoleRepositorySqlx {
 
         Ok(rows.into_iter().map(into_role).collect())
     }
+
+    async fn update(&self, role: &OrganizationRole) -> Result<()> {
+        let result = sqlx::query!(
+            "UPDATE organization_roles SET name = $2, description = $3, updated_at = $4 WHERE id = $1",
+            role.id.as_uuid(),
+            role.name,
+            role.description,
+            role.updated_at,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        if result.rows_affected() == 0 {
+            return Err(ruckchat_common::Error::NotFound("organization role".into()));
+        }
+        Ok(())
+    }
+
+    async fn delete(&self, id: OrganizationRoleId) -> Result<Option<()>> {
+        let result = sqlx::query!("DELETE FROM organization_roles WHERE id = $1", id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+        Ok(if result.rows_affected() == 0 {
+            None
+        } else {
+            Some(())
+        })
+    }
 }
 
 #[derive(sqlx::FromRow)]

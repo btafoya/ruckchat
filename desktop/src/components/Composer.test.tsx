@@ -58,7 +58,7 @@ const mockMessageState: MessagesState = {
 
 const mockSession = {
   token: 'token',
-  user: { id: 'user-1', email: 'user@example.com', display_name: 'User', avatar_url: null },
+  user: { id: 'user-1', email: 'user@example.com', display_name: 'User', avatar_url: null, is_server_admin: false },
 };
 
 function Wrapper({ children }: { children: React.ReactNode }) {

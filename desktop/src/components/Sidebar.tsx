@@ -40,6 +40,11 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
   const { counts } = useUnread(activeConversationId);
 
   const activeOrganization = organizations.find((o) => o.id === activeOrgId);
+  const showServerAdmin = session?.user.is_server_admin ?? false;
+  const showOrgAdmin =
+    activeOrganization !== undefined &&
+    session !== null &&
+    (session.user.is_server_admin || activeOrganization.owner_id === session.user.id);
 
   const dmLabels = useMemo(() => {
     return new Map(
@@ -113,6 +118,27 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
         </nav>
       </div>
 
+      {showServerAdmin && (
+        <div className="flex flex-col gap-2 border-t border-gray-700 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Server administration
+          </div>
+          <nav className="flex flex-col gap-1" aria-label="Server administration">
+            <NavLink
+              to="/admin/server/organizations"
+              onClick={handleNavClick}
+              className={({ isActive }) =>
+                `rounded-md px-3 py-2 text-sm ${
+                  isActive ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                }`
+              }
+            >
+              Server Admin
+            </NavLink>
+          </nav>
+        </div>
+      )}
+
       {activeOrganization && (
         <>
           <div className="flex flex-col gap-2 border-t border-gray-700 p-3">
@@ -164,6 +190,27 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
               ))}
             </nav>
           </div>
+
+          {showOrgAdmin && (
+            <div className="flex flex-col gap-2 border-t border-gray-700 p-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                {activeOrganization.name} administration
+              </div>
+              <nav className="flex flex-col gap-1" aria-label="Organization administration">
+                <NavLink
+                  to={`/org/${activeOrganization.id}/admin/settings`}
+                  onClick={handleNavClick}
+                  className={({ isActive }) =>
+                    `rounded-md px-3 py-2 text-sm ${
+                      isActive ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                    }`
+                  }
+                >
+                  Admin
+                </NavLink>
+              </nav>
+            </div>
+          )}
         </>
       )}
 

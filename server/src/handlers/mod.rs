@@ -11,6 +11,7 @@ pub mod message;
 pub mod organization;
 pub mod plugins;
 pub mod reaction;
+pub mod server_admin;
 pub mod user;
 pub mod web_assets;
 pub mod web_push;
@@ -21,7 +22,7 @@ use crate::{mcp::mcp_handler, state::AppState, websocket::websocket_handler};
 use axum::{
     Router,
     http::header::{AUTHORIZATION, CONTENT_TYPE},
-    routing::{any, delete, get, patch, post},
+    routing::{any, delete, get, patch, post, put},
 };
 use tower_http::{
     cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer},
@@ -46,11 +47,9 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         )
         .route(
             "/organizations/{organization_id}/members",
-            patch(organization::change_role),
-        )
-        .route(
-            "/organizations/{organization_id}/members",
-            delete(organization::remove_member),
+            get(organization::list_members)
+                .patch(organization::change_role)
+                .delete(organization::remove_member),
         )
         .route(
             "/organizations/{organization_id}/channels",
@@ -103,6 +102,66 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route("/web-push/vapid-key", get(web_push::vapid_key))
         .route("/web-push/subscribe", post(web_push::subscribe))
         .route("/web-push/unsubscribe", post(web_push::unsubscribe))
+        // Server-wide administration
+        .route(
+            "/api/v1/server/organizations",
+            get(server_admin::list_organizations),
+        )
+        .route(
+            "/api/v1/server/organizations",
+            post(server_admin::create_organization),
+        )
+        .route(
+            "/api/v1/server/organizations/{organization_id}",
+            patch(server_admin::rename_organization).delete(server_admin::delete_organization),
+        )
+        .route("/api/v1/server/users", get(server_admin::list_users))
+        .route(
+            "/api/v1/server/users/{user_id}",
+            get(server_admin::get_user),
+        )
+        .route(
+            "/api/v1/server/users/{user_id}",
+            patch(server_admin::update_user),
+        )
+        .route(
+            "/api/v1/server/users/{user_id}/reset-password",
+            post(server_admin::reset_password),
+        )
+        .route(
+            "/api/v1/server/users/{user_id}/promote",
+            post(server_admin::promote_user),
+        )
+        .route(
+            "/api/v1/server/users/{user_id}/demote",
+            post(server_admin::demote_user),
+        )
+        .route(
+            "/api/v1/server/users/{user_id}/deactivate",
+            post(server_admin::deactivate_user),
+        )
+        .route(
+            "/api/v1/server/users/{user_id}/reactivate",
+            post(server_admin::reactivate_user),
+        )
+        .route(
+            "/api/v1/server/admins",
+            get(server_admin::list_server_admins),
+        )
+        .route("/api/v1/server/settings", get(server_admin::get_settings))
+        .route(
+            "/api/v1/server/settings",
+            put(server_admin::update_settings),
+        )
+        .route("/api/v1/server/audit-log", get(server_admin::get_audit_log))
+        .route(
+            "/api/v1/server/impersonate",
+            post(server_admin::impersonate),
+        )
+        .route(
+            "/api/v1/server/impersonate",
+            delete(server_admin::end_impersonate),
+        )
         .route(
             "/api/v1/admin/organizations/{organization_id}/import",
             post(admin::import),
@@ -122,6 +181,26 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route(
             "/api/v1/admin/organizations/{organization_id}/teams",
             get(admin::list_teams).post(admin::create_team),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/settings",
+            get(admin::get_organization_settings).put(admin::update_organization_settings),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/roles/{role_id}",
+            patch(admin::update_role).delete(admin::delete_role),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/permissions/{permission_id}",
+            patch(admin::update_permission).delete(admin::delete_permission),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/emoji/{emoji_id}",
+            delete(admin::delete_emoji),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/teams/{team_id}",
+            patch(admin::update_team).delete(admin::delete_team),
         )
         .route("/", get(web_assets::serve_root))
         .route("/{*path}", get(web_assets::serve_asset))

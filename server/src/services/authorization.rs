@@ -108,6 +108,28 @@ impl AuthorizationService {
         }
     }
 
+    /// Returns true when the user is a server administrator.
+    #[must_use]
+    pub fn is_server_admin(&self, user: &ruckchat_domain::User) -> bool {
+        user.is_server_admin
+    }
+
+    /// Requires the user to be a server administrator.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Forbidden`] when the user is not a server admin.
+    pub fn require_server_admin(
+        &self,
+        user: &ruckchat_domain::User,
+    ) -> ruckchat_common::Result<()> {
+        if user.is_server_admin {
+            Ok(())
+        } else {
+            Err(Error::Forbidden("server admin access required".into()))
+        }
+    }
+
     /// Checks whether the caller can post in a channel.
     ///
     /// Posting requires the caller to be both an organization member and an

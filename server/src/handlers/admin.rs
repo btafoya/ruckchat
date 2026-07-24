@@ -14,7 +14,9 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use ruckchat_id::{FileId, OrganizationId};
+use ruckchat_id::{
+    CustomEmojiId, FileId, OrganizationId, OrganizationRoleId, PermissionId, TeamId,
+};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -221,6 +223,202 @@ pub struct CreateEmojiRequest {
 /// Request to create a team.
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateTeamRequest {
+    /// Team name unique within the organization.
+    pub name: String,
+    /// Optional human-readable description.
+    pub description: Option<String>,
+}
+
+/// Loads organization settings.
+pub async fn get_organization_settings(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(organization_id): Path<Uuid>,
+) -> Result<Json<ruckchat_domain::OrganizationSettings>, Error> {
+    let settings = state
+        .admin
+        .get_organization_settings(auth_user.id, OrganizationId::from_uuid(organization_id))
+        .await?;
+    Ok(Json(settings))
+}
+
+/// Updates organization settings.
+pub async fn update_organization_settings(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(organization_id): Path<Uuid>,
+    Json(request): Json<UpdateOrganizationSettingsRequest>,
+) -> Result<Json<ruckchat_domain::OrganizationSettings>, Error> {
+    let settings = state
+        .admin
+        .update_organization_settings(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            request.max_file_size_bytes,
+            request.storage_quota_bytes,
+        )
+        .await?;
+    Ok(Json(settings))
+}
+
+/// Updates a custom role.
+pub async fn update_role(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, role_id)): Path<(Uuid, Uuid)>,
+    Json(request): Json<UpdateRoleRequest>,
+) -> Result<Json<ruckchat_domain::OrganizationRole>, Error> {
+    let role = state
+        .admin
+        .update_role(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            OrganizationRoleId::from_uuid(role_id),
+            request.name,
+            request.description,
+        )
+        .await?;
+    Ok(Json(role))
+}
+
+/// Deletes a custom role.
+pub async fn delete_role(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, role_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, Error> {
+    state
+        .admin
+        .delete_role(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            OrganizationRoleId::from_uuid(role_id),
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Updates a permission.
+pub async fn update_permission(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, permission_id)): Path<(Uuid, Uuid)>,
+    Json(request): Json<UpdatePermissionRequest>,
+) -> Result<Json<ruckchat_domain::Permission>, Error> {
+    let permission = state
+        .admin
+        .update_permission(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            PermissionId::from_uuid(permission_id),
+            request.key,
+            request.description,
+        )
+        .await?;
+    Ok(Json(permission))
+}
+
+/// Deletes a permission.
+pub async fn delete_permission(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, permission_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, Error> {
+    state
+        .admin
+        .delete_permission(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            PermissionId::from_uuid(permission_id),
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Deletes a custom emoji.
+pub async fn delete_emoji(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, emoji_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, Error> {
+    state
+        .admin
+        .delete_emoji(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            CustomEmojiId::from_uuid(emoji_id),
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Updates a team.
+pub async fn update_team(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, team_id)): Path<(Uuid, Uuid)>,
+    Json(request): Json<UpdateTeamRequest>,
+) -> Result<Json<ruckchat_domain::Team>, Error> {
+    let team = state
+        .admin
+        .update_team(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            TeamId::from_uuid(team_id),
+            request.name,
+            request.description,
+        )
+        .await?;
+    Ok(Json(team))
+}
+
+/// Deletes a team.
+pub async fn delete_team(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, team_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, Error> {
+    state
+        .admin
+        .delete_team(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            TeamId::from_uuid(team_id),
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Request to update organization settings.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateOrganizationSettingsRequest {
+    /// Maximum file upload size in bytes.
+    pub max_file_size_bytes: i64,
+    /// Total storage quota in bytes.
+    pub storage_quota_bytes: i64,
+}
+
+/// Request to update a custom role.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateRoleRequest {
+    /// Role name unique within the organization.
+    pub name: String,
+    /// Optional human-readable description.
+    pub description: Option<String>,
+}
+
+/// Request to update a permission.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdatePermissionRequest {
+    /// Machine-readable permission key.
+    pub key: String,
+    /// Optional human-readable description.
+    pub description: Option<String>,
+}
+
+/// Request to update a team.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateTeamRequest {
     /// Team name unique within the organization.
     pub name: String,
     /// Optional human-readable description.

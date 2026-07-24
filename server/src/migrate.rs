@@ -518,7 +518,7 @@ fn count_rows(data: &MigrationData) -> usize {
 async fn export_users(pool: &PgPool) -> Result<Vec<User>> {
     let rows = sqlx::query_as!(
         UserRow,
-        "SELECT id, email, display_name, password_hash, avatar_url, deactivated_at, created_at, updated_at FROM users ORDER BY created_at"
+        "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at FROM users ORDER BY created_at"
     )
     .fetch_all(pool)
     .await?;
@@ -1139,6 +1139,7 @@ struct UserRow {
     display_name: String,
     password_hash: String,
     avatar_url: Option<String>,
+    is_server_admin: bool,
     deactivated_at: Option<OffsetDateTime>,
     created_at: OffsetDateTime,
     updated_at: OffsetDateTime,
@@ -1151,6 +1152,7 @@ fn into_user(row: UserRow) -> User {
         display_name: row.display_name,
         password_hash: row.password_hash,
         avatar_url: row.avatar_url,
+        is_server_admin: row.is_server_admin,
         deactivated_at: row.deactivated_at,
         created_at: row.created_at,
         updated_at: row.updated_at,

@@ -68,6 +68,18 @@ impl CustomEmojiRepository for CustomEmojiRepositorySqlx {
 
         Ok(rows.into_iter().map(into_emoji).collect())
     }
+
+    async fn delete(&self, id: CustomEmojiId) -> Result<Option<()>> {
+        let result = sqlx::query!("DELETE FROM custom_emoji WHERE id = $1", id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+        Ok(if result.rows_affected() == 0 {
+            None
+        } else {
+            Some(())
+        })
+    }
 }
 
 #[derive(sqlx::FromRow)]

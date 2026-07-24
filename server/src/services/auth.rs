@@ -93,7 +93,13 @@ impl AuthService {
         }
 
         let password_hash = hash_password(&request.password)?;
-        let user = User::new(request.email, request.display_name, password_hash)?;
+        let mut user = User::new(request.email, request.display_name, password_hash)?;
+
+        // The first registered user becomes a server administrator.
+        let is_first_user = self.deps.users.count().await? == 0;
+        if is_first_user {
+            user.set_server_admin(true);
+        }
         let organization = Organization::new(
             request.organization_name,
             request.organization_slug,
@@ -192,6 +198,16 @@ impl AuthService {
     ///
     /// Returns [`ruckchat_common::Error::Unauthorized`] when the session is missing or expired.
     pub async fn authenticate(&self, token: &str) -> Result<UserId> {
+        let session = self.session_by_token(token).await?;
+        Ok(session.user_id)
+    }
+
+    /// Loads a session by token.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ruckchat_common::Error::Unauthorized`] when the session is missing or expired.
+    pub async fn session_by_token(&self, token: &str) -> Result<Session> {
         let token_hash = hash_token(token);
         let session = self
             .deps
@@ -210,7 +226,7 @@ impl AuthService {
             )));
         }
 
-        Ok(session.user_id)
+        Ok(session)
     }
 
     /// Removes expired sessions.
@@ -222,9 +238,61 @@ impl AuthService {
         let count = self.deps.sessions.delete_expired().await?;
         Ok(count)
     }
+
+    /// Creates an impersonation session for a target user and returns the token.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ruckchat_common::Error::Internal`] for session creation failures.
+    pub async fn create_impersonation_session(
+        &self,
+        target_user_id: UserId,
+        impersonated_by: UserId,
+    ) -> Result<String> {
+        let (token, token_hash) = generate_session_token();
+        let expires_at =
+            ruckchat_common::time::OffsetDateTime::now_utc() + time::Duration::hours(1);
+        let mut session = Session::new(
+            target_user_id,
+            token_hash,
+            expires_at,
+            None::<&str>,
+            None::<&str>,
+        )?;
+        session.impersonated_by = Some(impersonated_by);
+        self.deps.sessions.create(&session).await?;
+        Ok(token)
+    }
+
+    /// Ends an impersonation session by token.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ruckchat_common::Error::Unauthorized`] when the session is missing
+    /// or not an impersonation session.
+    pub async fn end_impersonation_session(&self, token: &str) -> Result<()> {
+        let token_hash = hash_token(token);
+        let session = self
+            .deps
+            .sessions
+            .by_token_hash(&token_hash)
+            .await?
+            .ok_or_else(|| {
+                Error::Domain(ruckchat_common::Error::Unauthorized(
+                    "session not found".into(),
+                ))
+            })?;
+        if session.impersonated_by.is_none() {
+            return Err(Error::Domain(ruckchat_common::Error::Unauthorized(
+                "not an impersonation session".into(),
+            )));
+        }
+        self.deps.sessions.delete_by_token_hash(&token_hash).await?;
+        Ok(())
+    }
 }
 
-fn hash_password(password: &str) -> Result<String> {
+pub(crate) fn hash_password(password: &str) -> Result<String> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hash = argon2

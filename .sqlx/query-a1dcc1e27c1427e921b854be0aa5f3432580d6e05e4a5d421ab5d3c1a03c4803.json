@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, occurred_at, actor_id, impersonated_user_id, organization_id, action, resource_type, resource_id, metadata, ip_address::text AS ip_address\n             FROM audit_log\n             WHERE ($1::uuid IS NULL OR actor_id = $1)\n               AND ($2::uuid IS NULL OR organization_id = $2)\n               AND ($3::varchar IS NULL OR action = $3)\n               AND ($4::varchar IS NULL OR resource_type = $4)\n               AND ($5::timestamptz IS NULL OR occurred_at >= $5)\n               AND ($6::timestamptz IS NULL OR occurred_at <= $6)\n             ORDER BY occurred_at DESC\n             LIMIT $7 OFFSET $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "occurred_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "actor_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "impersonated_user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "organization_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "action",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "resource_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "resource_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "ip_address",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Timestamptz",
+        "Timestamptz",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "a1dcc1e27c1427e921b854be0aa5f3432580d6e05e4a5d421ab5d3c1a03c4803"
+}
