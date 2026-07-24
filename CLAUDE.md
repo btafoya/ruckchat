@@ -520,6 +520,17 @@ server image and builds cross-platform desktop installers.
   via `docker-compose.build.yml`, forces `docker compose up --build`) instead.
   See "Rebuild Docker stack" in the Implementation Loop.
 
+- Rebuilding via `docker-compose.build.yml` migrates the database to the
+  current schema but leaves the plain `ruckchat-server:latest` tag untouched.
+  Restarting afterward with `./scripts/server.sh start` (no `--build`) or a
+  bare `docker compose up -d` switches back to that stale image, which can be
+  *older* than the now-migrated database and fails at startup with
+  `migration <version> was previously applied but is missing in the resolved
+  migrations` — the mirror image of the missing-migration error the stale
+  image itself causes when it's the older side. After a source-build restart
+  that applied new migrations, run `./scripts/build-server.sh` to refresh
+  `ruckchat-server:latest` too before switching back to the plain path.
+
 - The desktop client defaults to `http://localhost:3000` for development and
   exposes a settings screen to change the backend URL. The chosen URL is stored
   in `localStorage` and used by all API calls and the WebSocket connection.
