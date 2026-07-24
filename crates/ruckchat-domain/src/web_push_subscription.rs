@@ -19,8 +19,10 @@ pub struct WebPushSubscription {
     /// Authentication secret, base64url encoded.
     pub auth: String,
     /// Timestamp when the subscription was created.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Timestamp of the last update.
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
 }
 

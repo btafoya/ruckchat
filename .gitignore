@@ -15,3 +15,4 @@ node_modules/
 web/dist/
 desktop/dist/
 .serena/
+.playwright-mcp/

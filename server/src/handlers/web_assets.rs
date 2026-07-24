@@ -26,7 +26,7 @@ pub async fn serve_root(State(state): State<AppState>) -> Response {
     if let Some(dir) = &state.web_config.path {
         return serve_fallback_from_dir(std::path::Path::new(dir)).await;
     }
-    serve_embedded_file("index.html")
+    serve_embedded_index()
 }
 
 /// Serves a static asset or falls back to `index.html`.
@@ -80,7 +80,7 @@ async fn serve_from_dir(base_dir: &str, requested_path: &str) -> Response {
 async fn serve_fallback_from_dir(base_dir: &std::path::Path) -> Response {
     let index_path = base_dir.join("index.html");
     match tokio::fs::read(&index_path).await {
-        Ok(contents) => asset_response("index.html", &contents),
+        Ok(contents) => index_response(&contents),
         Err(_) => StatusCode::NOT_FOUND.into_response(),
     }
 }
@@ -89,21 +89,37 @@ async fn serve_fallback_from_dir(base_dir: &std::path::Path) -> Response {
 fn serve_embedded(requested_path: &str) -> Response {
     let path = requested_path.trim_start_matches('/');
     if path.is_empty() {
-        return serve_embedded_file("index.html");
+        return serve_embedded_index();
     }
 
     if let Some(file) = EMBEDDED_ASSETS.get_file(path) {
         return asset_response(path, file.contents());
     }
 
-    serve_embedded_file("index.html")
+    serve_embedded_index()
 }
 
-fn serve_embedded_file(path: &str) -> Response {
-    match EMBEDDED_ASSETS.get_file(path) {
-        Some(file) => asset_response(path, file.contents()),
+fn serve_embedded_index() -> Response {
+    match EMBEDDED_ASSETS.get_file("index.html") {
+        Some(file) => index_response(file.contents()),
         None => StatusCode::NOT_FOUND.into_response(),
     }
+}
+
+/// Builds an HTTP response for `index.html` with no caching so clients always
+/// pick up newly deployed hashed asset references.
+fn index_response(contents: &[u8]) -> Response {
+    (
+        [
+            (header::CONTENT_TYPE, "text/html"),
+            (
+                header::CACHE_CONTROL,
+                "no-store, no-cache, must-revalidate, proxy-revalidate",
+            ),
+        ],
+        Vec::from(contents),
+    )
+        .into_response()
 }
 
 /// Builds an HTTP response for a static asset, setting a content type based on

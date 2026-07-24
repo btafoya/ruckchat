@@ -18,6 +18,7 @@ pub struct OrganizationSettings {
     /// Total storage quota for the organization in bytes.
     pub storage_quota_bytes: i64,
     /// Timestamp of the last settings update.
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
 }
 

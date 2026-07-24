@@ -33,6 +33,9 @@ pnpm tauri dev
 - Apply the `ponytail` skill: prefer deletion over addition, reuse existing code,
   prefer stdlib/native/installed dependencies, and question whether speculative
   features need to exist at all.
+- Runtime config lives in ruckchat.yaml, not .env. The .env.testing file is
+  only for compile-time SQLx query verification (DATABASE_URL), which is separate from
+  runtime settings.
 
 ## Claude Code Behaviour Guidelines
 

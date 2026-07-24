@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    __WEB_DEFAULT_API_URL__: JSON.stringify(undefined),
+  },
   test: {
     environment: 'jsdom',
     globals: true,

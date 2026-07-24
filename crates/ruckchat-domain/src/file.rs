@@ -24,6 +24,7 @@ pub struct File {
     /// Optional thumbnail path or key.
     pub thumbnail_path: Option<String>,
     /// Timestamp when the file was uploaded.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
 

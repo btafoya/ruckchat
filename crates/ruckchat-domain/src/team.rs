@@ -18,8 +18,10 @@ pub struct Team {
     /// User who created the team.
     pub created_by: UserId,
     /// Timestamp when the team was created.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Timestamp of the last team update.
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
 }
 

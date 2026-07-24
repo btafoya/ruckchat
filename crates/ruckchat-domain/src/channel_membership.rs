@@ -12,6 +12,7 @@ pub struct ChannelMembership {
     /// Channel identifier.
     pub channel_id: ChannelId,
     /// Timestamp when the user joined.
+    #[serde(with = "time::serde::rfc3339")]
     pub joined_at: OffsetDateTime,
 }
 

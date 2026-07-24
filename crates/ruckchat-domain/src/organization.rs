@@ -20,8 +20,10 @@ pub struct Organization {
     /// User who owns the organization.
     pub owner_id: UserId,
     /// Timestamp when the organization was created.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Timestamp of the last update.
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
 }
 

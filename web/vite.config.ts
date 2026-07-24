@@ -6,6 +6,12 @@ const API_TARGET = 'http://localhost:3000';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    dedupe: ['react', 'react-dom', 'react-router-dom'],
+  },
+  define: {
+    __WEB_DEFAULT_API_URL__: JSON.stringify(''),
+  },
   server: {
     port: 5174,
     proxy: {

@@ -12,6 +12,7 @@ pub struct TeamRoom {
     /// Channel identifier.
     pub channel_id: ChannelId,
     /// Timestamp when the room was added to the team.
+    #[serde(with = "time::serde::rfc3339")]
     pub added_at: OffsetDateTime,
 }
 

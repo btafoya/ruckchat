@@ -65,6 +65,7 @@ pub struct TeamMembership {
     /// Role within the team.
     pub role: TeamRole,
     /// Timestamp when the user joined the team.
+    #[serde(with = "time::serde::rfc3339")]
     pub joined_at: OffsetDateTime,
 }
 

@@ -96,7 +96,6 @@ export function AuthForm({ mode, onLogin, onRegister, error, isLoading }: AuthFo
                 value={organizationSlug}
                 onChange={(e) => setOrganizationSlug(e.target.value)}
                 required
-                pattern="[a-z0-9-]+"
                 className="rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-white focus:border-green-500 focus:outline-none"
               />
             </label>

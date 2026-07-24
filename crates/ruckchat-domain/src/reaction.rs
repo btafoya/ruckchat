@@ -14,6 +14,7 @@ pub struct Reaction {
     /// Emoji character or shortcode.
     pub emoji: String,
     /// Timestamp when the reaction was added.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
 

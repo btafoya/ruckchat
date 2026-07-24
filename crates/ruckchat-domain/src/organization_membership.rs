@@ -15,6 +15,7 @@ pub struct OrganizationMembership {
     /// Membership role.
     pub role: Role,
     /// Timestamp when the user joined.
+    #[serde(with = "time::serde::rfc3339")]
     pub joined_at: OffsetDateTime,
 }
 

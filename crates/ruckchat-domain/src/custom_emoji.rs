@@ -18,6 +18,7 @@ pub struct CustomEmoji {
     /// User who created the emoji.
     pub created_by: UserId,
     /// Timestamp when the emoji was created.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
 

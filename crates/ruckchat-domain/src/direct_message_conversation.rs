@@ -14,6 +14,7 @@ pub struct DirectMessageConversation {
     /// Users participating in the conversation.
     pub member_ids: Vec<UserId>,
     /// Timestamp when the conversation was created.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
 

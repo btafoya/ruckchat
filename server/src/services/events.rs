@@ -148,6 +148,7 @@ pub struct EventEnvelope {
     /// Unique event identifier.
     pub id: Uuid,
     /// UTC timestamp when the event was emitted.
+    #[serde(with = "time::serde::rfc3339")]
     pub timestamp: OffsetDateTime,
     /// Event payload.
     pub payload: ServerEvent,

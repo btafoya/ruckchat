@@ -14,8 +14,10 @@ pub struct Session {
     /// Hashed session token. The domain layer stores but does not generate this.
     pub token_hash: String,
     /// Expiration timestamp.
+    #[serde(with = "time::serde::rfc3339")]
     pub expires_at: OffsetDateTime,
     /// Timestamp when the session was created.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Optional IP address of the client.
     pub ip_address: Option<String>,

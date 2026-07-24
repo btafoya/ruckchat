@@ -29,6 +29,7 @@ pub struct MigrationData {
     /// Format version of this snapshot.
     pub version: u16,
     /// UTC timestamp when the snapshot was produced.
+    #[serde(with = "time::serde::rfc3339")]
     pub exported_at: OffsetDateTime,
     /// User accounts.
     pub users: Vec<User>,
@@ -84,10 +85,13 @@ pub struct MigrationMessage {
     /// Message content.
     pub content: String,
     /// Timestamp when the message was created.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Timestamp of the last edit.
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
     /// Soft-delete timestamp.
+    #[serde(with = "time::serde::rfc3339::option")]
     pub deleted_at: Option<OffsetDateTime>,
 }
 

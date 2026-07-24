@@ -96,7 +96,9 @@ async fn member_context(client: &TestClient, owner_token: &str, org_id: Uuid) ->
 }
 
 fn now() -> String {
-    time::OffsetDateTime::now_utc().to_string()
+    time::OffsetDateTime::now_utc()
+        .format(&time::format_description::well_known::Rfc3339)
+        .expect("RFC 3339 format is valid")
 }
 
 fn empty_data() -> serde_json::Value {

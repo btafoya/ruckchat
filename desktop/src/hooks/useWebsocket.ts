@@ -49,7 +49,7 @@ export function useWebSocket(
     }
 
     setStatus('connecting');
-    const baseUrl = options.apiUrl ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    const baseUrl = options.apiUrl?.trim() || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
     const url = buildWebSocketUrl(baseUrl);
     const socket = new WebSocket(url);
     socketRef.current = socket;

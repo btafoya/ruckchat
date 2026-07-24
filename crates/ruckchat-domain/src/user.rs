@@ -23,10 +23,13 @@ pub struct User {
     /// Optional URL to an avatar image.
     pub avatar_url: Option<String>,
     /// Timestamp when the user was deactivated, if applicable.
+    #[serde(with = "time::serde::rfc3339::option")]
     pub deactivated_at: Option<OffsetDateTime>,
     /// Timestamp when the user was created.
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     /// Timestamp of the last profile update.
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
 }
 
