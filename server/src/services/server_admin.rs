@@ -138,6 +138,36 @@ impl ServerAdminService {
         Ok(())
     }
 
+    /// Creates a new user account without an organization.
+    pub async fn create_user(
+        &self,
+        caller_id: UserId,
+        email: String,
+        display_name: String,
+        password: Option<String>,
+    ) -> Result<(User, String)> {
+        self.require_server_admin(caller_id).await?;
+        if self.deps.users.by_email(&email).await?.is_some() {
+            return Err(Error::Conflict("email already in use".into()));
+        }
+        let raw_password = password.unwrap_or_else(generate_temporary_password);
+        let password_hash = crate::services::auth::hash_password(&raw_password)
+            .map_err(|_| Error::Internal("password hash failed".into()))?;
+        let user = User::new(email, display_name, password_hash)?;
+        self.deps.users.create(&user).await?;
+        self.audit(
+            caller_id,
+            None,
+            "user.created",
+            "user",
+            Some(user.id.as_uuid()),
+            None,
+            None,
+        )
+        .await?;
+        Ok((user, raw_password))
+    }
+
     /// Lists all users with pagination.
     pub async fn list_users(&self, caller_id: UserId, pagination: Pagination) -> Result<Vec<User>> {
         self.require_server_admin(caller_id).await?;

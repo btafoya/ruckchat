@@ -1,6 +1,8 @@
 import { ApiClient } from './client';
 import type {
   AuditLogEntry,
+  CreateServerUserRequest,
+  CreateServerUserResponse,
   EndImpersonateRequest,
   ImpersonateRequest,
   ImpersonateResponse,
@@ -54,6 +56,17 @@ export class ServerAdminApi {
     await this.client.request<void>(`/api/v1/server/organizations/${organizationId}`, {
       method: 'DELETE',
       token,
+    });
+  }
+
+  async createUser(
+    token: string,
+    request: CreateServerUserRequest,
+  ): Promise<CreateServerUserResponse> {
+    return this.client.request<CreateServerUserResponse>('/api/v1/server/users', {
+      method: 'POST',
+      token,
+      body: request,
     });
   }
 

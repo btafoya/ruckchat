@@ -29,6 +29,8 @@ export type AttachFileRequest = components['schemas']['AttachFileRequest'];
 
 export type ServerUser = components['schemas']['ServerUserResponse'];
 export type ServerUserList = components['schemas']['ServerUserList'];
+export type CreateServerUserRequest = components['schemas']['CreateServerUserRequest'];
+export type CreateServerUserResponse = components['schemas']['CreateServerUserResponse'];
 export type ServerSettings = components['schemas']['ServerSettings'];
 export type UpdateServerSettingsRequest =
   components['schemas']['UpdateServerSettingsRequest'];

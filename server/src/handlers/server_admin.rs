@@ -92,6 +92,30 @@ impl Default for ListUsersQuery {
     }
 }
 
+/// Creates a new user account without an organization.
+pub async fn create_user(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Json(request): Json<CreateServerUserRequest>,
+) -> Result<impl IntoResponse, Error> {
+    let (user, password) = state
+        .server_admin
+        .create_user(
+            auth_user.id,
+            request.email,
+            request.display_name,
+            request.password,
+        )
+        .await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(CreateServerUserResponse {
+            user: ServerUserResponse::from_domain(&user),
+            password,
+        }),
+    ))
+}
+
 /// Lists all users on the server.
 pub async fn list_users(
     State(state): State<AppState>,
@@ -396,6 +420,26 @@ pub struct RenameOrganizationRequest {
 #[derive(Debug, Clone, Serialize)]
 pub struct ResetPasswordResponse {
     /// New temporary password.
+    pub password: String,
+}
+
+/// Request to create a user as a server administrator.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateServerUserRequest {
+    /// Email address for the new account.
+    pub email: String,
+    /// Display name for the new account.
+    pub display_name: String,
+    /// Optional initial password. When omitted, a temporary password is generated.
+    pub password: Option<String>,
+}
+
+/// Response returned after creating a user as a server administrator.
+#[derive(Debug, Clone, Serialize)]
+pub struct CreateServerUserResponse {
+    /// The newly created user.
+    pub user: ServerUserResponse,
+    /// Plain initial password, either supplied or generated.
     pub password: String,
 }
 

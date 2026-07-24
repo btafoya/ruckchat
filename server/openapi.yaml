@@ -1783,6 +1783,31 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create a new user account
+      tags: [Server Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServerUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateServerUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
   /api/v1/server/users/{user_id}:
     parameters:
@@ -3185,6 +3210,28 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ServerUserResponse'
+
+    CreateServerUserRequest:
+      type: object
+      required: [email, display_name]
+      properties:
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        password:
+          type: string
+          nullable: true
+
+    CreateServerUserResponse:
+      type: object
+      required: [user, password]
+      properties:
+        user:
+          $ref: '#/components/schemas/ServerUserResponse'
+        password:
+          type: string
 
     RenameOrganizationRequest:
       type: object

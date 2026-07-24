@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
-import type { ServerUser, UpdateServerUserRequest } from '../../api';
+import type { CreateServerUserRequest, ServerUser, UpdateServerUserRequest } from '../../api';
 import { useSessionContext } from '../../context';
 import { useSettings } from '../../hooks';
 
@@ -13,6 +13,12 @@ export function ServerAdminUsers(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<UpdateServerUserRequest>({});
+  const [createForm, setCreateForm] = useState<CreateServerUserRequest>({
+    email: '',
+    display_name: '',
+    password: null,
+  });
+  const [showCreate, setShowCreate] = useState(false);
 
   const token = session?.token ?? '';
 
@@ -63,9 +69,83 @@ export function ServerAdminUsers(): JSX.Element {
     }
   };
 
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const result = await api.serverAdmin.createUser(token, createForm);
+      setCreateForm({ email: '', display_name: '', password: null });
+      setShowCreate(false);
+      window.alert(`User created. Initial password: ${result.password}`);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create user');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Users</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Users</h2>
+        <button
+          type="button"
+          onClick={() => setShowCreate((prev) => !prev)}
+          className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600"
+        >
+          {showCreate ? 'Cancel' : 'Create User'}
+        </button>
+      </div>
+
+      {showCreate && (
+        <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3 rounded border border-gray-700 p-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-400">Email</label>
+            <input
+              type="email"
+              required
+              value={createForm.email}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
+              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              placeholder="user@example.com"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-400">Display Name</label>
+            <input
+              type="text"
+              required
+              value={createForm.display_name}
+              onChange={(e) =>
+                setCreateForm((prev) => ({ ...prev, display_name: e.target.value }))
+              }
+              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              placeholder="Full name"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-400">Password (optional)</label>
+            <input
+              type="password"
+              value={createForm.password ?? ''}
+              onChange={(e) =>
+                setCreateForm((prev) => ({
+                  ...prev,
+                  password: e.target.value || null,
+                }))
+              }
+              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              placeholder="Leave blank to generate"
+            />
+          </div>
+          <button
+            type="submit"
+            className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+            disabled={!createForm.email || !createForm.display_name}
+          >
+            Create
+          </button>
+        </form>
+      )}
 
       {error && <div className="rounded bg-red-900/50 p-3 text-red-200">{error}</div>}
 

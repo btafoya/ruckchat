@@ -2430,7 +2430,34 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /** Create a new user account */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateServerUserRequest"];
+                };
+            };
+            responses: {
+                /** @description User created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreateServerUserResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                409: components["responses"]["Conflict"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3422,6 +3449,16 @@ export interface components {
         };
         ServerUserList: {
             items: components["schemas"]["ServerUserResponse"][];
+        };
+        CreateServerUserRequest: {
+            /** Format: email */
+            email: string;
+            display_name: string;
+            password?: string | null;
+        };
+        CreateServerUserResponse: {
+            user: components["schemas"]["ServerUserResponse"];
+            password: string;
         };
         RenameOrganizationRequest: {
             name: string;

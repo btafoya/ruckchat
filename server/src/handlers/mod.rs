@@ -115,7 +115,10 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
             "/api/v1/server/organizations/{organization_id}",
             patch(server_admin::rename_organization).delete(server_admin::delete_organization),
         )
-        .route("/api/v1/server/users", get(server_admin::list_users))
+        .route(
+            "/api/v1/server/users",
+            get(server_admin::list_users).post(server_admin::create_user),
+        )
         .route(
             "/api/v1/server/users/{user_id}",
             get(server_admin::get_user),
