@@ -57,8 +57,11 @@ USER ruckchat
 
 EXPOSE 3000
 
+# Probe the port declared in base_url so the healthcheck stays valid when
+# operators change the listening port in ruckchat.yaml. Defaults to 3000
+# if no explicit port is found.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -fsS http://localhost:3000/ >/dev/null || exit 1
+    CMD PORT=$(awk -F':' '/^base_url:/ {gsub(/[^0-9]/,"",$NF); print $NF}' /etc/ruckchat/ruckchat.yaml | head -n1); curl -fsS "http://localhost:${PORT:-3000}/" >/dev/null || exit 1
 
 ENTRYPOINT ["/usr/local/bin/ruckchat-server"]
 CMD ["--config", "/etc/ruckchat/ruckchat.yaml"]

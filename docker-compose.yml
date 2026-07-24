@@ -36,8 +36,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # The container target port (right side) must match the port in base_url
+    # inside ruckchat.yaml. Change the left side to select the host port.
     ports:
-      - "3000:3000"
+      - "3845:3922"
+    # Override the Dockerfile healthcheck so the pre-built image probes the
+    # actual base_url port instead of assuming port 3000.
+    healthcheck:
+      test: |
+        PORT=$(awk -F':' '/^base_url:/ {gsub(/[^0-9]/,"",$$NF); print $$NF}' /etc/ruckchat/ruckchat.yaml | head -n1); curl -fsS "http://localhost:$${PORT:-3000}/" >/dev/null || exit 1
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     volumes:
       - ${RUCKCHAT_CONFIG:-./ruckchat.yaml}:/etc/ruckchat/ruckchat.yaml:ro
       - ruckchat_files:/var/lib/ruckchat/files

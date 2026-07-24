@@ -110,6 +110,43 @@ validate_config() {
     fi
 }
 
+config_port() {
+    awk -F':' '/^base_url:/ {gsub(/[^0-9]/,"",$NF); print $NF; exit}' "${CONFIG_FILE}"
+}
+
+compose_target_port() {
+    local port=""
+    if [[ -f "${COMPOSE_FILE}" ]]; then
+        # Short form "HOST:CONTAINER" under a ports: list.
+        port=$(awk '
+            /^  server:/ { in_server=1 }
+            in_server && /^  [^ ]/ && !/^  server:/ { exit }
+            in_server && /^    ports:/ { in_ports=1 }
+            in_ports && /^    [^ ]/ && !/^    ports:/ { exit }
+            in_ports && /- "[0-9]+:[0-9]+"/ {
+                gsub(/"/,"");
+                split($0, parts, ":");
+                gsub(/[^0-9]/,"",parts[length(parts)]);
+                print parts[length(parts)];
+                exit;
+            }
+        ' "${COMPOSE_FILE}")
+    fi
+    printf '%s\n' "${port}"
+}
+
+warn_port_alignment() {
+    local cfg_port target_port
+    cfg_port="$(config_port)"
+    : "${cfg_port:=3000}"
+    target_port="$(compose_target_port)"
+
+    if [[ -n "${target_port}" && "${target_port}" != "${cfg_port}" ]]; then
+        printf 'Warning: ruckchat.yaml base_url port is %s, but %s exposes container port %s.\n' "${cfg_port}" "${COMPOSE_FILE}" "${target_port}" >&2
+        printf '         External traffic will not reach the server. Change the right side of the ports mapping to %s.\n' "${cfg_port}" >&2
+    fi
+}
+
 compose() {
     cd "${PROJECT_ROOT}"
     docker compose -f "${COMPOSE_FILE}" "$@"
@@ -119,6 +156,7 @@ do_start() {
     printf 'Starting RuckChat server...\n'
     printf '  compose file: %s\n' "${COMPOSE_FILE}"
     printf '  config file:  %s\n' "${CONFIG_FILE}"
+    warn_port_alignment
     compose up -d --force-recreate
 }
 

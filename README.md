@@ -83,7 +83,9 @@ from source instead:
 ./scripts/server.sh start --build
 ```
 
-See `server/README.md` for more options, including `--config` and `--keep`.
+See `server/README.md` for more options, including `--config` and `--keep`, and
+for the port-alignment note: the container target port in the compose mapping
+must match the port in `base_url`.
 
 #### From source
 

@@ -204,6 +204,24 @@ The `scripts/server.sh` helper wraps Docker Compose for common operations:
 
 Pass `-f <path>` to use a custom compose file, overriding `--build`.
 
+### Port alignment
+
+The server binds to the port declared in `base_url` inside `ruckchat.yaml`
+(default `3000`). The right-hand side of the `ports:` mapping in the compose
+file is the **container target port** and must match that value. The left-hand
+side is the **host port** and can be changed freely.
+
+For example, if `base_url` is `http://0.0.0.0:3922`, the compose mapping
+must end in `:3922`:
+
+```yaml
+ports:
+  - "3845:3922"  # host 3845 → container 3922
+```
+
+`scripts/server.sh start` warns when the configured port and the compose
+target port differ.
+
 ## Running the server
 
 Without Docker, generate a config and run the binary directly:

@@ -442,6 +442,11 @@ server image and builds cross-platform desktop installers.
 - Repository traits live in `ruckchat-domain`; SQLx implementations live in
   `server/src/repositories/`.
 
+- The server binds to the port declared in `base_url` inside `ruckchat.yaml`.
+  When using Docker Compose, the **container target port** (right side of the
+  `ports:` mapping) must match that port. `scripts/server.sh start` warns if
+  they differ.
+
 - The desktop client defaults to `http://localhost:3000` for development and
   exposes a settings screen to change the backend URL. The chosen URL is stored
   in `localStorage` and used by all API calls and the WebSocket connection.
