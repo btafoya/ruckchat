@@ -4,6 +4,7 @@ import type {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
+  RegistrationStatusResponse,
   UpdateProfileRequest,
   User,
 } from './types';
@@ -16,6 +17,12 @@ export class AuthApi {
       method: 'POST',
       body: request,
     });
+  }
+
+  async getRegistrationStatus(): Promise<RegistrationStatusResponse> {
+    return this.client.request<RegistrationStatusResponse>(
+      '/auth/registration-status',
+    );
   }
 
   async login(request: LoginRequest): Promise<LoginResponse> {

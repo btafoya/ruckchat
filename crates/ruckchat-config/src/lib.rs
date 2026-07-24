@@ -106,6 +106,8 @@ pub struct ServerSettingsConfig {
     pub default_storage_quota_bytes: Option<i64>,
     /// Override for allowed signup email domains.
     pub allowed_signup_domains: Option<Vec<String>>,
+    /// Override for whether new user registrations are allowed.
+    pub allow_registration: Option<bool>,
 }
 
 /// Web Push notification configuration.
@@ -473,6 +475,7 @@ server_settings:
   # default_storage_quota_bytes: 10737418240
   # allowed_signup_domains:
   #   - "example.com"
+  # allow_registration: true
 
 # Placeholders for future phases. These keys are ignored today.
 # retention:

@@ -91,7 +91,7 @@ export function OrgAdminPermissions({
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Permissions</h2>
 
-      {error && <div className="rounded bg-red-900/50 p-3 text-red-200">{error}</div>}
+      {error && <div className="rounded bg-danger-bg p-3 text-danger">{error}</div>}
 
       <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3">
         <input
@@ -99,36 +99,36 @@ export function OrgAdminPermissions({
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
           placeholder="Permission key"
-          className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+          className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
         />
         <input
           type="text"
           value={newDescription}
           onChange={(e) => setNewDescription(e.target.value)}
           placeholder="Description"
-          className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+          className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
         />
         <button
           type="submit"
           disabled={!newKey}
-          className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+          className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-50"
         >
           Create
         </button>
       </form>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-text-muted">Loading...</div>
       ) : (
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-700 text-gray-400">
+          <thead className="border-b border-border text-text-muted">
             <tr>
               <th className="py-2">Key</th>
               <th className="py-2">Description</th>
               <th className="py-2">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-border">
             {permissions.map((permission) => (
               <PermissionRow
                 key={permission.id}
@@ -168,19 +168,19 @@ function PermissionRow({ permission, onUpdate, onDelete }: PermissionRowProps): 
             type="text"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            className="rounded bg-gray-800 px-2 py-1 text-sm outline-none ring-green-500 focus:ring"
+            className="rounded bg-surface px-2 py-1 text-sm outline-none ring-accent focus:ring"
           />
         ) : (
           permission.key
         )}
       </td>
-      <td className="py-2 text-gray-400">
+      <td className="py-2 text-text-muted">
         {editing ? (
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="rounded bg-gray-800 px-2 py-1 text-sm outline-none ring-green-500 focus:ring"
+            className="rounded bg-surface px-2 py-1 text-sm outline-none ring-accent focus:ring"
           />
         ) : (
           permission.description ?? '-'
@@ -192,7 +192,7 @@ function PermissionRow({ permission, onUpdate, onDelete }: PermissionRowProps): 
             <button
               type="button"
               onClick={save}
-              className="text-xs text-green-400 hover:text-green-300"
+              className="text-xs text-accent hover:text-accent-hover"
             >
               Save
             </button>
@@ -200,7 +200,7 @@ function PermissionRow({ permission, onUpdate, onDelete }: PermissionRowProps): 
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-xs text-gray-300 hover:text-white"
+              className="text-xs text-text hover:text-text"
             >
               Edit
             </button>
@@ -208,7 +208,7 @@ function PermissionRow({ permission, onUpdate, onDelete }: PermissionRowProps): 
           <button
             type="button"
             onClick={() => onDelete(permission.id)}
-            className="text-xs text-red-400 hover:text-red-300"
+            className="text-xs text-danger hover:text-danger-hover"
           >
             Delete
           </button>

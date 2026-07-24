@@ -70,14 +70,14 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
       : `/org/${organizationId}/dm/${message.conversation_id}/thread/${message.id}`;
 
   return (
-    <article className="flex flex-col gap-1 rounded-md p-2 hover:bg-gray-800/50">
+    <article className="flex flex-col gap-1 rounded-md p-2 hover:bg-message-hover">
       <div className="flex items-baseline gap-2">
-        <span className="text-sm font-semibold text-green-400">{message.author_display_name ?? message.author_id}</span>
-        <span className="text-xs text-gray-500">{new Date(message.created_at).toLocaleString()}</span>
-        {isPending && <span className="text-xs text-yellow-500">Sending...</span>}
+        <span className="text-sm font-semibold text-accent">{message.author_display_name ?? message.author_id}</span>
+        <span className="text-xs text-text-muted">{new Date(message.created_at).toLocaleString()}</span>
+        {isPending && <span className="text-xs text-warning">Sending...</span>}
       </div>
-      <div className="whitespace-pre-wrap text-sm text-gray-200">
-        {isDeleted ? <span className="italic text-gray-500">[deleted]</span> : message.content}
+      <div className="whitespace-pre-wrap text-sm text-text">
+        {isDeleted ? <span className="italic text-text-muted">[deleted]</span> : message.content}
       </div>
 
       {grouped.length > 0 && (
@@ -89,7 +89,7 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
               onClick={() => void toggleReaction(emoji)}
               disabled={isReacting}
               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
-                hasMe ? 'bg-green-700/40 text-green-100' : 'bg-gray-700 text-gray-200'
+                hasMe ? 'bg-accent-bg text-text' : 'bg-surface-elevated text-text'
               }`}
             >
               <span>{emoji}</span>
@@ -106,7 +106,7 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
             type="button"
             onClick={() => void toggleReaction(emoji)}
             disabled={isReacting || isPending}
-            className="rounded-md px-1 py-0.5 text-sm text-gray-400 hover:bg-gray-700 hover:text-white disabled:opacity-50"
+            className="rounded-md px-1 py-0.5 text-sm text-text-muted hover:bg-surface-elevated hover:text-text disabled:opacity-50"
             aria-label={`React with ${emoji}`}
           >
             {emoji}
@@ -115,7 +115,7 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
         {showReplyButton && !isPending && (
           <NavLink
             to={replyPath}
-            className="ml-2 text-xs text-gray-400 hover:text-white"
+            className="ml-2 text-xs text-text-muted hover:text-text"
           >
             Reply in thread
           </NavLink>
@@ -124,7 +124,7 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
           <button
             type="button"
             onClick={() => void retryMessage(message.id)}
-            className="ml-2 text-xs text-yellow-400 hover:text-yellow-300"
+            className="ml-2 text-xs text-warning hover:text-warning-hover"
           >
             Retry
           </button>

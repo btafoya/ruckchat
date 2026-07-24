@@ -25,6 +25,8 @@ pub struct ServerSettingsOverride {
     pub default_storage_quota_bytes: Option<i64>,
     /// Override for allowed signup domains.
     pub allowed_signup_domains: Option<Vec<String>>,
+    /// Override for whether new user registrations are allowed.
+    pub allow_registration: Option<bool>,
 }
 
 /// Reads and updates server-wide settings.
@@ -60,6 +62,9 @@ impl ServerSettingsService {
         }
         if let Some(value) = self.deps.overrides.allowed_signup_domains.clone() {
             settings.allowed_signup_domains = value;
+        }
+        if let Some(value) = self.deps.overrides.allow_registration {
+            settings.allow_registration = value;
         }
         Ok(settings)
     }

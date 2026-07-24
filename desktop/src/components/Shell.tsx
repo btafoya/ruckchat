@@ -12,7 +12,7 @@ export function Shell(): JSX.Element {
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center bg-gray-900 text-white">Loading...</div>;
+    return <div className="flex h-screen items-center justify-center bg-bg text-text">Loading...</div>;
   }
 
   if (!session) {
@@ -20,14 +20,14 @@ export function Shell(): JSX.Element {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-900 text-white">
+    <div className="flex h-screen w-screen overflow-hidden bg-bg text-text">
       <Sidebar mobileOpen={sidebarOpen} onClose={closeSidebar} />
 
       {sidebarOpen && (
         <button
           type="button"
           aria-label="Close navigation"
-          className="fixed inset-0 z-10 bg-black/50 md:hidden"
+          className="fixed inset-0 z-10 bg-overlay md:hidden"
           onClick={closeSidebar}
         />
       )}
@@ -37,7 +37,7 @@ export function Shell(): JSX.Element {
           type="button"
           aria-label="Open navigation"
           onClick={openSidebar}
-          className="absolute left-2 top-2 z-20 rounded-md bg-gray-800 px-2 py-1 text-sm md:hidden"
+          className="absolute left-2 top-2 z-20 rounded-md bg-surface px-2 py-1 text-sm md:hidden"
         >
           ☰
         </button>

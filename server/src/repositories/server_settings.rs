@@ -46,6 +46,9 @@ impl ServerSettingsRepository for ServerSettingsRepositorySqlx {
                     settings.allowed_signup_domains =
                         serde_json::from_str(&row.value).unwrap_or_default();
                 }
+                "allow_registration" => {
+                    settings.allow_registration = row.value.parse().unwrap_or(true);
+                }
                 _ => {}
             }
         }
@@ -72,6 +75,10 @@ impl ServerSettingsRepository for ServerSettingsRepositorySqlx {
                 "allowed_signup_domains",
                 serde_json::to_string(&settings.allowed_signup_domains)
                     .unwrap_or_else(|_| "[]".into()),
+            ),
+            (
+                "allow_registration",
+                settings.allow_registration.to_string(),
             ),
         ];
 

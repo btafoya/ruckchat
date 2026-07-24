@@ -26,7 +26,7 @@ import {
   useUnread,
   useWebSocket,
 } from './hooks';
-import { AuthScreen, Settings, Shell } from './components';
+import { AuthScreen, Settings, Shell, ThemeProvider } from './components';
 import {
   OrgAdminEmoji,
   OrgAdminMembers,
@@ -126,7 +126,7 @@ function OrgAdminRoute(): JSX.Element {
 function OrgAdminSettingsRoute(): JSX.Element {
   const { organizationId } = useParams<{ organizationId: string }>();
   if (!organizationId) {
-    return <div className="text-gray-400">Organization not selected.</div>;
+    return <div className="text-text-muted">Organization not selected.</div>;
   }
   return <OrgAdminSettings organizationId={organizationId} />;
 }
@@ -134,7 +134,7 @@ function OrgAdminSettingsRoute(): JSX.Element {
 function OrgAdminRolesRoute(): JSX.Element {
   const { organizationId } = useParams<{ organizationId: string }>();
   if (!organizationId) {
-    return <div className="text-gray-400">Organization not selected.</div>;
+    return <div className="text-text-muted">Organization not selected.</div>;
   }
   return <OrgAdminRoles organizationId={organizationId} />;
 }
@@ -142,7 +142,7 @@ function OrgAdminRolesRoute(): JSX.Element {
 function OrgAdminPermissionsRoute(): JSX.Element {
   const { organizationId } = useParams<{ organizationId: string }>();
   if (!organizationId) {
-    return <div className="text-gray-400">Organization not selected.</div>;
+    return <div className="text-text-muted">Organization not selected.</div>;
   }
   return <OrgAdminPermissions organizationId={organizationId} />;
 }
@@ -150,7 +150,7 @@ function OrgAdminPermissionsRoute(): JSX.Element {
 function OrgAdminEmojiRoute(): JSX.Element {
   const { organizationId } = useParams<{ organizationId: string }>();
   if (!organizationId) {
-    return <div className="text-gray-400">Organization not selected.</div>;
+    return <div className="text-text-muted">Organization not selected.</div>;
   }
   return <OrgAdminEmoji organizationId={organizationId} />;
 }
@@ -158,7 +158,7 @@ function OrgAdminEmojiRoute(): JSX.Element {
 function OrgAdminTeamsRoute(): JSX.Element {
   const { organizationId } = useParams<{ organizationId: string }>();
   if (!organizationId) {
-    return <div className="text-gray-400">Organization not selected.</div>;
+    return <div className="text-text-muted">Organization not selected.</div>;
   }
   return <OrgAdminTeams organizationId={organizationId} />;
 }
@@ -169,38 +169,40 @@ export default function PlatformShell({ platform }: PlatformShellProps): JSX.Ele
   return (
     <SessionProvider value={sessionState}>
       <PlatformProvider platform={platform}>
-        <Routes>
-          <Route path="/login" element={<AuthScreen />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/admin/server/*" element={<ServerAdminShell />}>
-            <Route index element={<Navigate to="organizations" replace />} />
-            <Route path="organizations" element={<ServerAdminOrganizations />} />
-            <Route path="users" element={<ServerAdminUsers />} />
-            <Route path="admins" element={<ServerAdminAdmins />} />
-            <Route path="settings" element={<ServerAdminSettings />} />
-            <Route path="audit-log" element={<ServerAdminAuditLog />} />
-          </Route>
-          <Route path="/org/:organizationId/admin/*" element={<OrgAdminRoute />}>
-            <Route index element={<Navigate to="settings" replace />} />
-            <Route path="settings" element={<OrgAdminSettingsRoute />} />
-            <Route path="members" element={<OrgAdminMembers />} />
-            <Route path="roles" element={<OrgAdminRolesRoute />} />
-            <Route path="permissions" element={<OrgAdminPermissionsRoute />} />
-            <Route path="emoji" element={<OrgAdminEmojiRoute />} />
-            <Route path="teams" element={<OrgAdminTeamsRoute />} />
-          </Route>
-          <Route path="/*" element={<AuthenticatedShell platform={platform} />}>
-            <Route index element={<Navigate to="/org" replace />} />
-            <Route path="org" element={<div />} />
-            <Route path="org/:organizationId/channel" element={<div />} />
-            <Route path="org/:organizationId/channel/:channelId" element={<div />} />
-            <Route
-              path="org/:organizationId/channel/:channelId/thread/:messageId"
-              element={<div />}
-            />
-            <Route path="org/:organizationId/dm/:dmId" element={<div />} />
-          </Route>
-        </Routes>
+        <ThemeProvider>
+          <Routes>
+            <Route path="/login" element={<AuthScreen />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/admin/server/*" element={<ServerAdminShell />}>
+              <Route index element={<Navigate to="organizations" replace />} />
+              <Route path="organizations" element={<ServerAdminOrganizations />} />
+              <Route path="users" element={<ServerAdminUsers />} />
+              <Route path="admins" element={<ServerAdminAdmins />} />
+              <Route path="settings" element={<ServerAdminSettings />} />
+              <Route path="audit-log" element={<ServerAdminAuditLog />} />
+            </Route>
+            <Route path="/org/:organizationId/admin/*" element={<OrgAdminRoute />}>
+              <Route index element={<Navigate to="settings" replace />} />
+              <Route path="settings" element={<OrgAdminSettingsRoute />} />
+              <Route path="members" element={<OrgAdminMembers />} />
+              <Route path="roles" element={<OrgAdminRolesRoute />} />
+              <Route path="permissions" element={<OrgAdminPermissionsRoute />} />
+              <Route path="emoji" element={<OrgAdminEmojiRoute />} />
+              <Route path="teams" element={<OrgAdminTeamsRoute />} />
+            </Route>
+            <Route path="/*" element={<AuthenticatedShell platform={platform} />}>
+              <Route index element={<Navigate to="/org" replace />} />
+              <Route path="org" element={<div />} />
+              <Route path="org/:organizationId/channel" element={<div />} />
+              <Route path="org/:organizationId/channel/:channelId" element={<div />} />
+              <Route
+                path="org/:organizationId/channel/:channelId/thread/:messageId"
+                element={<div />}
+              />
+              <Route path="org/:organizationId/dm/:dmId" element={<div />} />
+            </Route>
+          </Routes>
+        </ThemeProvider>
       </PlatformProvider>
     </SessionProvider>
   );

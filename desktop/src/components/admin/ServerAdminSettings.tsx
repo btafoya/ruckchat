@@ -17,6 +17,7 @@ export function ServerAdminSettings(): JSX.Element {
     default_max_file_size_bytes: 0,
     default_storage_quota_bytes: 0,
     allowed_signup_domains: [],
+    allow_registration: true,
   });
 
   const token = session?.token ?? '';
@@ -33,6 +34,7 @@ export function ServerAdminSettings(): JSX.Element {
         default_max_file_size_bytes: data.default_max_file_size_bytes,
         default_storage_quota_bytes: data.default_storage_quota_bytes,
         allowed_signup_domains: data.allowed_signup_domains,
+        allow_registration: data.allow_registration,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -64,10 +66,10 @@ export function ServerAdminSettings(): JSX.Element {
     <div className="max-w-2xl space-y-6">
       <h2 className="text-xl font-semibold">Server Settings</h2>
 
-      {error && <div className="rounded bg-red-900/50 p-3 text-red-200">{error}</div>}
+      {error && <div className="rounded bg-danger-bg p-3 text-danger">{error}</div>}
 
       {isLoading || !settings ? (
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-text-muted">Loading...</div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="flex items-center gap-2">
@@ -84,8 +86,22 @@ export function ServerAdminSettings(): JSX.Element {
             <span>Maintenance mode</span>
           </label>
 
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.allow_registration}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  allow_registration: e.target.checked,
+                }))
+              }
+            />
+            <span>Allow new user registrations</span>
+          </label>
+
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-400">Default max file size (bytes)</label>
+            <label className="text-sm text-text-muted">Default max file size (bytes)</label>
             <input
               type="number"
               value={form.default_max_file_size_bytes}
@@ -95,12 +111,12 @@ export function ServerAdminSettings(): JSX.Element {
                   default_max_file_size_bytes: Number(e.target.value),
                 }))
               }
-              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-400">Default storage quota (bytes)</label>
+            <label className="text-sm text-text-muted">Default storage quota (bytes)</label>
             <input
               type="number"
               value={form.default_storage_quota_bytes}
@@ -110,12 +126,12 @@ export function ServerAdminSettings(): JSX.Element {
                   default_storage_quota_bytes: Number(e.target.value),
                 }))
               }
-              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-400">
+            <label className="text-sm text-text-muted">
               Allowed signup domains (one per line)
             </label>
             <textarea
@@ -130,18 +146,18 @@ export function ServerAdminSettings(): JSX.Element {
                 }))
               }
               rows={4}
-              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
             />
           </div>
 
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-text-muted">
             Values set in ruckchat.yaml override these settings at runtime.
           </p>
 
           <button
             type="submit"
             disabled={saving}
-            className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+            className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Settings'}
           </button>

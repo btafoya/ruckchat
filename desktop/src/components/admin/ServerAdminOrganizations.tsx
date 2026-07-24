@@ -75,32 +75,32 @@ export function ServerAdminOrganizations(): JSX.Element {
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Organizations</h2>
 
-      {error && <div className="rounded bg-red-900/50 p-3 text-red-200">{error}</div>}
+      {error && <div className="rounded bg-danger-bg p-3 text-danger">{error}</div>}
 
       <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400">Name</label>
+          <label className="text-xs text-text-muted">Name</label>
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+            className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
             placeholder="Organization name"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400">Slug</label>
+          <label className="text-xs text-text-muted">Slug</label>
           <input
             type="text"
             value={newSlug}
             onChange={(e) => setNewSlug(e.target.value)}
-            className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+            className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
             placeholder="unique-slug"
           />
         </div>
         <button
           type="submit"
-          className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+          className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-50"
           disabled={!newName || !newSlug}
         >
           Create
@@ -108,10 +108,10 @@ export function ServerAdminOrganizations(): JSX.Element {
       </form>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-text-muted">Loading...</div>
       ) : (
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-700 text-gray-400">
+          <thead className="border-b border-border text-text-muted">
             <tr>
               <th className="py-2">Name</th>
               <th className="py-2">Slug</th>
@@ -119,7 +119,7 @@ export function ServerAdminOrganizations(): JSX.Element {
               <th className="py-2">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-border">
             {organizations.map((org) => (
               <OrganizationRow
                 key={org.id}
@@ -162,22 +162,22 @@ function OrganizationRow({ organization, onRename, onDelete }: OrganizationRowPr
             onKeyDown={(e) => {
               if (e.key === 'Enter') save();
             }}
-            className="rounded bg-gray-800 px-2 py-1 text-sm outline-none ring-green-500 focus:ring"
+            className="rounded bg-surface px-2 py-1 text-sm outline-none ring-accent focus:ring"
             autoFocus
           />
         ) : (
-          <span onClick={() => setEditing(true)} className="cursor-pointer hover:text-green-400">
+          <span onClick={() => setEditing(true)} className="cursor-pointer hover:text-accent">
             {organization.name}
           </span>
         )}
       </td>
-      <td className="py-2 text-gray-400">{organization.slug}</td>
-      <td className="py-2 text-gray-400">{organization.owner_id}</td>
+      <td className="py-2 text-text-muted">{organization.slug}</td>
+      <td className="py-2 text-text-muted">{organization.owner_id}</td>
       <td className="py-2">
         <button
           type="button"
           onClick={() => onDelete(organization.id)}
-          className="text-xs text-red-400 hover:text-red-300"
+          className="text-xs text-danger hover:text-danger-hover"
         >
           Delete
         </button>

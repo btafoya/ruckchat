@@ -20,6 +20,7 @@ vi.mock('./api', async () => {
       },
       auth: {
         getProfile: mockGetProfile,
+        getRegistrationStatus: vi.fn().mockResolvedValue({ allow_registration: true }),
         login: mockLogin,
         logout: mockLogout,
         register: mockRegister,

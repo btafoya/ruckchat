@@ -153,26 +153,26 @@ export function Composer({
       return null;
     }
     return (
-      <div className="min-h-[6rem] whitespace-pre-wrap rounded-md border border-gray-600 bg-gray-900 p-3 text-sm text-gray-200">
-        {content || <span className="text-gray-500">Nothing to preview</span>}
+      <div className="min-h-[6rem] whitespace-pre-wrap rounded-md border border-border bg-bg p-3 text-sm text-text">
+        {content || <span className="text-text-muted">Nothing to preview</span>}
       </div>
     );
   }, [showPreview, content]);
 
   return (
-    <div className="flex flex-col gap-2 border-t border-gray-700 bg-gray-800 p-3">
+    <div className="flex flex-col gap-2 border-t border-border bg-surface p-3">
       {pendingFiles.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {pendingFiles.map((file) => (
             <span
               key={file.id}
-              className="flex items-center gap-1 rounded-full bg-gray-700 px-2 py-1 text-xs text-gray-200"
+              className="flex items-center gap-1 rounded-full bg-surface-elevated px-2 py-1 text-xs text-text"
             >
               {file.name}
               <button
                 type="button"
                 onClick={() => removePendingFile(file.id)}
-                className="text-gray-400 hover:text-white"
+                className="text-text-muted hover:text-text"
                 aria-label={`Remove ${file.name}`}
               >
                 ×
@@ -193,16 +193,16 @@ export function Composer({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={isSending}
-            className="h-24 w-full resize-none rounded-md border border-gray-600 bg-gray-900 p-3 text-sm text-white placeholder-gray-500 focus:border-green-500 focus:outline-none disabled:opacity-50"
+            className="h-24 w-full resize-none rounded-md border border-border bg-bg p-3 text-sm text-text placeholder:text-text-muted focus:border-accent focus:outline-none disabled:opacity-50"
           />
           {mentionQuery !== null && filteredCandidates.length > 0 && (
-            <ul className="absolute bottom-full left-0 z-10 mb-1 w-64 rounded-md border border-gray-600 bg-gray-800 py-1 shadow-lg">
+            <ul className="absolute bottom-full left-0 z-10 mb-1 w-64 rounded-md border border-border bg-surface py-1 shadow-lg">
               {filteredCandidates.map((id) => (
                 <li key={id}>
                   <button
                     type="button"
                     onClick={() => insertMention(id)}
-                    className="w-full px-3 py-1 text-left text-sm text-gray-200 hover:bg-gray-700"
+                    className="w-full px-3 py-1 text-left text-sm text-text hover:bg-surface-elevated"
                   >
                     @{id}
                   </button>
@@ -227,7 +227,7 @@ export function Composer({
           <button
             type="button"
             onClick={() => setShowPreview((p) => !p)}
-            className="rounded-md px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700"
+            className="rounded-md px-3 py-1.5 text-sm text-text hover:bg-surface-elevated"
           >
             {showPreview ? 'Edit' : 'Preview'}
           </button>
@@ -236,7 +236,7 @@ export function Composer({
           type="button"
           onClick={() => void handleSubmit()}
           disabled={!content.trim() || isSending}
-          className="rounded-md bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-500 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-text-inverse hover:bg-accent-hover disabled:opacity-50"
         >
           {isSending ? 'Sending...' : 'Send'}
         </button>

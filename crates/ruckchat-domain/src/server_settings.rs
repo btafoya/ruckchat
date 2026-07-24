@@ -13,6 +13,8 @@ pub struct ServerSettings {
     pub default_storage_quota_bytes: i64,
     /// Allowed email domains for signup, empty means unrestricted.
     pub allowed_signup_domains: Vec<String>,
+    /// Whether new user registrations are allowed.
+    pub allow_registration: bool,
 }
 
 impl ServerSettings {
@@ -24,6 +26,7 @@ impl ServerSettings {
             default_max_file_size_bytes: 25 * 1024 * 1024,
             default_storage_quota_bytes: 10 * 1024 * 1024 * 1024,
             allowed_signup_domains: Vec::new(),
+            allow_registration: true,
         }
     }
 }

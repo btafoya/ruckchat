@@ -67,7 +67,7 @@ export function OrgAdminEmoji({ organizationId }: OrgAdminEmojiProps): JSX.Eleme
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Custom Emoji</h2>
 
-      {error && <div className="rounded bg-red-900/50 p-3 text-red-200">{error}</div>}
+      {error && <div className="rounded bg-danger-bg p-3 text-danger">{error}</div>}
 
       <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3">
         <input
@@ -75,35 +75,35 @@ export function OrgAdminEmoji({ organizationId }: OrgAdminEmojiProps): JSX.Eleme
           value={shortcode}
           onChange={(e) => setShortcode(e.target.value)}
           placeholder="shortcode"
-          className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+          className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
         />
         <input
           type="text"
           value={fileId}
           onChange={(e) => setFileId(e.target.value)}
           placeholder="file id"
-          className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+          className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
         />
         <button
           type="submit"
           disabled={!shortcode || !fileId}
-          className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+          className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-50"
         >
           Create
         </button>
       </form>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-text-muted">Loading...</div>
       ) : (
-        <ul className="divide-y divide-gray-800">
+        <ul className="divide-y divide-border">
           {emoji.map((item) => (
             <li key={item.id} className="flex items-center justify-between py-2">
               <span>:{item.shortcode}:</span>
               <button
                 type="button"
                 onClick={() => handleDelete(item.id)}
-                className="text-xs text-red-400 hover:text-red-300"
+                className="text-xs text-danger hover:text-danger-hover"
               >
                 Delete
               </button>

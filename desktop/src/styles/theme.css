@@ -1,0 +1,67 @@
+@theme {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-border: var(--color-border);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-inverse: var(--color-text-inverse);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-danger: var(--color-danger);
+  --color-danger-hover: var(--color-danger-hover);
+  --color-warning: var(--color-warning);
+  --color-warning-hover: var(--color-warning-hover);
+  --color-info: var(--color-info);
+  --color-info-hover: var(--color-info-hover);
+  --color-link: var(--color-link);
+  --color-link-hover: var(--color-link-hover);
+  --color-message-hover: var(--color-message-hover);
+  --color-overlay: var(--color-overlay);
+  --color-danger-bg: var(--color-danger-bg);
+  --color-accent-bg: var(--color-accent-bg);
+}
+
+:root {
+  --color-bg: #111827;
+  --color-surface: #1f2937;
+  --color-surface-elevated: #374151;
+  --color-border: #4b5563;
+  --color-text: #ffffff;
+  --color-text-muted: #9ca3af;
+  --color-text-inverse: #111827;
+  --color-accent: #16a34a;
+  --color-accent-hover: #22c55e;
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-warning: #eab308;
+  --color-warning-hover: #ca8a04;
+  --color-info: #3b82f6;
+  --color-info-hover: #2563eb;
+  --color-link: #a855f7;
+  --color-link-hover: #9333ea;
+  --color-message-hover: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  --color-overlay: color-mix(in srgb, #000000 50%, transparent);
+  --color-danger-bg: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
+  --color-accent-bg: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface));
+}
+
+html.light {
+  --color-bg: #ffffff;
+  --color-surface: #f3f4f6;
+  --color-surface-elevated: #e5e7eb;
+  --color-border: #d1d5db;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-text-inverse: #ffffff;
+  --color-accent: #16a34a;
+  --color-accent-hover: #15803d;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-warning: #ca8a04;
+  --color-warning-hover: #a16207;
+  --color-info: #2563eb;
+  --color-info-hover: #1d4ed8;
+  --color-link: #9333ea;
+  --color-link-hover: #7e22ce;
+}

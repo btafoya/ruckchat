@@ -9,7 +9,7 @@
 ## Chat UI
 
 - If the user belongs to one organization it should take them directly to the #general channel when logging in - open
-- No method for creating channels (CRUD - Also public and private channels with user invite CRUD for private channels) - open
+- No method for creating channels (CRUD - Also public and private channels with user invite CRUD for private channels) - Modal like <https://github.com/block/buzz/blob/main/docs/assets/screenshots/create-channel.png> - open
 - Direct messages is missing all functionality. Fully complete the UI allowing users to message others in their organization in the same fashion slack does - open
 
 ## Admin UI

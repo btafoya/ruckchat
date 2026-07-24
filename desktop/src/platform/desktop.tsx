@@ -61,7 +61,7 @@ function DesktopFilePicker({
       type="button"
       onClick={() => void handleClick()}
       disabled={disabled}
-      className="rounded-md px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+      className="rounded-md px-3 py-1.5 text-sm text-text hover:bg-surface-elevated disabled:opacity-50"
     >
       Attach
     </button>

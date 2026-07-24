@@ -6,3 +6,4 @@ export { Settings } from './Settings';
 export { Shell } from './Shell';
 export { Sidebar } from './Sidebar';
 export { ThreadPane } from './ThreadPane';
+export { ThemeProvider } from './ThemeProvider';

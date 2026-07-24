@@ -13,6 +13,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use ruckchat_id::UserId;
+use serde::Serialize;
 
 /// Authenticated user extracted from the session cookie or bearer token.
 #[derive(Debug, Clone)]
@@ -109,12 +110,35 @@ pub async fn register(
     State(state): State<AppState>,
     Json(request): Json<RegisterRequest>,
 ) -> Result<impl IntoResponse, Error> {
+    let settings = state.server_settings.load().await?;
+    if !settings.allow_registration {
+        return Err(Error::Domain(ruckchat_common::Error::Forbidden(
+            "new user registrations are disabled".into(),
+        )));
+    }
     let (user, organization) = state.auth.register(request).await?;
     let response = RegisterResponse {
         user: UserResponse::from_domain(&user),
         organization,
     };
     Ok((StatusCode::CREATED, Json(response)))
+}
+
+/// Public status of whether new user registrations are allowed.
+#[derive(Debug, Clone, Serialize)]
+pub struct RegistrationStatusResponse {
+    /// Whether new user registrations are allowed.
+    pub allow_registration: bool,
+}
+
+/// Returns whether new user registrations are currently allowed.
+pub async fn registration_status(
+    State(state): State<AppState>,
+) -> Result<Json<RegistrationStatusResponse>, Error> {
+    let settings = state.server_settings.load().await?;
+    Ok(Json(RegistrationStatusResponse {
+        allow_registration: settings.allow_registration,
+    }))
 }
 
 /// Authenticates a user and establishes a session cookie.

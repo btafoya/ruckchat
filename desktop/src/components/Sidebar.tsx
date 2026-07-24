@@ -18,7 +18,7 @@ function NavBadge({ count }: NavBadgeProps): JSX.Element | null {
     return null;
   }
   return (
-    <span className="ml-auto rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
+    <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-text-inverse">
       {count > 99 ? '99+' : count}
     </span>
   );
@@ -63,20 +63,20 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
   }, [mobileOpen, onClose]);
 
   const asideClass = mobileOpen
-    ? 'fixed inset-y-0 left-0 z-20 flex w-64 flex-shrink-0 flex-col border-r border-gray-700 bg-gray-800'
-    : 'hidden md:flex w-64 flex-shrink-0 flex-col border-r border-gray-700 bg-gray-800';
+    ? 'fixed inset-y-0 left-0 z-20 flex w-64 flex-shrink-0 flex-col border-r border-border bg-surface'
+    : 'hidden md:flex w-64 flex-shrink-0 flex-col border-r border-border bg-surface';
 
   return (
     <aside className={asideClass} aria-label="Navigation">
-      <header className="flex items-center justify-between border-b border-gray-700 p-4">
-        <span className="font-semibold text-white">RuckChat</span>
+      <header className="flex items-center justify-between border-b border-border p-4">
+        <span className="font-semibold text-text">RuckChat</span>
         <div className="flex items-center gap-2">
           {mobileOpen && (
             <button
               type="button"
               aria-label="Close navigation"
               onClick={onClose}
-              className="text-xs text-gray-400 hover:text-white md:hidden"
+              className="text-xs text-text-muted hover:text-text md:hidden"
             >
               ✕
             </button>
@@ -84,7 +84,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
           <button
             type="button"
             onClick={() => void logout()}
-            className="text-xs text-gray-400 hover:text-white"
+            className="text-xs text-text-muted hover:text-text"
           >
             Sign out
           </button>
@@ -92,11 +92,11 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
       </header>
 
       <div className="flex flex-col gap-2 p-3">
-        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <div className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           Organizations
         </div>
-        {orgsLoading && <div className="text-sm text-gray-400">Loading...</div>}
-        {orgsError && <div className="text-sm text-red-400">{orgsError}</div>}
+        {orgsLoading && <div className="text-sm text-text-muted">Loading...</div>}
+        {orgsError && <div className="text-sm text-danger">{orgsError}</div>}
         <nav className="flex flex-col gap-1" aria-label="Organizations">
           {organizations.map((org) => (
             <NavLink
@@ -106,8 +106,8 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
               className={({ isActive }) =>
                 `rounded-md px-3 py-2 text-sm ${
                   isActive || activeOrgId === org.id
-                    ? 'bg-green-700 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
+                    ? 'bg-accent text-text-inverse'
+                    : 'text-text hover:bg-surface-elevated'
                 }`
               }
               end
@@ -119,8 +119,8 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
       </div>
 
       {showServerAdmin && (
-        <div className="flex flex-col gap-2 border-t border-gray-700 p-3">
-          <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <div className="flex flex-col gap-2 border-t border-border p-3">
+          <div className="text-xs font-semibold uppercase tracking-wider text-text-muted">
             Server administration
           </div>
           <nav className="flex flex-col gap-1" aria-label="Server administration">
@@ -129,7 +129,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
               onClick={handleNavClick}
               className={({ isActive }) =>
                 `rounded-md px-3 py-2 text-sm ${
-                  isActive ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                  isActive ? 'bg-accent text-text-inverse' : 'text-text hover:bg-surface-elevated'
                 }`
               }
             >
@@ -141,12 +141,12 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
 
       {activeOrganization && (
         <>
-          <div className="flex flex-col gap-2 border-t border-gray-700 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+          <div className="flex flex-col gap-2 border-t border-border p-3">
+            <div className="text-xs font-semibold uppercase tracking-wider text-text-muted">
               {activeOrganization.name} channels
             </div>
-            {channelsLoading && <div className="text-sm text-gray-400">Loading...</div>}
-            {channelsError && <div className="text-sm text-red-400">{channelsError}</div>}
+            {channelsLoading && <div className="text-sm text-text-muted">Loading...</div>}
+            {channelsError && <div className="text-sm text-danger">{channelsError}</div>}
             <nav className="flex flex-col gap-1" aria-label="Channels">
               {channels.map((channel) => (
                 <NavLink
@@ -155,7 +155,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
                   onClick={handleNavClick}
                   className={({ isActive }) =>
                     `flex items-center rounded-md px-3 py-2 text-sm ${
-                      isActive ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                      isActive ? 'bg-accent text-text-inverse' : 'text-text hover:bg-surface-elevated'
                     }`
                   }
                 >
@@ -166,12 +166,12 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
             </nav>
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-gray-700 p-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+          <div className="flex flex-col gap-2 border-t border-border p-3">
+            <div className="text-xs font-semibold uppercase tracking-wider text-text-muted">
               Direct messages
             </div>
-            {dmsLoading && <div className="text-sm text-gray-400">Loading...</div>}
-            {dmsError && <div className="text-sm text-red-400">{dmsError}</div>}
+            {dmsLoading && <div className="text-sm text-text-muted">Loading...</div>}
+            {dmsError && <div className="text-sm text-danger">{dmsError}</div>}
             <nav className="flex flex-col gap-1" aria-label="Direct messages">
               {conversations.map((conversation) => (
                 <NavLink
@@ -180,7 +180,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
                   onClick={handleNavClick}
                   className={({ isActive }) =>
                     `flex items-center rounded-md px-3 py-2 text-sm ${
-                      isActive ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                      isActive ? 'bg-accent text-text-inverse' : 'text-text hover:bg-surface-elevated'
                     }`
                   }
                 >
@@ -192,8 +192,8 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
           </div>
 
           {showOrgAdmin && (
-            <div className="flex flex-col gap-2 border-t border-gray-700 p-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <div className="flex flex-col gap-2 border-t border-border p-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-text-muted">
                 {activeOrganization.name} administration
               </div>
               <nav className="flex flex-col gap-1" aria-label="Organization administration">
@@ -202,7 +202,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
                   onClick={handleNavClick}
                   className={({ isActive }) =>
                     `rounded-md px-3 py-2 text-sm ${
-                      isActive ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                      isActive ? 'bg-accent text-text-inverse' : 'text-text hover:bg-surface-elevated'
                     }`
                   }
                 >
@@ -214,12 +214,12 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
         </>
       )}
 
-      <div className="mt-auto border-t border-gray-700 p-3">
+      <div className="mt-auto border-t border-border p-3">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-300">{session?.user.display_name ?? session?.user.email}</div>
+          <div className="text-sm text-text">{session?.user.display_name ?? session?.user.email}</div>
           <NavLink
             to="/settings"
-            className="text-xs text-gray-400 hover:text-white"
+            className="text-xs text-text-muted hover:text-text"
             aria-label="Settings"
           >
             Settings

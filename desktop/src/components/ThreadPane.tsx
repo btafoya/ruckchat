@@ -40,13 +40,13 @@ export function ThreadPane(): JSX.Element {
   }
 
   return (
-    <div className="absolute inset-0 z-20 flex justify-end bg-black/50">
-      <section className="flex w-full max-w-md flex-col border-l border-gray-700 bg-gray-800 shadow-xl">
-        <header className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
-          <div className="text-sm font-semibold text-white">Thread</div>
+    <div className="absolute inset-0 z-20 flex justify-end bg-overlay">
+      <section className="flex w-full max-w-md flex-col border-l border-border bg-surface shadow-xl">
+        <header className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="text-sm font-semibold text-text">Thread</div>
           <NavLink
             to={backPath}
-            className="text-sm text-gray-300 hover:text-white"
+            className="text-sm text-text hover:text-text-muted"
           >
             Close
           </NavLink>
@@ -55,14 +55,14 @@ export function ThreadPane(): JSX.Element {
         <div className="flex flex-1 flex-col overflow-y-auto p-4">
           {parent && <MessageItem message={parent} organizationId={organizationId} showReplyButton={false} />}
           {!parent && !threadRepliesLoading && (
-            <div className="text-sm text-gray-500">Parent message not found.</div>
+            <div className="text-sm text-text-muted">Parent message not found.</div>
           )}
 
-          <div className="my-2 border-t border-gray-700" />
+          <div className="my-2 border-t border-border" />
 
-          {threadRepliesLoading && <div className="text-sm text-gray-400">Loading replies...</div>}
+          {threadRepliesLoading && <div className="text-sm text-text-muted">Loading replies...</div>}
           {threadReplies.length === 0 && !threadRepliesLoading && (
-            <div className="text-sm text-gray-500">No replies yet.</div>
+            <div className="text-sm text-text-muted">No replies yet.</div>
           )}
           <ul className="flex flex-col gap-3">
             {threadReplies.map((reply) => (

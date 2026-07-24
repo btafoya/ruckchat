@@ -4,8 +4,22 @@ import { NavLink } from 'react-router-dom';
 import { useSettings } from '../hooks';
 import { DEFAULT_API_URL } from '../config';
 
+const THEME_OPTIONS: Array<{ value: 'light' | 'dark' | 'system'; label: string }> = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+];
+
 export function Settings(): JSX.Element {
-  const { apiUrl, notificationsEnabled, setApiUrl, setNotificationsEnabled, reset } = useSettings();
+  const {
+    apiUrl,
+    notificationsEnabled,
+    theme,
+    setApiUrl,
+    setNotificationsEnabled,
+    setTheme,
+    reset,
+  } = useSettings();
   const [url, setUrl] = useState(apiUrl);
   const [saved, setSaved] = useState(false);
 
@@ -22,17 +36,17 @@ export function Settings(): JSX.Element {
   }, [reset]);
 
   return (
-    <div className="flex h-full flex-col bg-gray-900 p-6 text-white">
+    <div className="flex h-full flex-col bg-bg p-6 text-text">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Settings</h1>
-        <NavLink to="/" className="text-sm text-gray-300 hover:text-white">
+        <NavLink to="/" className="text-sm text-text-muted hover:text-text">
           Back
         </NavLink>
       </header>
 
       <div className="max-w-md space-y-6">
         <div>
-          <label htmlFor="api-url" className="mb-1 block text-sm font-medium text-gray-300">
+          <label htmlFor="api-url" className="mb-1 block text-sm font-medium text-text">
             Server URL
           </label>
           <input
@@ -40,9 +54,9 @@ export function Settings(): JSX.Element {
             type="url"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
-            className="w-full rounded-md border border-gray-600 bg-gray-800 p-2 text-sm text-white placeholder-gray-500 focus:border-green-500 focus:outline-none"
+            className="w-full rounded-md border border-border bg-surface p-2 text-sm text-text placeholder:text-text-muted focus:border-accent focus:outline-none"
           />
-          <p className="mt-1 text-xs text-gray-400">Backend address used for REST and WebSocket.</p>
+          <p className="mt-1 text-xs text-text-muted">Backend address used for REST and WebSocket.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -51,29 +65,49 @@ export function Settings(): JSX.Element {
             type="checkbox"
             checked={notificationsEnabled}
             onChange={(event) => setNotificationsEnabled(event.target.checked)}
-            className="h-4 w-4 accent-green-600"
+            className="h-4 w-4 accent-accent"
           />
-          <label htmlFor="notifications" className="text-sm text-gray-300">
+          <label htmlFor="notifications" className="text-sm text-text">
             Enable notifications for direct messages and mentions
           </label>
+        </div>
+
+        <div>
+          <span className="mb-1 block text-sm font-medium text-text">Theme</span>
+          <div className="flex gap-2">
+            {THEME_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setTheme(option.value)}
+                className={`rounded-md px-3 py-1.5 text-sm ${
+                  theme === option.value
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-surface text-text hover:bg-surface-elevated'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => void handleSave()}
-            className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-500"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-accent-hover"
           >
             Save
           </button>
           <button
             type="button"
             onClick={handleReset}
-            className="rounded-md px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+            className="rounded-md px-4 py-2 text-sm text-text hover:bg-surface"
           >
             Reset
           </button>
-          {saved && <span className="text-sm text-green-400">Saved</span>}
+          {saved && <span className="text-sm text-accent">Saved</span>}
         </div>
       </div>
     </div>

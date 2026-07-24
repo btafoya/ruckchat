@@ -37,9 +37,46 @@ export interface paths {
                     };
                 };
                 400: components["responses"]["BadRequest"];
+                403: components["responses"]["Forbidden"];
                 409: components["responses"]["Conflict"];
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/registration-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get whether new user registrations are currently allowed */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Registration status */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistrationStatusResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3480,6 +3517,7 @@ export interface components {
             /** Format: int64 */
             default_storage_quota_bytes: number;
             allowed_signup_domains: string[];
+            allow_registration: boolean;
         };
         UpdateServerSettingsRequest: {
             maintenance_mode_enabled: boolean;
@@ -3488,6 +3526,10 @@ export interface components {
             /** Format: int64 */
             default_storage_quota_bytes: number;
             allowed_signup_domains: string[];
+            allow_registration: boolean;
+        };
+        RegistrationStatusResponse: {
+            allow_registration: boolean;
         };
         AuditLogEntry: {
             id: components["schemas"]["Uuid"];

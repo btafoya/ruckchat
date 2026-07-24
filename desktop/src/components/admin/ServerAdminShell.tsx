@@ -16,7 +16,7 @@ export function ServerAdminShell(): JSX.Element {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+      <div className="flex h-screen items-center justify-center bg-bg text-text">
         Loading...
       </div>
     );
@@ -28,10 +28,10 @@ export function ServerAdminShell(): JSX.Element {
 
   if (!session.user.is_server_admin) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+      <div className="flex h-screen items-center justify-center bg-bg text-text">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Forbidden</h1>
-          <p className="mt-2 text-gray-400">
+          <p className="mt-2 text-text-muted">
             Server administrator access is required.
           </p>
         </div>
@@ -40,13 +40,13 @@ export function ServerAdminShell(): JSX.Element {
   }
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-gray-900 text-white">
-      <header className="border-b border-gray-700 bg-gray-800 px-6 py-4">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text">
+      <header className="border-b border-border bg-surface px-6 py-4">
         <h1 className="text-lg font-semibold">Server Administration</h1>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <nav
-          className="flex w-48 flex-shrink-0 flex-col gap-1 border-r border-gray-700 bg-gray-800 p-3"
+          className="flex w-48 flex-shrink-0 flex-col gap-1 border-r border-border bg-surface p-3"
           aria-label="Server admin"
         >
           {tabs.map((tab) => (
@@ -56,8 +56,8 @@ export function ServerAdminShell(): JSX.Element {
               className={({ isActive }) =>
                 `rounded-md px-3 py-2 text-sm ${
                   isActive
-                    ? 'bg-green-700 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
+                    ? 'bg-accent text-text-inverse'
+                    : 'text-text hover:bg-surface-elevated'
                 }`
               }
             >

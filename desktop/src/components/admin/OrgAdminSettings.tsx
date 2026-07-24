@@ -64,14 +64,14 @@ export function OrgAdminSettings({ organizationId }: OrgAdminSettingsProps): JSX
     <div className="max-w-2xl space-y-6">
       <h2 className="text-xl font-semibold">Organization Settings</h2>
 
-      {error && <div className="rounded bg-red-900/50 p-3 text-red-200">{error}</div>}
+      {error && <div className="rounded bg-danger-bg p-3 text-danger">{error}</div>}
 
       {isLoading || !settings ? (
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-text-muted">Loading...</div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-400">Max file size (bytes)</label>
+            <label className="text-sm text-text-muted">Max file size (bytes)</label>
             <input
               type="number"
               value={form.max_file_size_bytes}
@@ -81,12 +81,12 @@ export function OrgAdminSettings({ organizationId }: OrgAdminSettingsProps): JSX
                   max_file_size_bytes: Number(e.target.value),
                 }))
               }
-              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-400">Storage quota (bytes)</label>
+            <label className="text-sm text-text-muted">Storage quota (bytes)</label>
             <input
               type="number"
               value={form.storage_quota_bytes}
@@ -96,14 +96,14 @@ export function OrgAdminSettings({ organizationId }: OrgAdminSettingsProps): JSX
                   storage_quota_bytes: Number(e.target.value),
                 }))
               }
-              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
             />
           </div>
 
           <button
             type="submit"
             disabled={saving}
-            className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+            className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Settings'}
           </button>

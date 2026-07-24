@@ -14,6 +14,8 @@ export type Role = components['schemas']['Role'];
 
 export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RegisterResponse = components['schemas']['RegisterResponse'];
+export type RegistrationStatusResponse =
+  components['schemas']['RegistrationStatusResponse'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
 export type CreateOrganizationRequest = components['schemas']['CreateOrganizationRequest'];

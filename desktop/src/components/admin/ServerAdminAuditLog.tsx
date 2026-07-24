@@ -40,7 +40,7 @@ export function ServerAdminAuditLog(): JSX.Element {
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Audit Log</h2>
 
-      {error && <div className="rounded bg-red-900/50 p-3 text-red-200">{error}</div>}
+      {error && <div className="rounded bg-danger-bg p-3 text-danger">{error}</div>}
 
       <div className="flex items-center gap-2">
         <input
@@ -48,22 +48,22 @@ export function ServerAdminAuditLog(): JSX.Element {
           value={action}
           onChange={(e) => setAction(e.target.value)}
           placeholder="Filter by action"
-          className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+          className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
         />
         <button
           type="button"
           onClick={() => void refresh()}
-          className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600"
+          className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover"
         >
           Refresh
         </button>
       </div>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-text-muted">Loading...</div>
       ) : (
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-700 text-gray-400">
+          <thead className="border-b border-border text-text-muted">
             <tr>
               <th className="py-2">Time</th>
               <th className="py-2">Action</th>
@@ -71,13 +71,13 @@ export function ServerAdminAuditLog(): JSX.Element {
               <th className="py-2">Resource</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-border">
             {entries.map((entry) => (
               <tr key={entry.id}>
-                <td className="py-2 text-gray-400">{entry.occurred_at}</td>
+                <td className="py-2 text-text-muted">{entry.occurred_at}</td>
                 <td className="py-2">{entry.action}</td>
-                <td className="py-2 text-gray-400">{entry.actor_id}</td>
-                <td className="py-2 text-gray-400">
+                <td className="py-2 text-text-muted">{entry.actor_id}</td>
+                <td className="py-2 text-text-muted">
                   {entry.resource_type}
                   {entry.resource_id ? ` / ${entry.resource_id}` : ''}
                 </td>

@@ -155,6 +155,7 @@ impl AppState {
             default_max_file_size_bytes: config.server_settings.default_max_file_size_bytes,
             default_storage_quota_bytes: config.server_settings.default_storage_quota_bytes,
             allowed_signup_domains: config.server_settings.allowed_signup_domains.clone(),
+            allow_registration: config.server_settings.allow_registration,
         };
         Self::build(
             pool,

@@ -90,27 +90,27 @@ export function ServerAdminUsers(): JSX.Element {
         <button
           type="button"
           onClick={() => setShowCreate((prev) => !prev)}
-          className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600"
+          className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover"
         >
           {showCreate ? 'Cancel' : 'Create User'}
         </button>
       </div>
 
       {showCreate && (
-        <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3 rounded border border-gray-700 p-3">
+        <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3 rounded border border-border p-3">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-400">Email</label>
+            <label className="text-xs text-text-muted">Email</label>
             <input
               type="email"
               required
               value={createForm.email}
               onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
-              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
               placeholder="user@example.com"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-400">Display Name</label>
+            <label className="text-xs text-text-muted">Display Name</label>
             <input
               type="text"
               required
@@ -118,12 +118,12 @@ export function ServerAdminUsers(): JSX.Element {
               onChange={(e) =>
                 setCreateForm((prev) => ({ ...prev, display_name: e.target.value }))
               }
-              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
               placeholder="Full name"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-400">Password (optional)</label>
+            <label className="text-xs text-text-muted">Password (optional)</label>
             <input
               type="password"
               value={createForm.password ?? ''}
@@ -133,13 +133,13 @@ export function ServerAdminUsers(): JSX.Element {
                   password: e.target.value || null,
                 }))
               }
-              className="rounded bg-gray-800 px-3 py-2 text-sm outline-none ring-green-500 focus:ring"
+              className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
               placeholder="Leave blank to generate"
             />
           </div>
           <button
             type="submit"
-            className="rounded bg-green-700 px-4 py-2 text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+            className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-50"
             disabled={!createForm.email || !createForm.display_name}
           >
             Create
@@ -147,13 +147,13 @@ export function ServerAdminUsers(): JSX.Element {
         </form>
       )}
 
-      {error && <div className="rounded bg-red-900/50 p-3 text-red-200">{error}</div>}
+      {error && <div className="rounded bg-danger-bg p-3 text-danger">{error}</div>}
 
       {isLoading ? (
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-text-muted">Loading...</div>
       ) : (
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-700 text-gray-400">
+          <thead className="border-b border-border text-text-muted">
             <tr>
               <th className="py-2">Email</th>
               <th className="py-2">Display Name</th>
@@ -162,7 +162,7 @@ export function ServerAdminUsers(): JSX.Element {
               <th className="py-2">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-border">
             {users.map((user) => (
               <tr key={user.id}>
                 <td className="py-2">
@@ -173,7 +173,7 @@ export function ServerAdminUsers(): JSX.Element {
                       onChange={(e) =>
                         setEditForm((prev) => ({ ...prev, email: e.target.value }))
                       }
-                      className="w-full rounded bg-gray-800 px-2 py-1 text-sm outline-none ring-green-500 focus:ring"
+                      className="w-full rounded bg-surface px-2 py-1 text-sm outline-none ring-accent focus:ring"
                     />
                   ) : (
                     user.email
@@ -187,7 +187,7 @@ export function ServerAdminUsers(): JSX.Element {
                       onChange={(e) =>
                         setEditForm((prev) => ({ ...prev, display_name: e.target.value }))
                       }
-                      className="w-full rounded bg-gray-800 px-2 py-1 text-sm outline-none ring-green-500 focus:ring"
+                      className="w-full rounded bg-surface px-2 py-1 text-sm outline-none ring-accent focus:ring"
                     />
                   ) : (
                     user.display_name
@@ -196,9 +196,9 @@ export function ServerAdminUsers(): JSX.Element {
                 <td className="py-2">{user.is_server_admin ? 'Yes' : 'No'}</td>
                 <td className="py-2">
                   {user.deactivated_at ? (
-                    <span className="text-red-400">Deactivated</span>
+                    <span className="text-danger">Deactivated</span>
                   ) : (
-                    <span className="text-green-400">Active</span>
+                    <span className="text-accent">Active</span>
                   )}
                 </td>
                 <td className="py-2">
@@ -207,7 +207,7 @@ export function ServerAdminUsers(): JSX.Element {
                       <button
                         type="button"
                         onClick={() => saveEdit(user.id)}
-                        className="text-xs text-green-400 hover:text-green-300"
+                        className="text-xs text-accent hover:text-accent-hover"
                       >
                         Save
                       </button>
@@ -215,7 +215,7 @@ export function ServerAdminUsers(): JSX.Element {
                       <button
                         type="button"
                         onClick={() => startEdit(user)}
-                        className="text-xs text-gray-300 hover:text-white"
+                        className="text-xs text-text hover:text-text"
                       >
                         Edit
                       </button>
@@ -226,7 +226,7 @@ export function ServerAdminUsers(): JSX.Element {
                         onClick={() =>
                           action('demote', () => api.serverAdmin.demoteUser(token, user.id))
                         }
-                        className="text-xs text-yellow-400 hover:text-yellow-300"
+                        className="text-xs text-warning hover:text-warning-hover"
                       >
                         Demote
                       </button>
@@ -236,7 +236,7 @@ export function ServerAdminUsers(): JSX.Element {
                         onClick={() =>
                           action('promote', () => api.serverAdmin.promoteUser(token, user.id))
                         }
-                        className="text-xs text-green-400 hover:text-green-300"
+                        className="text-xs text-accent hover:text-accent-hover"
                       >
                         Promote
                       </button>
@@ -249,7 +249,7 @@ export function ServerAdminUsers(): JSX.Element {
                             api.serverAdmin.reactivateUser(token, user.id),
                           )
                         }
-                        className="text-xs text-green-400 hover:text-green-300"
+                        className="text-xs text-accent hover:text-accent-hover"
                       >
                         Reactivate
                       </button>
@@ -261,7 +261,7 @@ export function ServerAdminUsers(): JSX.Element {
                             api.serverAdmin.deactivateUser(token, user.id),
                           )
                         }
-                        className="text-xs text-red-400 hover:text-red-300"
+                        className="text-xs text-danger hover:text-danger-hover"
                       >
                         Deactivate
                       </button>
@@ -274,7 +274,7 @@ export function ServerAdminUsers(): JSX.Element {
                           window.alert(`Temporary password: ${result.password}`);
                         })
                       }
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-info hover:text-info-hover"
                     >
                       Reset Password
                     </button>
@@ -288,7 +288,7 @@ export function ServerAdminUsers(): JSX.Element {
                           window.alert(`Impersonation token: ${result.token}`);
                         })
                       }
-                      className="text-xs text-purple-400 hover:text-purple-300"
+                      className="text-xs text-link hover:text-link-hover"
                     >
                       Impersonate
                     </button>

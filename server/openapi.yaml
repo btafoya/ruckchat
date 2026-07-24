@@ -47,8 +47,22 @@ paths:
                 $ref: '#/components/schemas/RegisterResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
+
+  /auth/registration-status:
+    get:
+      summary: Get whether new user registrations are currently allowed
+      tags: [Auth]
+      responses:
+        '200':
+          description: Registration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationStatusResponse'
 
   /auth/login:
     post:
@@ -3266,7 +3280,7 @@ components:
 
     ServerSettings:
       type: object
-      required: [maintenance_mode_enabled, default_max_file_size_bytes, default_storage_quota_bytes, allowed_signup_domains]
+      required: [maintenance_mode_enabled, default_max_file_size_bytes, default_storage_quota_bytes, allowed_signup_domains, allow_registration]
       properties:
         maintenance_mode_enabled:
           type: boolean
@@ -3280,10 +3294,12 @@ components:
           type: array
           items:
             type: string
+        allow_registration:
+          type: boolean
 
     UpdateServerSettingsRequest:
       type: object
-      required: [maintenance_mode_enabled, default_max_file_size_bytes, default_storage_quota_bytes, allowed_signup_domains]
+      required: [maintenance_mode_enabled, default_max_file_size_bytes, default_storage_quota_bytes, allowed_signup_domains, allow_registration]
       properties:
         maintenance_mode_enabled:
           type: boolean
@@ -3297,6 +3313,15 @@ components:
           type: array
           items:
             type: string
+        allow_registration:
+          type: boolean
+
+    RegistrationStatusResponse:
+      type: object
+      required: [allow_registration]
+      properties:
+        allow_registration:
+          type: boolean
 
     AuditLogEntry:
       type: object

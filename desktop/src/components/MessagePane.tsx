@@ -60,7 +60,7 @@ export function MessagePane(): JSX.Element {
 
   if (!organization) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-gray-900 text-gray-400">
+      <div className="flex flex-1 items-center justify-center bg-bg text-text-muted">
         Select an organization from the sidebar.
       </div>
     );
@@ -68,7 +68,7 @@ export function MessagePane(): JSX.Element {
 
   if (!conversationId || !conversationType || (!channel && !conversation)) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-gray-900 text-gray-400">
+      <div className="flex flex-1 items-center justify-center bg-bg text-text-muted">
         Select a channel or direct message in {organization.name}.
       </div>
     );
@@ -76,9 +76,9 @@ export function MessagePane(): JSX.Element {
 
   return (
     <section className="relative flex flex-1 flex-col overflow-hidden" aria-label="Messages">
-      <header className="border-b border-gray-700 px-6 py-4">
-        <h1 className="text-lg font-semibold text-white">{title}</h1>
-        {channel?.topic && <p className="text-sm text-gray-400">{channel.topic}</p>}
+      <header className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-semibold text-text">{title}</h1>
+        {channel?.topic && <p className="text-sm text-text-muted">{channel.topic}</p>}
       </header>
 
       <div className="flex flex-1 flex-col overflow-y-auto p-4">
@@ -87,17 +87,17 @@ export function MessagePane(): JSX.Element {
             type="button"
             onClick={() => void loadMore()}
             disabled={isLoadingMore}
-            className="mb-3 self-center rounded-md bg-gray-700 px-3 py-1 text-xs text-white hover:bg-gray-600 disabled:opacity-50"
+            className="mb-3 self-center rounded-md bg-surface-elevated px-3 py-1 text-xs text-text-inverse hover:bg-surface disabled:opacity-50"
           >
             {isLoadingMore ? 'Loading...' : 'Load more history'}
           </button>
         )}
 
         {isLoading && messages.length === 0 && (
-          <div className="text-gray-400">Loading messages...</div>
+          <div className="text-text-muted">Loading messages...</div>
         )}
         {messages.length === 0 && !isLoading && (
-          <div className="text-gray-500">No messages yet.</div>
+          <div className="text-text-muted">No messages yet.</div>
         )}
         <ul className="flex flex-col gap-3">
           {messages.map((message) => (
@@ -108,7 +108,7 @@ export function MessagePane(): JSX.Element {
         </ul>
 
         {typingList.length > 0 && (
-          <div className="mt-2 text-xs italic text-gray-400">
+          <div className="mt-2 text-xs italic text-text-muted">
             {typingList.join(', ')} {typingList.length === 1 ? 'is' : 'are'} typing...
           </div>
         )}

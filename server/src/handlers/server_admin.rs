@@ -279,6 +279,7 @@ pub async fn update_settings(
         default_max_file_size_bytes: request.default_max_file_size_bytes,
         default_storage_quota_bytes: request.default_storage_quota_bytes,
         allowed_signup_domains: request.allowed_signup_domains,
+        allow_registration: request.allow_registration,
     };
     state.server_settings.save(&settings, auth_user.id).await?;
     Ok(StatusCode::OK)
@@ -465,6 +466,8 @@ pub struct UpdateServerSettingsRequest {
     pub default_storage_quota_bytes: i64,
     /// Allowed email domains for signup.
     pub allowed_signup_domains: Vec<String>,
+    /// Whether new user registrations are allowed.
+    pub allow_registration: bool,
 }
 
 /// Request to start an impersonation session.

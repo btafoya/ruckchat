@@ -35,6 +35,7 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route("/websocket", get(websocket_handler))
         .route("/mcp/v1/sse", any(mcp_handler))
         .route("/auth/register", post(auth::register))
+        .route("/auth/registration-status", get(auth::registration_status))
         .route("/auth/login", post(auth::login))
         .route("/auth/logout", post(auth::logout))
         .route("/users/me", get(user::get_profile))
