@@ -6,9 +6,10 @@ use crate::services::events::EventBus;
 use ruckchat_common::Error;
 use ruckchat_domain::{
     ChannelMembershipRepository, ChannelRepository, ConversationType, Message, MessageRepository,
-    OrganizationMembershipRepository,
+    OrganizationMembershipRepository, UserRepository,
 };
 use ruckchat_id::{ChannelId, DirectMessageConversationId, MessageId, OrganizationId, UserId};
+use std::collections::HashSet;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -25,6 +26,8 @@ pub struct MessageServiceDeps {
     pub memberships: Arc<dyn OrganizationMembershipRepository + Send + Sync>,
     /// DM conversation repository.
     pub conversations: Arc<dyn ruckchat_domain::DirectMessageConversationRepository + Send + Sync>,
+    /// User repository for resolving mention targets.
+    pub users: Arc<dyn UserRepository + Send + Sync>,
     /// Authorization service.
     pub authorization: AuthorizationService,
     /// Event bus for real-time updates.
@@ -83,12 +86,17 @@ impl MessageService {
                     channel_membership.as_ref(),
                 )?;
 
+                let mentioned_user_ids = self
+                    .validate_mentions(channel.organization_id, &request.content)
+                    .await?;
+
                 let message = Message::new(
                     request.conversation_id,
                     request.conversation_type,
                     caller_id,
                     request.content,
                     request.parent_id,
+                    mentioned_user_ids,
                 )?;
                 self.deps.messages.create(&message).await?;
                 let message = self
@@ -98,6 +106,7 @@ impl MessageService {
                     .await?
                     .ok_or_else(|| Error::Internal("created message disappeared".into()))?;
                 self.deps.events.publish_message_created(&message).await?;
+                self.publish_mentions(&message).await?;
                 Ok(message)
             }
             ConversationType::DirectMessage => {
@@ -124,12 +133,17 @@ impl MessageService {
                     ));
                 }
 
+                let mentioned_user_ids = self
+                    .validate_mentions(conversation.organization_id, &request.content)
+                    .await?;
+
                 let message = Message::new(
                     request.conversation_id,
                     request.conversation_type,
                     caller_id,
                     request.content,
                     request.parent_id,
+                    mentioned_user_ids,
                 )?;
                 self.deps.messages.create(&message).await?;
                 let message = self
@@ -139,6 +153,7 @@ impl MessageService {
                     .await?
                     .ok_or_else(|| Error::Internal("created message disappeared".into()))?;
                 self.deps.events.publish_message_created(&message).await?;
+                self.publish_mentions(&message).await?;
                 Ok(message)
             }
         }
@@ -173,9 +188,15 @@ impl MessageService {
             .authorization
             .require_can_edit_message(&message, caller_id, role)?;
 
+        let organization_id = self.conversation_organization_id(&message).await?;
+
         message.edit(request.content)?;
+        message.mentioned_user_ids = self
+            .validate_mentions(organization_id, &message.content)
+            .await?;
         self.deps.messages.update(&message).await?;
         self.deps.events.publish_message_updated(&message).await?;
+        self.publish_mentions(&message).await?;
         Ok(message)
     }
 
@@ -436,6 +457,103 @@ impl MessageService {
         }
         Ok(())
     }
+
+    async fn conversation_organization_id(
+        &self,
+        message: &Message,
+    ) -> ruckchat_common::Result<OrganizationId> {
+        match message.conversation_type {
+            ConversationType::Channel => {
+                let channel_id = ChannelId::from_uuid(message.conversation_id);
+                let channel = self
+                    .deps
+                    .channels
+                    .by_id(channel_id)
+                    .await?
+                    .ok_or_else(|| Error::NotFound("channel".into()))?;
+                Ok(channel.organization_id)
+            }
+            ConversationType::DirectMessage => {
+                let conversation_id =
+                    DirectMessageConversationId::from_uuid(message.conversation_id);
+                let conversation = self
+                    .deps
+                    .conversations
+                    .by_id(conversation_id)
+                    .await?
+                    .ok_or_else(|| Error::NotFound("dm conversation".into()))?;
+                Ok(conversation.organization_id)
+            }
+        }
+    }
+
+    async fn validate_mentions(
+        &self,
+        organization_id: OrganizationId,
+        content: &str,
+    ) -> ruckchat_common::Result<Vec<UserId>> {
+        let ids = extract_mention_user_ids(content);
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let members = self
+            .deps
+            .memberships
+            .list_by_organization(organization_id)
+            .await?;
+        let member_ids: HashSet<UserId> = members.into_iter().map(|m| m.user_id).collect();
+
+        let mut unique = Vec::with_capacity(ids.len());
+        let mut seen = HashSet::new();
+        for id in ids {
+            if !member_ids.contains(&id) {
+                return Err(Error::validation(format!(
+                    "mentioned user {id} is not an organization member"
+                )));
+            }
+            if seen.insert(id) {
+                unique.push(id);
+            }
+        }
+
+        Ok(unique)
+    }
+
+    async fn publish_mentions(&self, message: &Message) -> ruckchat_common::Result<()> {
+        for user_id in &message.mentioned_user_ids {
+            if *user_id != message.author_id {
+                self.deps.events.publish_mention(*user_id, message).await?;
+            }
+        }
+        Ok(())
+    }
+}
+
+fn extract_mention_user_ids(content: &str) -> Vec<UserId> {
+    let value: serde_json::Value = serde_json::from_str(content).unwrap_or_default();
+    let mut ids = Vec::new();
+    extract_mention_ids_from_value(&value, &mut ids);
+    ids
+}
+
+fn extract_mention_ids_from_value(value: &serde_json::Value, ids: &mut Vec<UserId>) {
+    if let Some(obj) = value.as_object()
+        && obj.get("type").and_then(|t| t.as_str()) == Some("mention")
+        && let Some(id) = obj
+            .get("attrs")
+            .and_then(|attrs| attrs.get("id"))
+            .and_then(|id| id.as_str())
+        && let Ok(uuid) = Uuid::parse_str(id)
+    {
+        ids.push(UserId::from_uuid(uuid));
+    }
+
+    if let Some(children) = value.get("content").and_then(|c| c.as_array()) {
+        for child in children {
+            extract_mention_ids_from_value(child, ids);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -446,7 +564,7 @@ mod tests {
     use crate::testing::{
         MockChannelMembershipRepository, MockChannelRepository,
         MockDirectMessageConversationRepository, MockEventBus, MockMessageRepository,
-        MockOrganizationMembershipRepository,
+        MockOrganizationMembershipRepository, MockUserRepository,
     };
     use ruckchat_domain::{
         Channel, ChannelMembership, ConversationType, DirectMessageConversation,
@@ -463,6 +581,7 @@ mod tests {
             channel_memberships: Arc::new(MockChannelMembershipRepository::new()),
             memberships: Arc::new(MockOrganizationMembershipRepository::new()),
             conversations: Arc::new(MockDirectMessageConversationRepository::new()),
+            users: Arc::new(MockUserRepository::new()),
             authorization: AuthorizationService::new(),
             events: events.clone(),
         });
@@ -661,5 +780,128 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Forbidden(_)));
+    }
+
+    fn mention_content(mentions: &[(UserId, &str)]) -> String {
+        let mut nodes = Vec::new();
+        for (id, label) in mentions {
+            nodes.push(serde_json::json!({
+                "type": "mention",
+                "attrs": {
+                    "id": id.to_string(),
+                    "label": label,
+                }
+            }));
+        }
+        serde_json::json!({
+            "type": "doc",
+            "content": nodes,
+        })
+        .to_string()
+    }
+
+    #[test]
+    fn extract_mention_user_ids_parses_prosemirror_nodes() {
+        let a = UserId::new();
+        let b = UserId::new();
+        let content = mention_content(&[(a, "Alice"), (b, "Bob")]);
+        let ids = extract_mention_user_ids(&content);
+        assert_eq!(ids, vec![a, b]);
+    }
+
+    #[tokio::test]
+    async fn post_message_stores_mentions_and_emits_events() {
+        let (svc, events) = service();
+        let (author_id, org_id, channel_id) = seed_channel(&svc, false).await;
+        let mentioned = User::new("mentioned@example.com", "Mentioned", "hash").unwrap();
+        svc.deps
+            .memberships
+            .create(&OrganizationMembership::new(mentioned.id, org_id, Role::Member).unwrap())
+            .await
+            .unwrap();
+
+        let content = mention_content(&[(mentioned.id, "Mentioned")]);
+        let msg = svc
+            .post_message(
+                author_id,
+                PostMessageRequest {
+                    conversation_id: channel_id.as_uuid(),
+                    conversation_type: ConversationType::Channel,
+                    parent_id: None,
+                    content,
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(msg.mentioned_user_ids, vec![mentioned.id]);
+        assert!(events.events().iter().any(|e| matches!(
+            e,
+            crate::services::events::ServerEvent::Mention { user_id, message }
+                if *user_id == mentioned.id && message.id == msg.id
+        )));
+    }
+
+    #[tokio::test]
+    async fn post_message_rejects_non_member_mention() {
+        let (svc, _events) = service();
+        let (author_id, _org_id, channel_id) = seed_channel(&svc, false).await;
+        let outsider = UserId::new();
+
+        let content = mention_content(&[(outsider, "Outsider")]);
+        let err = svc
+            .post_message(
+                author_id,
+                PostMessageRequest {
+                    conversation_id: channel_id.as_uuid(),
+                    conversation_type: ConversationType::Channel,
+                    parent_id: None,
+                    content,
+                },
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Validation { message: _ }));
+    }
+
+    #[tokio::test]
+    async fn edit_message_recomputes_mentions() {
+        let (svc, _events) = service();
+        let (author_id, org_id, channel_id) = seed_channel(&svc, false).await;
+        let first = User::new("first@example.com", "First", "hash").unwrap();
+        let second = User::new("second@example.com", "Second", "hash").unwrap();
+        for user in [&first, &second] {
+            svc.deps
+                .memberships
+                .create(&OrganizationMembership::new(user.id, org_id, Role::Member).unwrap())
+                .await
+                .unwrap();
+        }
+
+        let msg = svc
+            .post_message(
+                author_id,
+                PostMessageRequest {
+                    conversation_id: channel_id.as_uuid(),
+                    conversation_type: ConversationType::Channel,
+                    parent_id: None,
+                    content: mention_content(&[(first.id, "First")]),
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(msg.mentioned_user_ids, vec![first.id]);
+
+        let edited = svc
+            .edit_message(
+                author_id,
+                msg.id,
+                EditMessageRequest {
+                    content: mention_content(&[(second.id, "Second")]),
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(edited.mentioned_user_ids, vec![second.id]);
     }
 }

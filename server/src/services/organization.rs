@@ -229,6 +229,47 @@ impl OrganizationService {
         Ok(result)
     }
 
+    /// Searches organization members by display name or email for mention
+    /// autocomplete. The caller must be an organization member.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Forbidden`] when the caller is not a member.
+    pub async fn search_members(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        query: &str,
+    ) -> ruckchat_common::Result<Vec<ruckchat_domain::User>> {
+        if self
+            .deps
+            .memberships
+            .by_ids(caller_id, organization_id)
+            .await?
+            .is_none()
+        {
+            return Err(Error::Forbidden("must be an organization member".into()));
+        }
+
+        let query = query.trim().to_lowercase();
+        let memberships = self
+            .deps
+            .memberships
+            .list_by_organization(organization_id)
+            .await?;
+        let mut result = Vec::with_capacity(memberships.len());
+        for membership in memberships {
+            if let Some(user) = self.deps.users.by_id(membership.user_id).await?
+                && (query.is_empty()
+                    || user.display_name.to_lowercase().contains(&query)
+                    || user.email.to_lowercase().contains(&query))
+            {
+                result.push(user);
+            }
+        }
+        Ok(result)
+    }
+
     async fn require_membership(
         &self,
         user_id: UserId,
@@ -388,5 +429,30 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(membership.role, Role::Admin);
+    }
+
+    #[tokio::test]
+    async fn search_members_filters_by_display_name() {
+        let svc = service();
+        let (owner_id, org_id) = seed_user_and_org(&svc).await;
+        let member = User::new("member@example.com", "Member One", "hash").unwrap();
+        svc.deps.users.create(&member).await.unwrap();
+        svc.invite_member(
+            owner_id,
+            org_id,
+            InviteMemberRequest {
+                email: "member@example.com".into(),
+                role: Role::Member,
+            },
+        )
+        .await
+        .unwrap();
+
+        let found = svc.search_members(member.id, org_id, "One").await.unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].id, member.id);
+
+        let all = svc.search_members(member.id, org_id, "").await.unwrap();
+        assert_eq!(all.len(), 2);
     }
 }

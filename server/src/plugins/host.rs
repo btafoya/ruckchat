@@ -92,6 +92,7 @@ impl HostApi for ServerHostApi {
             request.author_id,
             request.content,
             request.parent_id,
+            vec![],
         )
         .map_err(|err| err.to_string())?;
 
@@ -221,6 +222,7 @@ mod tests {
             UserId::new(),
             "hello",
             None,
+            vec![],
         )
         .unwrap();
         host.emit_event(PluginEvent::MessageUpdated {

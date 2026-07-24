@@ -53,6 +53,10 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
                 .delete(organization::remove_member),
         )
         .route(
+            "/organizations/{organization_id}/members/search",
+            get(organization::search_members),
+        )
+        .route(
             "/organizations/{organization_id}/channels",
             get(channel::list_in_organization),
         )

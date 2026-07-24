@@ -112,4 +112,12 @@ impl EventBus for CompositeEventBus {
     ) -> ruckchat_common::Result<()> {
         self.websocket.publish_presence(user_id, status).await
     }
+
+    async fn publish_mention(
+        &self,
+        user_id: ruckchat_id::UserId,
+        message: &ruckchat_domain::Message,
+    ) -> ruckchat_common::Result<()> {
+        self.websocket.publish_mention(user_id, message).await
+    }
 }

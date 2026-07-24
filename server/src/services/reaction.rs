@@ -231,6 +231,7 @@ mod tests {
             user.id,
             "hello",
             None,
+            vec![],
         )
         .unwrap();
         svc.deps.messages.create(&message).await.unwrap();
@@ -276,6 +277,7 @@ mod tests {
             author_id,
             "secret",
             None,
+            vec![],
         )
         .unwrap();
         svc.deps.messages.create(&message).await.unwrap();
@@ -333,6 +335,7 @@ mod tests {
             a.id,
             "hello",
             None,
+            vec![],
         )
         .unwrap();
         svc.deps.messages.create(&message).await.unwrap();

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at FROM messages ORDER BY created_at",
+  "query": "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at\n             FROM messages m\n             LEFT JOIN users u ON u.id = m.author_id\n             WHERE m.id = $1",
   "describe": {
     "columns": [
       {
@@ -30,27 +30,39 @@
       },
       {
         "ordinal": 5,
-        "name": "content",
+        "name": "author_display_name",
         "type_info": "Text"
       },
       {
         "ordinal": 6,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "mentioned_user_ids",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 7,
+        "ordinal": 9,
         "name": "updated_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "deleted_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Uuid"
+      ]
     },
     "nullable": [
       false,
@@ -61,8 +73,10 @@
       false,
       false,
       false,
+      false,
+      false,
       true
     ]
   },
-  "hash": "579e8378df609c35f619884288d06ddf5242e86ab0e22efcabd1119e470e4284"
+  "hash": "dbe8dc862cdded064b04d411269d31cdf9fc0e94829887a26ca9f496d5f1888a"
 }

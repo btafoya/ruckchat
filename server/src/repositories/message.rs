@@ -24,9 +24,14 @@ impl MessageRepositorySqlx {
 #[async_trait]
 impl MessageRepository for MessageRepositorySqlx {
     async fn create(&self, message: &Message) -> Result<()> {
+        let mentioned_user_ids: Vec<uuid::Uuid> = message
+            .mentioned_user_ids
+            .iter()
+            .map(|id| id.as_uuid())
+            .collect();
         sqlx::query!(
-            "INSERT INTO messages (id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            "INSERT INTO messages (id, conversation_id, conversation_type, parent_id, author_id, content, mentioned_user_ids, created_at, updated_at, deleted_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              ON CONFLICT DO NOTHING",
             message.id.as_uuid(),
             message.conversation_id,
@@ -34,6 +39,7 @@ impl MessageRepository for MessageRepositorySqlx {
             message.parent_id.map(|id| id.as_uuid()),
             message.author_id.as_uuid(),
             message.content,
+            &mentioned_user_ids,
             message.created_at,
             message.updated_at,
             message.deleted_at,
@@ -47,7 +53,7 @@ impl MessageRepository for MessageRepositorySqlx {
     async fn by_id(&self, id: MessageId) -> Result<Option<Message>> {
         let row = sqlx::query_as!(
             MessageRow,
-            "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.created_at, m.updated_at, m.deleted_at
+            "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at
              FROM messages m
              LEFT JOIN users u ON u.id = m.author_id
              WHERE m.id = $1",
@@ -68,7 +74,7 @@ impl MessageRepository for MessageRepositorySqlx {
     ) -> Result<Vec<Message>> {
         let rows = sqlx::query_as!(
             MessageRow,
-            "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.created_at, m.updated_at, m.deleted_at
+            "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at
              FROM messages m
              LEFT JOIN users u ON u.id = m.author_id
              WHERE m.conversation_id = $1 AND m.deleted_at IS NULL
@@ -88,10 +94,15 @@ impl MessageRepository for MessageRepositorySqlx {
     }
 
     async fn update(&self, message: &Message) -> Result<()> {
+        let mentioned_user_ids: Vec<uuid::Uuid> = message
+            .mentioned_user_ids
+            .iter()
+            .map(|id| id.as_uuid())
+            .collect();
         sqlx::query!(
             "UPDATE messages
              SET conversation_id = $2, conversation_type = $3, parent_id = $4, author_id = $5,
-                 content = $6, created_at = $7, updated_at = $8, deleted_at = $9
+                 content = $6, mentioned_user_ids = $7, created_at = $8, updated_at = $9, deleted_at = $10
              WHERE id = $1",
             message.id.as_uuid(),
             message.conversation_id,
@@ -99,6 +110,7 @@ impl MessageRepository for MessageRepositorySqlx {
             message.parent_id.map(|id| id.as_uuid()),
             message.author_id.as_uuid(),
             message.content,
+            &mentioned_user_ids,
             message.created_at,
             message.updated_at,
             message.deleted_at,
@@ -119,7 +131,7 @@ impl MessageRepository for MessageRepositorySqlx {
     ) -> Result<Vec<Message>> {
         let rows = sqlx::query_as!(
             MessageRow,
-            r#"SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.created_at, m.updated_at, m.deleted_at
+            r#"SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at
              FROM messages m
              LEFT JOIN users u ON u.id = m.author_id
              WHERE m.deleted_at IS NULL
@@ -178,6 +190,7 @@ struct MessageRow {
     author_id: uuid::Uuid,
     author_display_name: Option<String>,
     content: String,
+    mentioned_user_ids: Vec<uuid::Uuid>,
     created_at: time::OffsetDateTime,
     updated_at: time::OffsetDateTime,
     deleted_at: Option<time::OffsetDateTime>,
@@ -197,6 +210,11 @@ fn into_message(row: MessageRow) -> Result<Message> {
         author_id: ruckchat_id::UserId::from_uuid(row.author_id),
         author_display_name: row.author_display_name,
         content: row.content,
+        mentioned_user_ids: row
+            .mentioned_user_ids
+            .into_iter()
+            .map(ruckchat_id::UserId::from_uuid)
+            .collect(),
         created_at: row.created_at,
         updated_at: row.updated_at,
         deleted_at: row.deleted_at,

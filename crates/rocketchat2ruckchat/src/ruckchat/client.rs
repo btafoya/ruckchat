@@ -84,6 +84,9 @@ pub struct MigrationMessage {
     pub author_id: ruckchat_id::UserId,
     /// Message content.
     pub content: String,
+    /// Users explicitly mentioned in the message.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub mentioned_user_ids: Vec<ruckchat_id::UserId>,
     /// Timestamp when the message was created.
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,

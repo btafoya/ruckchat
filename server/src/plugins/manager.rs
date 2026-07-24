@@ -239,6 +239,7 @@ mod tests {
             UserId::new(),
             "hi",
             None,
+            vec![],
         )
         .unwrap();
         manager.dispatch_event(PluginEvent::MessageReceived {

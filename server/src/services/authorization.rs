@@ -211,6 +211,7 @@ mod tests {
             author_id,
             "hello",
             None,
+            vec![],
         )
         .unwrap()
     }

@@ -99,6 +99,14 @@ impl EventBus for NoOpEventBus {
     ) -> ruckchat_common::Result<()> {
         Ok(())
     }
+
+    async fn publish_mention(
+        &self,
+        _user_id: ruckchat_id::UserId,
+        _message: &ruckchat_domain::Message,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
 }
 
 /// All services wired with SQLx repositories for a single test.
@@ -181,6 +189,7 @@ async fn services() -> Services {
             channel_memberships: channel_memberships.clone(),
             memberships: memberships.clone(),
             conversations: conversations.clone(),
+            users: users.clone(),
             authorization: authz.clone(),
             events: Arc::new(NoOpEventBus),
         }),

@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { createApi } from '../api';
 import type { Message } from '../api';
 import { useMessageContext, useSessionContext } from '../context';
+import { MessageContent } from './MessageContent';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
 
@@ -76,8 +77,12 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
         <span className="text-xs text-text-muted">{new Date(message.created_at).toLocaleString()}</span>
         {isPending && <span className="text-xs text-warning">Sending...</span>}
       </div>
-      <div className="whitespace-pre-wrap text-sm text-text">
-        {isDeleted ? <span className="italic text-text-muted">[deleted]</span> : message.content}
+      <div className="text-sm text-text">
+        {isDeleted ? (
+          <span className="italic text-text-muted">[deleted]</span>
+        ) : (
+          <MessageContent content={message.content} />
+        )}
       </div>
 
       {grouped.length > 0 && (

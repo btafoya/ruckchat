@@ -868,6 +868,18 @@ impl EventBus for MockEventBus {
             .push(ServerEvent::Presence { user_id, status });
         Ok(())
     }
+
+    async fn publish_mention(
+        &self,
+        user_id: ruckchat_id::UserId,
+        message: &Message,
+    ) -> ruckchat_common::Result<()> {
+        self.events.lock().unwrap().push(ServerEvent::Mention {
+            user_id,
+            message: message.clone(),
+        });
+        Ok(())
+    }
 }
 
 /// In-memory file repository.

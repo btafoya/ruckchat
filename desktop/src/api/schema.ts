@@ -415,6 +415,51 @@ export interface paths {
         };
         trace?: never;
     };
+    "/organizations/{organization_id}/members/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        /** Search organization members by display name or email */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                };
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Matching members */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserList"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organization_id}/channels": {
         parameters: {
             query?: never;
@@ -3055,6 +3100,9 @@ export interface components {
             avatar_url?: string | null;
             is_server_admin: boolean;
         };
+        UserList: {
+            items: components["schemas"]["UserResponse"][];
+        };
         Organization: {
             id: components["schemas"]["Uuid"];
             name: string;
@@ -3105,6 +3153,7 @@ export interface components {
             author_id: components["schemas"]["Uuid"];
             author_display_name?: string | null;
             content: string;
+            mentioned_user_ids: components["schemas"]["Uuid"][];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -3380,6 +3429,7 @@ export interface components {
             parent_id?: components["schemas"]["Uuid"];
             author_id: components["schemas"]["Uuid"];
             content: string;
+            mentioned_user_ids: components["schemas"]["Uuid"][];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */

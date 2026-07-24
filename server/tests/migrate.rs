@@ -207,6 +207,7 @@ async fn seed_data(pool: &PgPool) -> SeedData {
         owner.id,
         "Hello world",
         None,
+        vec![],
     )
     .unwrap();
     messages.create(&message).await.unwrap();
@@ -217,6 +218,7 @@ async fn seed_data(pool: &PgPool) -> SeedData {
         member.id,
         "Reply",
         Some(message.id),
+        vec![],
     )
     .unwrap();
     messages.create(&reply).await.unwrap();

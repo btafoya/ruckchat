@@ -61,6 +61,9 @@ pub struct Message {
     pub author_display_name: Option<String>,
     /// Message content.
     pub content: String,
+    /// Users explicitly mentioned in the message.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub mentioned_user_ids: Vec<UserId>,
     /// Timestamp when the message was created.
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
@@ -84,6 +87,7 @@ impl Message {
         author_id: UserId,
         content: impl Into<String>,
         parent_id: Option<MessageId>,
+        mentioned_user_ids: Vec<UserId>,
     ) -> Result<Self> {
         let content = content.into();
         let len = content.chars().count();
@@ -105,6 +109,7 @@ impl Message {
             author_id,
             author_display_name: None,
             content,
+            mentioned_user_ids,
             created_at: now,
             updated_at: now,
             deleted_at: None,
@@ -159,6 +164,7 @@ mod tests {
             UserId::new(),
             "hello",
             None,
+            vec![],
         )
         .expect("valid message");
         assert_eq!(msg.content, "hello");
@@ -173,7 +179,8 @@ mod tests {
                 ConversationType::Channel,
                 UserId::new(),
                 "",
-                None
+                None,
+                vec![],
             )
             .is_err()
         );
@@ -188,6 +195,7 @@ mod tests {
                 UserId::new(),
                 "x".repeat(MESSAGE_CONTENT_MAX_LEN + 1),
                 None,
+                vec![],
             )
             .is_err()
         );
@@ -201,6 +209,7 @@ mod tests {
             UserId::new(),
             "hello",
             None,
+            vec![],
         )
         .expect("valid message");
         msg.edit("hello world").expect("edit message");
@@ -215,6 +224,7 @@ mod tests {
             UserId::new(),
             "hello",
             None,
+            vec![],
         )
         .expect("valid message");
         msg.delete();

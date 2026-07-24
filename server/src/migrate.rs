@@ -117,6 +117,9 @@ pub struct MigrationMessage {
     pub author_id: UserId,
     /// Message content.
     pub content: String,
+    /// Users explicitly mentioned in the message.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub mentioned_user_ids: Vec<UserId>,
     /// Timestamp when the message was created.
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
@@ -671,7 +674,7 @@ async fn export_direct_message_conversations(
 async fn export_messages(pool: &PgPool) -> Result<Vec<MigrationMessage>> {
     let rows = sqlx::query_as!(
         MessageRow,
-        "SELECT id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at FROM messages ORDER BY created_at"
+        "SELECT id, conversation_id, conversation_type, parent_id, author_id, content, mentioned_user_ids, created_at, updated_at, deleted_at FROM messages ORDER BY created_at"
     )
     .fetch_all(pool)
     .await?;
@@ -1043,9 +1046,14 @@ async fn import_messages(
 ) -> Result<usize> {
     let mut inserted = 0;
     for message in messages {
+        let mentioned_user_ids: Vec<Uuid> = message
+            .mentioned_user_ids
+            .iter()
+            .map(|id| id.as_uuid())
+            .collect();
         let result = sqlx::query!(
-            "INSERT INTO messages (id, conversation_id, conversation_type, parent_id, author_id, content, created_at, updated_at, deleted_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            "INSERT INTO messages (id, conversation_id, conversation_type, parent_id, author_id, content, mentioned_user_ids, created_at, updated_at, deleted_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              ON CONFLICT (id) DO NOTHING",
             message.id.as_uuid(),
             message.conversation_id,
@@ -1053,6 +1061,7 @@ async fn import_messages(
             message.parent_id.map(|id| id.as_uuid()),
             message.author_id.as_uuid(),
             message.content,
+            &mentioned_user_ids,
             message.created_at,
             message.updated_at,
             message.deleted_at,
@@ -1410,6 +1419,7 @@ struct MessageRow {
     parent_id: Option<Uuid>,
     author_id: Uuid,
     content: String,
+    mentioned_user_ids: Vec<Uuid>,
     created_at: OffsetDateTime,
     updated_at: OffsetDateTime,
     deleted_at: Option<OffsetDateTime>,
@@ -1423,6 +1433,11 @@ fn into_migration_message(row: MessageRow) -> MigrationMessage {
         parent_id: row.parent_id.map(MessageId::from_uuid),
         author_id: UserId::from_uuid(row.author_id),
         content: row.content,
+        mentioned_user_ids: row
+            .mentioned_user_ids
+            .into_iter()
+            .map(UserId::from_uuid)
+            .collect(),
         created_at: row.created_at,
         updated_at: row.updated_at,
         deleted_at: row.deleted_at,

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE messages\n             SET conversation_id = $2, conversation_type = $3, parent_id = $4, author_id = $5,\n                 content = $6, mentioned_user_ids = $7, created_at = $8, updated_at = $9, deleted_at = $10\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "UuidArray",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a4daed2eb104b6977816622c70d01f2d39dcd27fdf1060ec1e44176a41a1eb05"
+}

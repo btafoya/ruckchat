@@ -7,6 +7,7 @@ const mockMessage = {
   conversation_type: 'channel' as const,
   author_id: 'user-1',
   content: 'hello',
+  mentioned_user_ids: [],
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
   deleted_at: null,

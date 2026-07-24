@@ -176,6 +176,22 @@ impl EventBus for WebSocketEventBus {
         }
         Ok(())
     }
+
+    async fn publish_mention(
+        &self,
+        user_id: UserId,
+        message: &ruckchat_domain::Message,
+    ) -> ruckchat_common::Result<()> {
+        let envelope = EventEnvelope::new(ServerEvent::Mention {
+            user_id,
+            message: message.clone(),
+        });
+        self.deps
+            .manager
+            .broadcast_to_users(&[user_id], envelope)
+            .await;
+        Ok(())
+    }
 }
 
 impl WebSocketEventBus {

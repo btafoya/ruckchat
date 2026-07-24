@@ -1,8 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
+import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Mention from '@tiptap/extension-mention';
+import Placeholder from '@tiptap/extension-placeholder';
+import suggestion from '@tiptap/suggestion';
+import tippy, { type Instance } from 'tippy.js';
+import 'tippy.js/dist/tippy.css';
 import { createApi } from '../api';
 import type { Message } from '../api';
-import { useDirectMessageContext, useMessageContext, usePlatform, useRealtimeContext, useSessionContext } from '../context';
+import {
+  useMessageContext,
+  usePlatform,
+  useRealtimeContext,
+  useSessionContext,
+} from '../context';
+import { MentionList, type MentionItem, type MentionListHandle, type MentionListProps } from './MentionList';
+import { MessageContent } from './MessageContent';
 
 const TYPING_DEBOUNCE_MS = 1500;
 const DRAFT_KEY = (conversationId: string) => `ruckchat_draft_${conversationId}`;
@@ -16,6 +30,26 @@ interface ComposerProps {
   onSent?: (message: Message) => void;
 }
 
+function emptyDoc() {
+  return { type: 'doc', content: [{ type: 'paragraph' }] };
+}
+
+function loadDraft(conversationId: string): Record<string, unknown> {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY(conversationId));
+    if (!raw) {
+      return emptyDoc();
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === 'object' && (parsed as { type?: string }).type === 'doc') {
+      return parsed as Record<string, unknown>;
+    }
+    return emptyDoc();
+  } catch {
+    return emptyDoc();
+  }
+}
+
 export function Composer({
   conversationType,
   conversationId,
@@ -27,47 +61,13 @@ export function Composer({
   const { session } = useSessionContext();
   const { send: sendWs } = useRealtimeContext();
   const { sendMessage } = useMessageContext();
-  const { conversations } = useDirectMessageContext();
   const platform = usePlatform();
   const api = useMemo(() => createApi(), []);
 
-  const [content, setContent] = useState(() => {
-    try {
-      return localStorage.getItem(DRAFT_KEY(conversationId)) ?? '';
-    } catch {
-      return '';
-    }
-  });
-  const [showPreview, setShowPreview] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string }>>([]);
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const lastTypingRef = useRef(0);
-
-  useEffect(() => {
-    try {
-      if (content.trim()) {
-        localStorage.setItem(DRAFT_KEY(conversationId), content);
-      } else {
-        localStorage.removeItem(DRAFT_KEY(conversationId));
-      }
-    } catch {
-      // ignore storage failures
-    }
-  }, [content, conversationId]);
-
-  const candidateIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const conversation of conversations) {
-      for (const memberId of conversation.member_ids) {
-        if (memberId !== session?.user.id) {
-          ids.add(memberId);
-        }
-      }
-    }
-    return Array.from(ids);
-  }, [conversations, session?.user.id]);
 
   const sendTyping = useCallback(() => {
     const now = Date.now();
@@ -75,60 +75,169 @@ export function Composer({
       return;
     }
     lastTypingRef.current = now;
-    const message = {
+    sendWs({
       type: 'typing',
       conversation_id: conversationId,
       conversation_type: conversationType,
-    } as const;
-    sendWs(message);
+    });
   }, [conversationId, conversationType, sendWs]);
 
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const value = event.target.value;
-      setContent(value);
-      sendTyping();
-
-      const lastWord = value.split(/\s+/).pop() ?? '';
-      if (lastWord.startsWith('@')) {
-        setMentionQuery(lastWord.slice(1));
-      } else {
-        setMentionQuery(null);
-      }
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ hardBreak: { keepMarks: true } }),
+      Placeholder.configure({ placeholder }),
+      Mention.configure({
+        suggestion: {
+          char: '@',
+          allowSpaces: true,
+          startOfLine: false,
+          items: async ({ query }) => {
+            if (!session || query.trim().length === 0) {
+              return [];
+            }
+            try {
+              const users = await api.organizations.searchMembers(
+                session.token,
+                organizationId,
+                query,
+              );
+              return users
+                .filter((u) => u.id !== session.user.id)
+                .slice(0, 5)
+                .map(
+                  (u): MentionItem => ({
+                    id: u.id,
+                    label: u.display_name || u.email,
+                  }),
+                );
+            } catch {
+              return [];
+            }
+          },
+          command: ({ editor, range, props }) => {
+            editor
+              .chain()
+              .focus()
+              .deleteRange(range)
+              .insertContent({
+                type: 'mention',
+                attrs: { id: props.id, label: props.label },
+              })
+              .insertContent(' ')
+              .run();
+          },
+          render: () => {
+            let reactRenderer: ReactRenderer<MentionListHandle, MentionListProps>;
+            let popup: Instance;
+            return {
+              onStart: (props) => {
+                reactRenderer = new ReactRenderer(MentionList, {
+                  props,
+                  editor: props.editor,
+                });
+                popup = tippy(props.editor.view.dom as Element, {
+                  getReferenceClientRect: () =>
+                    props.clientRect?.() ?? props.editor.view.dom.getBoundingClientRect(),
+                  appendTo: () => document.body,
+                  content: reactRenderer.element,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: 'manual',
+                  placement: 'bottom-start',
+                });
+              },
+              onUpdate: (props) => {
+                reactRenderer.updateProps(props);
+                popup.setProps({
+                  getReferenceClientRect: () =>
+                    props.clientRect?.() ?? props.editor.view.dom.getBoundingClientRect(),
+                });
+              },
+              onKeyDown: (props) => {
+                return reactRenderer.ref?.onKeyDown(props.event) ?? false;
+              },
+              onExit: () => {
+                popup.destroy();
+                reactRenderer.destroy();
+              },
+            };
+          },
+        },
+      }),
+    ],
+    content: loadDraft(conversationId),
+    editorProps: {
+      attributes: {
+        class:
+          'h-24 w-full resize-none rounded-md border border-border bg-bg p-3 text-sm text-text placeholder:text-text-muted focus:border-accent focus:outline-none disabled:opacity-50 overflow-y-auto',
+        'aria-label': placeholder,
+        role: 'textbox',
+        spellcheck: 'true',
+      },
     },
-    [sendTyping],
-  );
+    autofocus: false,
+  });
 
-  const insertMention = useCallback((userId: string) => {
-    const words = content.split(/\s+/);
-    words[words.length - 1] = `@${userId}`;
-    const next = `${words.join(' ')} `;
-    setContent(next);
-    setMentionQuery(null);
-    textareaRef.current?.focus();
-  }, [content]);
-
-  const filteredCandidates = useMemo(() => {
-    if (!mentionQuery) {
-      return [];
+  useEffect(() => {
+    if (!editor) {
+      return;
     }
-    return candidateIds.filter((id) => id.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 5);
-  }, [candidateIds, mentionQuery]);
+    const saveDraft = () => {
+      const content = editor.isEmpty ? '' : JSON.stringify(editor.getJSON());
+      try {
+        if (content) {
+          localStorage.setItem(DRAFT_KEY(conversationId), content);
+        } else {
+          localStorage.removeItem(DRAFT_KEY(conversationId));
+        }
+      } catch {
+        // ignore storage failures
+      }
+    };
+    editor.on('update', saveDraft);
+    return () => {
+      editor.off('update', saveDraft);
+    };
+  }, [editor, conversationId]);
 
-  const removePendingFile = useCallback((fileId: string) => {
-    setPendingFiles((prev) => prev.filter((f) => f.id !== fileId));
-  }, []);
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    editor.commands.setContent(loadDraft(conversationId));
+  }, [editor, conversationId]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    editor.setEditable(!isSending);
+  }, [editor, isSending]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    const onUpdate = () => {
+      sendTyping();
+    };
+    editor.on('update', onUpdate);
+    return () => {
+      editor.off('update', onUpdate);
+    };
+  }, [editor, sendTyping]);
 
   const handleSubmit = useCallback(async () => {
-    if (!content.trim() || isSending) {
+    if (!editor || editor.isEmpty || isSending) {
       return;
     }
     setIsSending(true);
     try {
+      const content = JSON.stringify(editor.getJSON());
       const fileIds = pendingFiles.map((f) => f.id);
       const sent = await sendMessage(content, parentId, fileIds);
       if (sent) {
-        setContent('');
+        editor.commands.clearContent();
         setPendingFiles([]);
         setShowPreview(false);
         onSent?.(sent);
@@ -136,28 +245,56 @@ export function Composer({
     } finally {
       setIsSending(false);
     }
-  }, [content, isSending, onSent, parentId, pendingFiles, sendMessage]);
+  }, [editor, isSending, onSent, parentId, pendingFiles, sendMessage]);
 
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
+  useEffect(() => {
+    if (!editor || !showPreview) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowPreview(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editor, showPreview]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key === 'Enter' &&
+        !event.shiftKey &&
+        !isSending &&
+        event.target === editor.view.dom
+      ) {
         event.preventDefault();
         void handleSubmit();
       }
-    },
-    [handleSubmit],
-  );
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [editor, handleSubmit, isSending]);
 
-  const previewNodes = useMemo(() => {
-    if (!showPreview) {
-      return null;
+  const previewContent = useMemo(() => {
+    if (!editor || editor.isEmpty) {
+      return '';
     }
-    return (
-      <div className="min-h-[6rem] whitespace-pre-wrap rounded-md border border-border bg-bg p-3 text-sm text-text">
-        {content || <span className="text-text-muted">Nothing to preview</span>}
-      </div>
-    );
-  }, [showPreview, content]);
+    return JSON.stringify(editor.getJSON());
+  }, [editor, showPreview]);
+
+  const removePendingFile = useCallback((fileId: string) => {
+    setPendingFiles((prev) => prev.filter((f) => f.id !== fileId));
+  }, []);
+
+  if (!editor) {
+    return <div className="h-24 w-full rounded-md border border-border bg-bg p-3" />;
+  }
 
   return (
     <div className="flex flex-col gap-2 border-t border-border bg-surface p-3">
@@ -183,34 +320,15 @@ export function Composer({
       )}
 
       {showPreview ? (
-        previewNodes
-      ) : (
-        <div className="relative">
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={isSending}
-            className="h-24 w-full resize-none rounded-md border border-border bg-bg p-3 text-sm text-text placeholder:text-text-muted focus:border-accent focus:outline-none disabled:opacity-50"
-          />
-          {mentionQuery !== null && filteredCandidates.length > 0 && (
-            <ul className="absolute bottom-full left-0 z-10 mb-1 w-64 rounded-md border border-border bg-surface py-1 shadow-lg">
-              {filteredCandidates.map((id) => (
-                <li key={id}>
-                  <button
-                    type="button"
-                    onClick={() => insertMention(id)}
-                    className="w-full px-3 py-1 text-left text-sm text-text hover:bg-surface-elevated"
-                  >
-                    @{id}
-                  </button>
-                </li>
-              ))}
-            </ul>
+        <div className="min-h-[6rem] rounded-md border border-border bg-bg p-3 text-sm text-text">
+          {previewContent ? (
+            <MessageContent content={previewContent} />
+          ) : (
+            <span className="text-text-muted">Nothing to preview</span>
           )}
         </div>
+      ) : (
+        <EditorContent editor={editor} disabled={isSending} />
       )}
 
       <div className="flex items-center justify-between">
@@ -235,7 +353,7 @@ export function Composer({
         <button
           type="button"
           onClick={() => void handleSubmit()}
-          disabled={!content.trim() || isSending}
+          disabled={editor.isEmpty || isSending}
           className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-text-inverse hover:bg-accent-hover disabled:opacity-50"
         >
           {isSending ? 'Sending...' : 'Send'}
@@ -244,3 +362,4 @@ export function Composer({
     </div>
   );
 }
+

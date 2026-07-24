@@ -337,6 +337,7 @@ mod tests {
             author.id,
             "hello",
             None,
+            vec![],
         )
         .unwrap();
         svc.deps.messages.create(&message).await.unwrap();

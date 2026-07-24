@@ -284,6 +284,40 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /organizations/{organization_id}/members/search:
+    parameters:
+      - name: organization_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    get:
+      summary: Search organization members by display name or email
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Matching members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /organizations/{organization_id}/channels:
     parameters:
       - name: organization_id
@@ -2307,6 +2341,15 @@ components:
         is_server_admin:
           type: boolean
 
+    UserList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+
     Organization:
       type: object
       required: [id, name, slug, owner_id, created_at, updated_at]
@@ -2400,7 +2443,7 @@ components:
 
     Message:
       type: object
-      required: [id, conversation_id, conversation_type, author_id, content, created_at, updated_at]
+      required: [id, conversation_id, conversation_type, author_id, content, created_at, updated_at, mentioned_user_ids]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -2418,6 +2461,10 @@ components:
           nullable: true
         content:
           type: string
+        mentioned_user_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
         created_at:
           type: string
           format: date-time
@@ -2965,7 +3012,7 @@ components:
 
     MigrationMessage:
       type: object
-      required: [id, conversation_id, conversation_type, author_id, content, created_at, updated_at]
+      required: [id, conversation_id, conversation_type, author_id, content, created_at, updated_at, mentioned_user_ids]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -2981,6 +3028,10 @@ components:
           $ref: '#/components/schemas/Uuid'
         content:
           type: string
+        mentioned_user_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
         created_at:
           type: string
           format: date-time

@@ -10,9 +10,12 @@ of it.
 - **Phase 1 — Foundation** ✅ Complete (commit `2279700`).
   - ISSUES1 — Light/dark theme system implemented.
   - ISSUES9 — `allow_registration` site setting implemented.
-- **Phase 2 — Composer and Message Format** ⏳ Not started.
-  - ISSUES0 — @mentions support.
-  - ISSUES2 — WYSIWYG Tiptap composer with spell check.
+- **Phase 2 — Composer and Message Format** 🚧 In progress.
+  - ISSUES0 — @mentions support: backend storage, event bus, WebSocket delivery,
+    organization member search, and frontend Tiptap composer/renderer complete.
+  - ISSUES2 — WYSIWYG Tiptap composer is in place; browser spell-check attribute
+    enabled; `farscrl/tiptap-extension-spellchecker` integration with a
+    dictionary/backend proofreader remains.
 - **Phase 3 — Conversation Discovery** ⏸ Pending Phase 2.
   - ISSUES3 — Single-organization auto-redirect.
   - ISSUES4 — Channel creation and management UI.

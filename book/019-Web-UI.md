@@ -98,9 +98,11 @@ The browser:
 When a `message.created` event occurs, the server filters subscriptions for:
 
 - Direct-message recipients.
-- Users mentioned in the message content (`@uuid`).
+- Users whose IDs appear in the message's `mentioned_user_ids` array.
 
-Channel members who are not mentioned do not receive push notifications.
+Mentions are stored as first-class Tiptap `mention` nodes with `id` (user ID)
+and `label` (display name) attributes. Channel members who are not mentioned do
+not receive push notifications.
 
 ## Cross-Origin Support
 

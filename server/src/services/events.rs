@@ -58,6 +58,13 @@ pub trait EventBus: Send + Sync {
         user_id: UserId,
         status: PresenceStatus,
     ) -> ruckchat_common::Result<()>;
+
+    /// Notifies a specific user that they were mentioned in a message.
+    async fn publish_mention(
+        &self,
+        user_id: UserId,
+        message: &ruckchat_domain::Message,
+    ) -> ruckchat_common::Result<()>;
 }
 
 /// A server-to-client event payload.
@@ -114,6 +121,13 @@ pub enum ServerEvent {
         /// Authenticated user id.
         user_id: UserId,
     },
+    /// A user was mentioned in a message.
+    Mention {
+        /// User who was mentioned.
+        user_id: UserId,
+        /// Message containing the mention.
+        message: ruckchat_domain::Message,
+    },
     /// A client-sent message could not be processed.
     Error {
         /// Error details.
@@ -134,6 +148,7 @@ impl ServerEvent {
             Self::Typing { .. } => "typing.updated",
             Self::Presence { .. } => "presence.updated",
             Self::ConnectionEstablished { .. } => "connection.established",
+            Self::Mention { .. } => "mention",
             Self::Error { .. } => "error",
         }
     }

@@ -149,6 +149,7 @@ mod tests {
                         conversations: std::sync::Arc::new(
                             crate::testing::MockDirectMessageConversationRepository::new(),
                         ),
+                        users: std::sync::Arc::new(crate::testing::MockUserRepository::new()),
                         authorization: crate::services::AuthorizationService::new(),
                         events: std::sync::Arc::new(crate::testing::MockEventBus::new()),
                     },

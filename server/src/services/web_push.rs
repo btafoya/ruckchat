@@ -246,17 +246,13 @@ impl WebPushService {
                     .list_by_channel(channel_id)
                     .await
                     .ok()?;
-                let member_ids: std::collections::HashSet<UserId> = memberships
-                    .into_iter()
-                    .map(|m| m.user_id)
-                    .filter(|id| *id != message.author_id)
-                    .collect();
+                let member_ids: std::collections::HashSet<UserId> =
+                    memberships.into_iter().map(|m| m.user_id).collect();
 
-                let mentions = parse_mention_ids(&message.content);
                 let mut recipients = Vec::new();
-                for user_id in mentions {
-                    if member_ids.contains(&user_id) {
-                        recipients.push(user_id);
+                for user_id in &message.mentioned_user_ids {
+                    if *user_id != message.author_id && member_ids.contains(user_id) {
+                        recipients.push(*user_id);
                     }
                 }
                 Some(recipients)
@@ -286,18 +282,6 @@ impl WebPushService {
         let body = format!("{}: {}", author.display_name, snippet);
         Some((title, body))
     }
-}
-
-fn parse_mention_ids(content: &str) -> Vec<UserId> {
-    let mut ids = Vec::new();
-    for token in content.split_whitespace() {
-        if let Some(stripped) = token.strip_prefix('@')
-            && let Ok(uuid) = Uuid::parse_str(stripped)
-        {
-            ids.push(UserId::from_uuid(uuid));
-        }
-    }
-    ids
 }
 
 fn should_remove_subscription(err: &web_push::WebPushError) -> bool {
@@ -356,6 +340,14 @@ impl crate::services::events::EventBus for WebPushService {
     ) -> ruckchat_common::Result<()> {
         Ok(())
     }
+
+    async fn publish_mention(
+        &self,
+        _user_id: UserId,
+        _message: &Message,
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -386,15 +378,6 @@ mod tests {
         .expect("valid service")
     }
 
-    #[test]
-    fn parse_mention_ids_extracts_uuids() {
-        let id = UserId::new();
-        let content = format!("hello @{} and @not-a-uuid", id);
-        let parsed = parse_mention_ids(&content);
-        assert_eq!(parsed.len(), 1);
-        assert_eq!(parsed[0], id);
-    }
-
     #[tokio::test]
     async fn dm_recipients_exclude_author() {
         let svc = service();
@@ -410,6 +393,7 @@ mod tests {
             author,
             "hello",
             None,
+            vec![],
         )
         .unwrap();
 
@@ -439,8 +423,9 @@ mod tests {
             channel_id.as_uuid(),
             ConversationType::Channel,
             author,
-            format!("hey @{} @{}", member, outsider),
+            "hello",
             None,
+            vec![member, outsider, author],
         )
         .unwrap();
 

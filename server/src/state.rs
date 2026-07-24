@@ -287,6 +287,7 @@ impl AppState {
             channel_memberships: channel_memberships_repo.clone(),
             memberships: memberships_repo.clone(),
             conversations: conversations_repo.clone(),
+            users: users_repo.clone(),
             authorization: authorization.clone(),
             events: Arc::new(events.clone()),
         });

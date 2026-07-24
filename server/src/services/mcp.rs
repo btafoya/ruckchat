@@ -332,6 +332,7 @@ mod tests {
             channel_memberships: channel_memberships.clone(),
             memberships: memberships.clone(),
             conversations: conversations_repo.clone(),
+            users: users_repo.clone(),
             authorization: authorization.clone(),
             events,
         });

@@ -4,6 +4,7 @@ import type {
   CreateChannelRequest,
   CreateOrganizationRequest,
   Organization,
+  User,
 } from './types';
 
 export class OrganizationsApi {
@@ -44,5 +45,19 @@ export class OrganizationsApi {
       token,
       body: request,
     });
+  }
+
+  async searchMembers(
+    token: string,
+    organizationId: string,
+    query: string,
+  ): Promise<User[]> {
+    const response = await this.client.request<{ items: User[] }>(
+      `/organizations/${organizationId}/members/search?q=${encodeURIComponent(query)}`,
+      {
+        token,
+      },
+    );
+    return response.items;
   }
 }

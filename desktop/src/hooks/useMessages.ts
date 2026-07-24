@@ -125,6 +125,7 @@ export function useMessages(
         author_id: userId,
         author_display_name: userDisplayName ?? null,
         content: trimmed,
+        mentioned_user_ids: [],
         created_at: now,
         updated_at: now,
         deleted_at: null,

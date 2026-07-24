@@ -625,6 +625,7 @@ fn transform_messages(
                 parent_id,
                 author_id,
                 content: msg.msg.clone(),
+                mentioned_user_ids: vec![],
                 created_at,
                 updated_at,
                 deleted_at,
