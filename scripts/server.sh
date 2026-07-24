@@ -160,7 +160,14 @@ do_start() {
     printf '  compose file: %s\n' "${COMPOSE_FILE}"
     printf '  config file:  %s\n' "${CONFIG_FILE}"
     warn_port_alignment
-    compose up -d --force-recreate
+    if [[ "${USE_BUILD}" -eq 1 ]]; then
+        # `docker compose up` only builds an image if one doesn't already
+        # exist locally; without an explicit --build it silently reuses a
+        # stale image on every subsequent `start --build`, so force it here.
+        compose up -d --force-recreate --build
+    else
+        compose up -d --force-recreate
+    fi
 }
 
 do_stop() {

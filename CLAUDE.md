@@ -152,14 +152,14 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
 | `./scripts/build-server.sh` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image |
 | `./scripts/release.sh vX.Y.Z` | Automate a release: bump versions, run checks/builds, tag, sign, and push |
 | `./scripts/server.sh start` | Start the server and PostgreSQL via Docker Compose (pre-built image; always recreates) |
-| `./scripts/server.sh start --build` | Start the server and PostgreSQL from source via `docker-compose.build.yml` |
+| `./scripts/server.sh start --build` | Rebuild the server image from source (`docker-compose.build.yml`) and start it; always recompiles, even if a `root-server` image already exists |
 | `./scripts/server.sh stop` | Stop and remove the Docker Compose stack |
 | `./scripts/server.sh stop --keep` | Stop containers but keep state for a fast restart |
 | `./scripts/server.sh restart` | Stop then start the Docker Compose stack |
 | `./scripts/server.sh status` | Show running Docker Compose containers |
 | `./scripts/server.sh logs` | Follow Docker Compose container logs |
 | `docker compose up -d` | Start the server and PostgreSQL via Docker Compose directly (pre-built image) |
-| `docker compose -f docker-compose.build.yml up -d` | Build and start the server from source directly |
+| `docker compose -f docker-compose.build.yml up -d --build` | Build and start the server from source directly (the `--build` flag is required; without it, `up` reuses any existing local image and silently ignores source changes) |
 | `cd desktop && pnpm install` | Install desktop client dependencies |
 | `cd desktop && pnpm tauri dev` | Run the desktop client in dev mode |
 | `cd desktop && pnpm tauri build` | Build desktop installers |
@@ -380,6 +380,8 @@ cargo nextest
     ↓
 Fix
     ↓
+Rebuild Docker stack (if verifying via Docker)
+    ↓
 Update docs
     ↓
 Commit
@@ -413,6 +415,34 @@ Follow **Implementation Order**, keep changes surgical, and match existing style
 | Unit tests (desktop) | `cd desktop && pnpm test` | Yes |
 
 If `cargo nextest` is not installed, use `cargo test --workspace` as a fallback.
+
+### Rebuild Docker stack (if verifying via Docker)
+
+`docker-compose.yml` runs a fixed, pre-built image tag with no source
+bind-mount, so a plain `docker compose up -d` / `./scripts/server.sh start`
+never reflects local edits — it only recreates containers from whatever
+image was last pulled or built. To manually verify a change against the
+Docker stack, rebuild from the current source tree and recreate the
+containers:
+
+```bash
+./scripts/server.sh start --build
+```
+
+This uses `docker-compose.build.yml` and always passes `--build` to `docker
+compose up`, so it recompiles even if a `root-server` image already exists
+locally. If the server still fails at startup with a migration or schema
+error after this (a stale BuildKit layer cache reusing an old `COPY
+migrations`/`COPY crates` layer), force a clean rebuild:
+
+```bash
+docker compose -f docker-compose.build.yml build --no-cache server
+./scripts/server.sh start --build
+```
+
+`docker-compose.yml` and `docker-compose.build.yml` must keep the same
+`ports:` container-side value (right side of `HOST:CONTAINER`), matching the
+port in `base_url` inside `ruckchat.yaml` — see the Gotchas section.
 
 ### Update docs
 
@@ -478,8 +508,17 @@ server image and builds cross-platform desktop installers.
 
 - The server binds to the port declared in `base_url` inside `ruckchat.yaml`.
   When using Docker Compose, the **container target port** (right side of the
-  `ports:` mapping) must match that port. `scripts/server.sh start` warns if
-  they differ.
+  `ports:` mapping) must match that port in *both* `docker-compose.yml` and
+  `docker-compose.build.yml` — they must be kept in sync manually; nothing
+  enforces it. `scripts/server.sh start` warns if the active compose file
+  disagrees with `ruckchat.yaml`.
+
+- `docker-compose.yml`'s `server` service runs a pinned image tag with no
+  source bind-mount. Local code changes are invisible to it until an image is
+  rebuilt and the container recreated — `docker compose up -d` alone will
+  never pick them up. Use `./scripts/server.sh start --build` (source build
+  via `docker-compose.build.yml`, forces `docker compose up --build`) instead.
+  See "Rebuild Docker stack" in the Implementation Loop.
 
 - The desktop client defaults to `http://localhost:3000` for development and
   exposes a settings screen to change the backend URL. The chosen URL is stored
