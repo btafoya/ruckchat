@@ -5,6 +5,23 @@ This document defines the implementation workflow for the open issues tracked in
 that foundation work is completed before higher-level features are built on top
 of it.
 
+## Current status
+
+- **Phase 1 — Foundation** ✅ Complete (commit `2279700`).
+  - ISSUES1 — Light/dark theme system implemented.
+  - ISSUES9 — `allow_registration` site setting implemented.
+- **Phase 2 — Composer and Message Format** ⏳ Not started.
+  - ISSUES0 — @mentions support.
+  - ISSUES2 — WYSIWYG Tiptap composer with spell check.
+- **Phase 3 — Conversation Discovery** ⏸ Pending Phase 2.
+  - ISSUES3 — Single-organization auto-redirect.
+  - ISSUES4 — Channel creation and management UI.
+  - ISSUES5 — Complete direct message functionality.
+- **Phase 4 — Admin UI Polish** ⏸ Pending Phase 2.
+  - ISSUES6 — Back-to-chat link in admin UIs.
+  - ISSUES7 — Complete organization admin UI.
+  - ISSUES8 — User editor modal in server admin.
+
 ## Guiding principles
 
 - Follow the RuckChat implementation loop: Read docs → Plan → Write code →
@@ -80,10 +97,14 @@ of it.
 
 ### Verification
 
+- `cargo fmt --all` passes.
+- `cargo check --workspace` passes.
 - `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes.
-- `cargo nextest run --workspace` passes.
-- `cd desktop && pnpm typecheck && pnpm test` passes.
+- `cargo nextest run --workspace` passes (223 tests).
+- `cd desktop && pnpm typecheck && pnpm test` passes (25 tests).
 - `cd web && pnpm build` succeeds.
+- `codegraph index` refreshed.
+- Commit: `2279700` — "Add light/dark theme and user registration gate setting".
 - Manual check: theme toggle works; registering a new user is blocked when the
   setting is off.
 

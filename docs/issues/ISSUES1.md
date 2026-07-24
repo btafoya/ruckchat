@@ -49,3 +49,7 @@
 - Theme strategy: hybrid — Tailwind `dark:` variants plus CSS variables for brand/accent colors.
 - Default theme: system preference (`prefers-color-scheme`); explicit toggle overrides it.
 - Rollout: apply theme tokens to all shared components at once before enabling the toggle.
+
+## Status
+
+Implemented in commit `2279700`.

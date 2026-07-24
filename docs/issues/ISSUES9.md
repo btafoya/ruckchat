@@ -56,3 +56,7 @@
 
 - Registration gate behavior: when disabled, block public self-registration only; server-admin user creation and organization invites still work.
 - Enforcement layer: REST handler before the auth service.
+
+## Status
+
+Implemented in commit `2279700`.
