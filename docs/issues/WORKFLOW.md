@@ -14,7 +14,7 @@ of it.
   - ISSUES0 — @mentions support: complete (commit `ba9ca30`).
   - ISSUES2 — Tiptap composer complete; `@farscrl/tiptap-extension-spellchecker`
     integration with the embedded `ruckchat-spelling` Hunspell API is complete.
-- **Phase 3 — Conversation Discovery** ✅ Complete.
+- **Phase 3 — Conversation Discovery** ✅ Complete (commit `51c5372`).
   - ISSUES3 — Single-organization auto-redirect to the last-selected channel
     (or `#general`) implemented via `OrgIndexRoute` / `ChannelIndexRoute` and
     `desktop/src/lastConversation.ts`.
