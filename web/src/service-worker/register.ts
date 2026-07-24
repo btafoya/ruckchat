@@ -10,7 +10,7 @@ export async function registerServiceWorker(): Promise<void> {
   try {
     const registration = await navigator.serviceWorker.register('/sw.js', {
       scope: '/',
-      updateViaCache: 'imports',
+      updateViaCache: 'none',
     });
     // eslint-disable-next-line no-console
     console.info('service worker registered:', registration.scope);

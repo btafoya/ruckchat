@@ -1,11 +1,28 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { readFileSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
 
 const API_TARGET = 'http://localhost:3000';
 
+function buildHash() {
+  return `${Date.now()}`;
+}
+
+function injectServiceWorkerHash() {
+  return {
+    name: 'inject-service-worker-hash',
+    closeBundle() {
+      const swPath = resolve(__dirname, 'dist', 'sw.js');
+      const sw = readFileSync(swPath, 'utf-8');
+      writeFileSync(swPath, sw.replace(/__BUILD_HASH__/g, buildHash()));
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), injectServiceWorkerHash()],
   resolve: {
     dedupe: ['react', 'react-dom', 'react-router-dom'],
   },

@@ -126,10 +126,15 @@ fn index_response(contents: &[u8]) -> Response {
 /// the file extension.
 fn asset_response(path: &str, contents: &[u8]) -> Response {
     let content_type = mime_type(path);
+    let cache_control = if path == "sw.js" {
+        "no-store, no-cache, must-revalidate, proxy-revalidate"
+    } else {
+        "public, max-age=3600"
+    };
     (
         [
             (header::CONTENT_TYPE, content_type),
-            (header::CACHE_CONTROL, "public, max-age=3600"),
+            (header::CACHE_CONTROL, cache_control),
         ],
         Vec::from(contents),
     )

@@ -1,9 +1,22 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = 'ruckchat-assets-v1';
+const CACHE_NAME = 'ruckchat-assets-__BUILD_HASH__';
+const STATIC_PATHS =
+  /^\/(?:assets\/(?:index-[^/]+\.(?:js|css)|[^/]+\.(?:js|css|png|svg|woff2)))?$|^\/(?:icons\/[^/]+|manifest\.json|favicon\.ico|index\.html)?$/;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(
+          names
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name)),
+        ),
+      )
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -51,8 +64,6 @@ self.addEventListener('notificationclick', (event) => {
       }),
   );
 });
-
-const STATIC_PATHS = /^\/(?:assets\/|icons\/|manifest\.json|favicon\.ico|index\.html)?$/;
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') {
