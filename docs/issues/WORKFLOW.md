@@ -1,7 +1,7 @@
 # Issue Resolution Workflow
 
 This document defines the implementation workflow for the open issues tracked in
-`docs/issues/ISSUES{0-9}.md`. The workflow groups related issues into phases so
+`docs/issues/ISSUES{0-21}.md`. The workflow groups related issues into phases so
 that foundation work is completed before higher-level features are built on top
 of it.
 
@@ -50,6 +50,23 @@ of it.
     or organization ownership returns `409 Conflict` (foreign-key
     violations are mapped to a clear error) and the last server admin cannot
     be deleted or demoted.
+- **Phase 5 — Shell and Navigation** ⏳ Open.
+  - ISSUES12 — Collapsible sidebar (full ↔ narrow).
+  - ISSUES13 — Sidebar on mobile.
+  - ISSUES14 — Admin menu icons in top bar.
+- **Phase 6 — Home and User Profile** ⏳ Open.
+  - ISSUES15 — Single-organization home redirect.
+  - ISSUES16 — Organization home unread-messages view.
+  - ISSUES17 — Server-stored theme preference.
+- **Phase 7 — Messages and Composer** ⏳ Open.
+  - ISSUES10 — Submitted message duplicated.
+  - ISSUES18 — Add message delete option.
+  - ISSUES19 — Remove Markdown preview from composer.
+- **Phase 8 — Direct Messages and Server Admin Completion** ⏳ Open.
+  - ISSUES20 — Finish direct messages modal (empty user list).
+  - ISSUES21 — Finish CRUD for server admins view.
+- **ISSUES11 — Environment/Tooling Note** ⏳ Open.
+  - `tokenjuice wrap` shell wrapper observed during an agent session; not a RuckChat product change.
 
 ## Guiding principles
 
@@ -72,6 +89,10 @@ of it.
 | 2 | ISSUES0, ISSUES2 | Composer / message format | Mentions and Tiptap both change how messages are authored, stored, and rendered. |
 | 3 | ISSUES3, ISSUES4, ISSUES5 | Conversation discovery | Redirects, channel CRUD, and DMs all touch routing, sidebar, and conversation APIs. |
 | 4 | ISSUES6, ISSUES7, ISSUES8 | Admin UI polish | Back links, complete org admin, and user editor modal share the admin shell components. |
+| 5 | ISSUES12, ISSUES13, ISSUES14 | Shell and navigation | Sidebar collapse, mobile sidebar, and admin top-bar icons all reshape the main shell. |
+| 6 | ISSUES15, ISSUES16, ISSUES17 | Home and user profile | Single-org redirect, unread home view, and server-stored theme are user-facing landing/profile concerns. |
+| 7 | ISSUES10, ISSUES18, ISSUES19 | Messages and composer | Send duplication, message deletion, and removing the preview toggle are all message-surface work. |
+| 8 | ISSUES20, ISSUES21 | DM and server admin completion | The DM start modal and server admins list both finish partially built Phase 4/Phase 3 features. |
 
 ---
 
@@ -384,6 +405,161 @@ of it.
 - Manual check: server admin users can be created and edited in a modal; org
   admin can manage members/roles/permissions/emoji/teams; admin back links
   return to chat.
+
+---
+
+## Phase 5 — Shell and Navigation
+
+### Issues
+
+- [ISSUES12](ISSUES12.md) — Collapsible sidebar (full ↔ narrow).
+- [ISSUES13](ISSUES13.md) — Sidebar on mobile.
+- [ISSUES14](ISSUES14.md) — Admin menu icons in top bar.
+
+### Goals
+
+1. Make the main chat sidebar collapsible to a narrow dock on desktop.
+2. Expose a mobile entry point so users can open the sidebar on small screens.
+3. Move admin navigation to icon buttons in the top bar with tooltips.
+
+### Order of work
+
+1. **Mobile sidebar (ISSUES13)**
+   - Add a hamburger toggle to `Shell.tsx` that passes `mobileOpen`/`onClose` to `Sidebar`.
+   - Ensure the mobile drawer overlays the content and closes on selection.
+2. **Collapsible sidebar (ISSUES12)**
+   - Add a collapse/expand toggle to `Sidebar` and a narrow variant (`w-16`).
+   - Replace channel/DM text labels with initials/icons when collapsed.
+   - Persist the collapsed state in `localStorage` (or server profile after ISSUES17).
+3. **Admin top-bar icons (ISSUES14)**
+   - Choose Font Awesome free icons for each admin tab.
+   - Render icon buttons in the top-left of `ServerAdminShell.tsx` and `OrgAdminShell.tsx`.
+   - Keep text labels as tooltips and keep active-state styling.
+
+### Cross-phase impact
+
+- Collapse state persistence may be promoted to server profile in ISSUES17.
+- Admin icon changes affect the same shells used in Phase 4.
+
+### Verification
+
+- `cd desktop && pnpm typecheck && pnpm test` passes.
+- `cd web && pnpm typecheck && pnpm build` succeeds.
+- Manual check: collapse/expand sidebar on desktop; open sidebar on a 375px viewport; hover admin icons to see tooltips.
+
+---
+
+## Phase 6 — Home and User Profile
+
+### Issues
+
+- [ISSUES15](ISSUES15.md) — Single-organization home redirect.
+- [ISSUES16](ISSUES16.md) — Organization home unread-messages view.
+- [ISSUES17](ISSUES17.md) — Server-stored theme preference.
+
+### Goals
+
+1. Redirect single-organization users to a meaningful home view.
+2. Build an organization home page that surfaces unread channels and DMs.
+3. Persist the user's theme preference in their server profile.
+
+### Order of work
+
+1. **Single-org redirect (ISSUES15)**
+   - Reproduce the reported blank `/org` view.
+   - Update `AuthScreen.tsx` or the router index route to send single-org users to the last-selected channel or `#general`.
+2. **Unread home view (ISSUES16)**
+   - Create `OrgIndex.tsx` rendered by `/org`.
+   - List channels and DMs with unread counts and links to each conversation.
+   - Use existing `useReadState` and conversation-list hooks.
+3. **Server-stored theme (ISSUES17)**
+   - Add `theme` to the `users` table, domain `User`, and profile update API.
+   - Load the server theme after login and save changes from `Settings.tsx`.
+
+### Cross-phase impact
+
+- ISSUES16 consumes the unread state introduced in ADR-015.
+- ISSUES17 extends user profile data; may also store collapse preference from ISSUES12.
+
+### Verification
+
+- Backend integration tests for theme/profile update.
+- Frontend type checks and tests pass.
+- Manual check: single-org user lands in `#general`; `/org` shows unread list; theme survives logout/login.
+
+---
+
+## Phase 7 — Messages and Composer
+
+### Issues
+
+- [ISSUES10](ISSUES10.md) — Submitted message duplicated.
+- [ISSUES18](ISSUES18.md) — Add message delete option.
+- [ISSUES19](ISSUES19.md) — Remove Markdown preview from composer.
+
+### Goals
+
+1. Fix message duplication on send.
+2. Add author/admin message deletion to the UI.
+3. Remove the obsolete Markdown preview toggle from the Tiptap composer.
+
+### Order of work
+
+1. **Reproduce and fix duplication (ISSUES10)**
+   - Add a test that sends messages rapidly or simulates WebSocket delivery before REST response.
+   - Implement client-side deduplication for the optimistic-vs-real-message race.
+2. **Message delete (ISSUES18)**
+   - Add `deleteMessage` to `desktop/src/api/messages.ts` and `useMessages.ts`.
+   - Add a Delete action to `MessageItem.tsx` with confirmation.
+   - Confirm the backend soft-delete and any missing `message.deleted` broadcast.
+3. **Remove preview (ISSUES19)**
+   - Remove `showPreview` state and UI from `Composer.tsx`.
+   - Update or remove preview tests.
+
+### Cross-phase impact
+
+- ISSUES18 may need a new WebSocket event if one does not exist.
+- ISSUES19 simplifies the composer before further toolbar changes.
+
+### Verification
+
+- Unit/integration test for duplication scenario passes.
+- Manual check: send a message rapidly and see one copy; delete a message and see `[deleted]`; no preview toggle remains.
+
+---
+
+## Phase 8 — Direct Messages and Server Admin Completion
+
+### Issues
+
+- [ISSUES20](ISSUES20.md) — Finish direct messages modal.
+- [ISSUES21](ISSUES21.md) — Finish CRUD for server admins view.
+
+### Goals
+
+1. Make the "New message" DM modal actually list users.
+2. Complete server-admin CRUD (promote + demote) in the admin UI.
+
+### Order of work
+
+1. **DM modal (ISSUES20)**
+   - Diagnose why `StartDmModal.tsx` opens with no users listed.
+   - Ensure `useOrgMemberContext` is available and populated in the sidebar/chat shell.
+   - Add a search/filter input and verify multi-select DM creation.
+2. **Server admins CRUD (ISSUES21)**
+   - Add a demote action to each admin row in `ServerAdminAdmins.tsx`.
+   - Add confirmation dialogs and handle the last-admin server error.
+   - Add search/filter to the admin list.
+
+### Cross-phase impact
+
+- ISSUES20 relies on org member loading, also used by mention autocomplete.
+- ISSUES21 overlaps with the user editor from Phase 4; consider unifying admin management UX.
+
+### Verification
+
+- Manual check: start a DM with another user from the sidebar `+` button.
+- Manual check: promote a user to server admin and then demote them.
 
 ---
 
