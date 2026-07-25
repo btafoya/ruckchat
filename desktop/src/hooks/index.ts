@@ -10,7 +10,7 @@ export { useRealtimeStore } from './useRealtimeStore';
 export { useSettings, type Settings, type SettingsState } from './useSettings';
 export { useTray } from './useTray';
 export { useTyping } from './useTyping';
-export { useUnread, type UnreadState } from './useUnread';
+export { useReadState, type ReadState } from './useReadState';
 export { useWebSocket } from './useWebsocket';
 export { useSession, type Session, type SessionState } from './useSession';
 export { SessionProvider } from '../context/SessionContext';

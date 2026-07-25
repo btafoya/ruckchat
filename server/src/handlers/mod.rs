@@ -11,6 +11,7 @@ pub mod message;
 pub mod organization;
 pub mod plugins;
 pub mod reaction;
+pub mod search;
 pub mod server_admin;
 pub mod spelling;
 pub mod user;
@@ -58,6 +59,14 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
             get(organization::search_members),
         )
         .route(
+            "/organizations/{organization_id}/unread_counts",
+            get(organization::unread_counts),
+        )
+        .route(
+            "/organizations/{organization_id}/search",
+            get(search::search),
+        )
+        .route(
             "/organizations/{organization_id}/channels",
             get(channel::list_in_organization),
         )
@@ -75,6 +84,7 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
                 .post(channel::add_member)
                 .delete(channel::remove_member),
         )
+        .route("/channels/{channel_id}/read", post(channel::mark_read))
         .route(
             "/channels/{channel_id}/messages",
             get(message::list_history),
@@ -101,6 +111,10 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route(
             "/direct_messages/{conversation_id}/hide",
             post(direct_message::hide),
+        )
+        .route(
+            "/direct_messages/{conversation_id}/read",
+            post(direct_message::mark_read),
         )
         .route("/files", get(file::list))
         .route("/files", post(file::upload))

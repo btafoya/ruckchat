@@ -192,6 +192,23 @@ impl EventBus for WebSocketEventBus {
             .await;
         Ok(())
     }
+
+    async fn publish_read_state_updated(
+        &self,
+        user_id: UserId,
+        conversation_id: Uuid,
+        message_ids: &[MessageId],
+    ) -> ruckchat_common::Result<()> {
+        let envelope = EventEnvelope::new(ServerEvent::ReadStateUpdated {
+            conversation_id,
+            message_ids: message_ids.to_vec(),
+        });
+        self.deps
+            .manager
+            .broadcast_to_users(&[user_id], envelope)
+            .await;
+        Ok(())
+    }
 }
 
 impl WebSocketEventBus {

@@ -16,7 +16,7 @@ interface MessageItemProps {
 
 export function MessageItem({ message, organizationId, showReplyButton = true }: MessageItemProps): JSX.Element {
   const { session } = useSessionContext();
-  const { reactions, addReaction, removeReaction, retryMessage } = useMessageContext();
+  const { reactions, addReaction, removeReaction, retryMessage, startEdit } = useMessageContext();
   const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [isReacting, setIsReacting] = useState(false);
@@ -24,6 +24,7 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
   const messageReactions = reactions[message.id] ?? [];
   const isDeleted = message.deleted_at != null;
   const isPending = message.id.startsWith('pending-');
+  const canEdit = !isDeleted && !isPending && message.author_id === session?.user.id;
 
   const grouped = useMemo(() => {
     const map = new Map<string, { count: number; hasMe: boolean }>();
@@ -125,6 +126,15 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
           >
             Reply in thread
           </NavLink>
+        )}
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => startEdit(message)}
+            className="ml-2 text-xs text-text-muted hover:text-text"
+          >
+            Edit
+          </button>
         )}
         {isPending && (
           <button

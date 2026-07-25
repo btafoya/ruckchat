@@ -12,11 +12,12 @@ use crate::{
     repositories::{
         AuditLogRepositorySqlx, ChannelMembershipRepositorySqlx, ChannelRepositorySqlx,
         CustomEmojiRepositorySqlx, DirectMessageConversationRepositorySqlx, FileRepositorySqlx,
-        MessageRepositorySqlx, OrganizationMembershipRepositorySqlx, OrganizationRepositorySqlx,
-        OrganizationRoleRepositorySqlx, OrganizationSettingsRepositorySqlx,
-        PermissionRepositorySqlx, ReactionRepositorySqlx, ServerSettingsRepositorySqlx,
-        SessionRepositorySqlx, TeamMembershipRepositorySqlx, TeamRepositorySqlx,
-        TeamRoomRepositorySqlx, UserRepositorySqlx, WebPushSubscriptionRepositorySqlx,
+        MessageReadRepositorySqlx, MessageRepositorySqlx, OrganizationMembershipRepositorySqlx,
+        OrganizationRepositorySqlx, OrganizationRoleRepositorySqlx,
+        OrganizationSettingsRepositorySqlx, PermissionRepositorySqlx, ReactionRepositorySqlx,
+        ServerSettingsRepositorySqlx, SessionRepositorySqlx, TeamMembershipRepositorySqlx,
+        TeamRepositorySqlx, TeamRoomRepositorySqlx, UserRepositorySqlx,
+        WebPushSubscriptionRepositorySqlx,
     },
     services::{
         admin::{AdminService, AdminServiceDeps},
@@ -30,6 +31,8 @@ use crate::{
         message::{MessageService, MessageServiceDeps},
         organization::{OrganizationService, OrganizationServiceDeps},
         reaction::{ReactionService, ReactionServiceDeps},
+        read_state::{ReadStateService, ReadStateServiceDeps},
+        search::{SearchService, SearchServiceDeps},
         server_admin::{ServerAdminService, ServerAdminServiceDeps},
         server_settings::{
             ServerSettingsOverride, ServerSettingsService, ServerSettingsServiceDeps,
@@ -99,6 +102,10 @@ pub struct AppState {
     pub spelling: Option<SpellingService>,
     /// Audit log service.
     pub audit: AuditService,
+    /// Per-message read-state service.
+    pub read_state: ReadStateService,
+    /// Cross-content-type search service.
+    pub search: SearchService,
 }
 
 impl std::fmt::Debug for AppState {
@@ -214,6 +221,7 @@ impl AppState {
         let team_rooms_repo = Arc::new(TeamRoomRepositorySqlx::new(pool.clone()));
         let server_settings_repo = Arc::new(ServerSettingsRepositorySqlx::new(pool.clone()));
         let audit_log_repo = Arc::new(AuditLogRepositorySqlx::new(pool.clone()));
+        let message_reads_repo = Arc::new(MessageReadRepositorySqlx::new(pool.clone()));
 
         let web_push = WebPushServiceConfig::from_config(web_push_config)
             .and_then(|svc_config| {
@@ -319,6 +327,13 @@ impl AppState {
             memberships: memberships_repo.clone(),
         });
 
+        let read_state = ReadStateService::new(ReadStateServiceDeps {
+            reads: message_reads_repo.clone(),
+            channels: channels.clone(),
+            direct_messages: direct_messages.clone(),
+            events: Arc::new(events.clone()),
+        });
+
         let files = FileService::new(
             FileServiceDeps {
                 files: files_repo.clone(),
@@ -328,6 +343,14 @@ impl AppState {
             },
             files_directory,
         );
+
+        let search = SearchService::new(SearchServiceDeps {
+            messages: messages.clone(),
+            channels: channels.clone(),
+            organizations: organizations.clone(),
+            files: files.clone(),
+            reads: message_reads_repo.clone(),
+        });
 
         let mcp = McpService::new(
             McpServiceDeps {
@@ -412,6 +435,8 @@ impl AppState {
             server_settings,
             spelling,
             audit,
+            read_state,
+            search,
         }
     }
 

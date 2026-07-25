@@ -9,6 +9,7 @@ import {
   OrgMemberProvider,
   OrganizationProvider,
   PresenceProvider,
+  ReadStateProvider,
   RealtimeProvider,
   SessionProvider,
   SettingsProvider,
@@ -22,6 +23,7 @@ import {
   useOrgMembers,
   useChannels,
   usePresence,
+  useReadState,
   useTyping,
   useDirectMessages,
 } from '../hooks';
@@ -39,6 +41,7 @@ vi.mock('../api', async () => {
         list: mockListOrganizations,
         listChannels: mockListChannels,
         searchMembers: vi.fn().mockResolvedValue([]),
+        unreadCounts: vi.fn().mockResolvedValue({ counts: {} }),
       },
       channels: {
         listMessages: mockListMessages,
@@ -83,6 +86,7 @@ function Wrapper({ session, children }: { session: import('../hooks/useSession')
   const messagesState = useMessages(session?.token, undefined, undefined, session?.user.id);
   const presenceState = usePresence();
   const typingState = useTyping();
+  const readState = useReadState(session?.token, undefined, undefined);
 
   return (
     <SettingsProvider
@@ -115,9 +119,11 @@ function Wrapper({ session, children }: { session: import('../hooks/useSession')
                 <MessageProvider value={messagesState}>
                   <PresenceProvider value={presenceState}>
                     <TypingProvider value={typingState}>
-                      <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
-                        {children}
-                      </RealtimeProvider>
+                      <ReadStateProvider value={readState}>
+                        <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
+                          {children}
+                        </RealtimeProvider>
+                      </ReadStateProvider>
                     </TypingProvider>
                   </PresenceProvider>
                 </MessageProvider>

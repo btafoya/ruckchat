@@ -57,4 +57,12 @@ export class DirectMessagesApi {
       body: request,
     });
   }
+
+  async markRead(token: string, conversationId: string, messageIds: string[]): Promise<void> {
+    await this.client.request<void>(`/direct_messages/${conversationId}/read`, {
+      method: 'POST',
+      token,
+      body: { message_ids: messageIds },
+    });
+  }
 }

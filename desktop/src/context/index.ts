@@ -11,5 +11,6 @@ export {
   useDirectMessageContext,
 } from './DirectMessageContext';
 export { TypingContext, TypingProvider, useTypingContext } from './TypingContext';
+export { ReadStateContext, ReadStateProvider, useReadStateContext } from './ReadStateContext';
 export { RealtimeContext, RealtimeProvider, useRealtimeContext } from './RealtimeContext';
 export { PlatformProvider, usePlatform } from './PlatformContext';

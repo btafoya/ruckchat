@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO message_reads (user_id, message_id)\n             SELECT $1, msg_id FROM UNNEST($2::uuid[]) AS msg_id\n             ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "61e25be229346e98e1a8e151e73526c3c62f5918de7f9dd1a5d90056432ccd68"
+}

@@ -109,4 +109,12 @@ export class ChannelsApi {
       body: request,
     });
   }
+
+  async markRead(token: string, channelId: string, messageIds: string[]): Promise<void> {
+    await this.client.request<void>(`/channels/${channelId}/read`, {
+      method: 'POST',
+      token,
+      body: { message_ids: messageIds },
+    });
+  }
 }

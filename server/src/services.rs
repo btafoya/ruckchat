@@ -16,6 +16,8 @@ pub mod mcp;
 pub mod message;
 pub mod organization;
 pub mod reaction;
+pub mod read_state;
+pub mod search;
 pub mod server_admin;
 pub mod server_settings;
 pub mod spelling;
@@ -34,6 +36,8 @@ pub use mcp::{McpService, McpServiceDeps, PostMessageResult};
 pub use message::MessageService;
 pub use organization::OrganizationService;
 pub use reaction::ReactionService;
+pub use read_state::{ReadStateService, ReadStateServiceDeps};
+pub use search::{SearchResults, SearchService, SearchServiceDeps};
 pub use server_admin::{ServerAdminService, ServerAdminServiceDeps};
 pub use server_settings::{
     ServerSettingsOverride, ServerSettingsService, ServerSettingsServiceDeps,

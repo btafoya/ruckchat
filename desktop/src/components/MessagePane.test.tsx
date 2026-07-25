@@ -115,6 +115,10 @@ const mockMessageState: MessagesState = {
   appendMessage: vi.fn(),
   updateMessage: vi.fn(),
   removeMessage: vi.fn(),
+  editingMessage: null,
+  startEdit: vi.fn(),
+  cancelEdit: vi.fn(),
+  saveEdit: vi.fn(),
 };
 
 const mockSession = {

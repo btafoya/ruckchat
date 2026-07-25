@@ -43,7 +43,7 @@ pub use permission::Permission;
 pub use reaction::Reaction;
 pub use repositories::{
     AuditLogRepository, ChannelMembershipRepository, ChannelRepository, CustomEmojiRepository,
-    DirectMessageConversationRepository, FileRepository, MessageRepository,
+    DirectMessageConversationRepository, FileRepository, MessageReadRepository, MessageRepository,
     OrganizationMembershipRepository, OrganizationRepository, OrganizationRoleRepository,
     OrganizationSettingsRepository, PermissionRepository, ReactionRepository,
     RolePermissionRepository, ServerSettingsRepository, SessionRepository,

@@ -170,11 +170,33 @@ CREATE TABLE sessions (
 );
 ```
 
+### message_reads
+
+```sql
+CREATE TABLE message_reads (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, message_id)
+);
+```
+
+One row per (user, message) once read. Internal only — never exposed as a
+"seen by" indicator — it exists solely to compute unread badges and the
+`is:unread` search operator. A message authored by a user is never counted as
+unread for that same user. See `docs/ADR-015-Search-And-Read-State.md`.
+
 ## Full-Text Search
 
 - The `messages.content` column has a generated `tsvector` column `content_tsv` for PostgreSQL full-text search.
 - Default language is English; additional languages are a post-MVP concern.
 - Searches are scoped by conversation or organization using additional `WHERE` clauses.
+- Global search (`GET /organizations/{id}/search`) extends this to channels,
+  people, and files, but only messages use `tsvector`/GIN full-text matching.
+  Channels, people, and files reuse an in-memory, lowercase substring filter
+  over the organization's full list, the same pattern used for @mention
+  member autocomplete — those tables are small per-organization and don't
+  need stemming or ranking.
 
 ## Quotas and Limits
 

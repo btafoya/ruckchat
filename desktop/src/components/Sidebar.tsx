@@ -8,10 +8,10 @@ import {
   useDirectMessageContext,
   useOrgMemberContext,
   useOrganizationContext,
+  useReadStateContext,
   useSessionContext,
   useSettingsContext,
 } from '../context';
-import { useUnread } from '../hooks';
 import { ChannelSettingsModal } from './ChannelSettingsModal';
 import { CreateChannelModal } from './CreateChannelModal';
 import { StartDmModal } from './StartDmModal';
@@ -53,7 +53,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
   const params = useParams();
   const activeOrgId = params.organizationId;
   const activeConversationId = (params.channelId ?? params.dmId) || undefined;
-  const { counts } = useUnread(activeConversationId);
+  const { counts } = useReadStateContext();
 
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [settingsChannel, setSettingsChannel] = useState<Channel | null>(null);

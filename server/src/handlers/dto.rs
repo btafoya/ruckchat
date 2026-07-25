@@ -6,6 +6,8 @@
 use ruckchat_domain::Organization;
 use ruckchat_id::{MessageId, OrganizationId, UserId};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use uuid::Uuid;
 
 /// Public user representation returned by the API.
 #[derive(Debug, Clone, Serialize)]
@@ -103,4 +105,43 @@ pub struct PostDmMessageRequest {
     pub content: String,
     /// Optional parent message identifier for thread replies.
     pub parent_id: Option<MessageId>,
+}
+
+/// Unread message counts per conversation, keyed by conversation id.
+#[derive(Debug, Clone, Serialize)]
+pub struct UnreadCountsResponse {
+    /// Unread count for each conversation the caller belongs to.
+    pub counts: HashMap<Uuid, i64>,
+}
+
+/// Search results grouped by content type. Mirrors
+/// [`crate::services::SearchResults`] but maps people to [`UserResponse`] so
+/// password hashes never leave the server.
+#[derive(Debug, Clone, Serialize)]
+pub struct SearchResponse {
+    /// Matching messages.
+    pub messages: Vec<ruckchat_domain::Message>,
+    /// Matching channels.
+    pub channels: Vec<ruckchat_domain::Channel>,
+    /// Matching organization members.
+    pub people: Vec<UserResponse>,
+    /// Matching files.
+    pub files: Vec<ruckchat_domain::File>,
+}
+
+impl SearchResponse {
+    /// Builds a response from service-layer search results.
+    #[must_use]
+    pub fn from_results(results: crate::services::SearchResults) -> Self {
+        Self {
+            messages: results.messages,
+            channels: results.channels,
+            people: results
+                .people
+                .iter()
+                .map(UserResponse::from_domain)
+                .collect(),
+            files: results.files,
+        }
+    }
 }

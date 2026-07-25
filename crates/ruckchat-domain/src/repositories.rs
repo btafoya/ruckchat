@@ -258,6 +258,29 @@ pub trait MessageRepository {
     ) -> Result<Vec<Message>>;
 }
 
+/// Per-user, per-message read-state data access.
+#[async_trait]
+pub trait MessageReadRepository {
+    /// Records the given messages as read by the user, ignoring messages
+    /// already marked read.
+    async fn mark_read(&self, user_id: UserId, message_ids: &[MessageId]) -> Result<()>;
+
+    /// Counts, for each requested conversation, how many of its messages the
+    /// user has not yet read.
+    async fn unread_counts_by_conversation(
+        &self,
+        user_id: UserId,
+        conversation_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, i64>>;
+
+    /// Returns, of the given messages, those the user has not yet read.
+    async fn unread_message_ids(
+        &self,
+        user_id: UserId,
+        message_ids: &[MessageId],
+    ) -> Result<std::collections::HashSet<MessageId>>;
+}
+
 /// Reaction data access.
 #[async_trait]
 pub trait ReactionRepository {
@@ -285,6 +308,12 @@ pub trait FileRepository {
 
     /// Links a file to a message.
     async fn attach_to_message(&self, message_id: MessageId, file_id: FileId) -> Result<()>;
+
+    /// Returns, of the given messages, those with at least one attached file.
+    async fn message_ids_with_attachments(
+        &self,
+        message_ids: &[MessageId],
+    ) -> Result<std::collections::HashSet<MessageId>>;
 }
 
 /// Custom organization role data access.

@@ -31,6 +31,10 @@ export type UpdateProfileRequest = components['schemas']['UpdateProfileRequest']
 export type AddReactionRequest = components['schemas']['AddReactionRequest'];
 export type RecordUploadRequest = components['schemas']['RecordUploadRequest'];
 export type AttachFileRequest = components['schemas']['AttachFileRequest'];
+export type EditMessageRequest = components['schemas']['EditMessageRequest'];
+export type MarkReadRequest = components['schemas']['MarkReadRequest'];
+export type UnreadCountsResponse = components['schemas']['UnreadCountsResponse'];
+export type SearchResponse = components['schemas']['SearchResponse'];
 
 export type ServerUser = components['schemas']['ServerUserResponse'];
 export type ServerUserList = components['schemas']['ServerUserList'];

@@ -84,6 +84,28 @@ impl FileRepository for FileRepositorySqlx {
         .map_err(map_sqlx_err)?;
         Ok(())
     }
+
+    async fn message_ids_with_attachments(
+        &self,
+        message_ids: &[ruckchat_id::MessageId],
+    ) -> Result<std::collections::HashSet<ruckchat_id::MessageId>> {
+        if message_ids.is_empty() {
+            return Ok(std::collections::HashSet::new());
+        }
+        let ids: Vec<uuid::Uuid> = message_ids.iter().map(|id| id.as_uuid()).collect();
+        let rows = sqlx::query!(
+            r#"SELECT DISTINCT message_id AS "message_id!" FROM message_files WHERE message_id = ANY($1)"#,
+            &ids
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| ruckchat_id::MessageId::from_uuid(row.message_id))
+            .collect())
+    }
 }
 
 #[derive(sqlx::FromRow)]

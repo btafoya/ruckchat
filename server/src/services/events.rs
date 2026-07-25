@@ -65,6 +65,15 @@ pub trait EventBus: Send + Sync {
         user_id: UserId,
         message: &ruckchat_domain::Message,
     ) -> ruckchat_common::Result<()>;
+
+    /// Notifies a user's other sessions that messages were marked read, so
+    /// unread badges stay in sync across devices.
+    async fn publish_read_state_updated(
+        &self,
+        user_id: UserId,
+        conversation_id: Uuid,
+        message_ids: &[MessageId],
+    ) -> ruckchat_common::Result<()>;
 }
 
 /// A server-to-client event payload.
@@ -133,6 +142,13 @@ pub enum ServerEvent {
         /// Error details.
         error: ErrorEvent,
     },
+    /// Messages were marked read by one of the user's own sessions.
+    ReadStateUpdated {
+        /// Conversation the read messages belong to.
+        conversation_id: Uuid,
+        /// Messages that were marked read.
+        message_ids: Vec<MessageId>,
+    },
 }
 
 impl ServerEvent {
@@ -150,6 +166,7 @@ impl ServerEvent {
             Self::ConnectionEstablished { .. } => "connection.established",
             Self::Mention { .. } => "mention",
             Self::Error { .. } => "error",
+            Self::ReadStateUpdated { .. } => "read_state.updated",
         }
     }
 }

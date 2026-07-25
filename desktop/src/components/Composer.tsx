@@ -64,7 +64,7 @@ export function Composer({
 }: ComposerProps): JSX.Element {
   const { session } = useSessionContext();
   const { send: sendWs } = useRealtimeContext();
-  const { sendMessage } = useMessageContext();
+  const { sendMessage, editingMessage, cancelEdit, saveEdit } = useMessageContext();
   const platform = usePlatform();
   const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
@@ -222,8 +222,23 @@ export function Composer({
     if (!editor) {
       return;
     }
+    if (editingMessage) {
+      let parsed: Record<string, unknown>;
+      try {
+        const json = JSON.parse(editingMessage.content) as unknown;
+        parsed =
+          json && typeof json === 'object' && (json as { type?: string }).type === 'doc'
+            ? (json as Record<string, unknown>)
+            : emptyDoc();
+      } catch {
+        parsed = emptyDoc();
+      }
+      editor.commands.setContent(parsed);
+      editor.commands.focus('end');
+      return;
+    }
     editor.commands.setContent(loadDraft(conversationId));
-  }, [editor, conversationId]);
+  }, [editor, conversationId, editingMessage]);
 
   useEffect(() => {
     if (!editor) {
@@ -252,6 +267,10 @@ export function Composer({
     setIsSending(true);
     try {
       const content = JSON.stringify(editor.getJSON());
+      if (editingMessage) {
+        await saveEdit(content);
+        return;
+      }
       const fileIds = pendingFiles.map((f) => f.id);
       const sent = await sendMessage(content, parentId, fileIds);
       if (sent) {
@@ -263,7 +282,7 @@ export function Composer({
     } finally {
       setIsSending(false);
     }
-  }, [editor, isSending, onSent, parentId, pendingFiles, sendMessage]);
+  }, [editor, isSending, onSent, parentId, pendingFiles, sendMessage, editingMessage, saveEdit]);
 
   useEffect(() => {
     if (!editor || !showPreview) {
@@ -438,14 +457,26 @@ export function Composer({
             {showPreview ? 'Edit' : 'Preview'}
           </button>
         </div>
-        <button
-          type="button"
-          onClick={() => void handleSubmit()}
-          disabled={editor.isEmpty || isSending}
-          className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-text-inverse hover:bg-accent-hover disabled:opacity-50"
-        >
-          {isSending ? 'Sending...' : 'Send'}
-        </button>
+        <div className="flex items-center gap-2">
+          {editingMessage && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              disabled={isSending}
+              className="rounded-md px-3 py-1.5 text-sm text-text hover:bg-surface-elevated disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={editor.isEmpty || isSending}
+            className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-text-inverse hover:bg-accent-hover disabled:opacity-50"
+          >
+            {editingMessage ? 'Save' : isSending ? 'Sending...' : 'Send'}
+          </button>
+        </div>
       </div>
     </div>
   );

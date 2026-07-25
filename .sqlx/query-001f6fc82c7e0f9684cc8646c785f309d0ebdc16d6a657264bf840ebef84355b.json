@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id AS \"id!\" FROM messages\n             WHERE id = ANY($1)\n               AND NOT EXISTS (\n                 SELECT 1 FROM message_reads r WHERE r.user_id = $2 AND r.message_id = messages.id\n               )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "001f6fc82c7e0f9684cc8646c785f309d0ebdc16d6a657264bf840ebef84355b"
+}

@@ -3,7 +3,7 @@
 use crate::{
     Error,
     handlers::{auth::AuthUser, dto::ListResponse},
-    services::dto::{CreateChannelRequest, UpdateChannelRequest},
+    services::dto::{CreateChannelRequest, MarkReadRequest, UpdateChannelRequest},
     state::AppState,
 };
 use axum::{
@@ -12,6 +12,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
+use ruckchat_domain::ConversationType;
 use ruckchat_id::{ChannelId, OrganizationId, UserId};
 use serde::Deserialize;
 use uuid::Uuid;
@@ -151,6 +152,25 @@ pub async fn remove_member(
             auth_user.id,
             ChannelId::from_uuid(channel_id),
             params.user_id,
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Marks messages in a channel as read by the caller.
+pub async fn mark_read(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(channel_id): Path<Uuid>,
+    Json(request): Json<MarkReadRequest>,
+) -> Result<StatusCode, Error> {
+    state
+        .read_state
+        .mark_conversation_read(
+            auth_user.id,
+            channel_id,
+            ConversationType::Channel,
+            request.message_ids,
         )
         .await?;
     Ok(StatusCode::NO_CONTENT)

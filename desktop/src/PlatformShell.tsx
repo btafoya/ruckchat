@@ -9,6 +9,7 @@ import {
   OrganizationProvider,
   PlatformProvider,
   PresenceProvider,
+  ReadStateProvider,
   RealtimeProvider,
   SessionProvider,
   TypingProvider,
@@ -26,13 +27,13 @@ import {
   useOrgMembers,
   useOrganizations,
   usePresence,
+  useReadState,
   useRealtimeStore,
   useSession,
   useTyping,
-  useUnread,
   useWebSocket,
 } from './hooks';
-import { AuthScreen, Settings, Shell, ThemeProvider } from './components';
+import { AuthScreen, SearchResultsPage, Settings, Shell, ThemeProvider } from './components';
 import {
   OrgAdminEmoji,
   OrgAdminMembers,
@@ -85,17 +86,17 @@ function AuthenticatedShell({ platform }: { platform: Platform }): JSX.Element {
   );
   const presenceState = usePresence();
   const typingState = useTyping();
-  const unreadState = useUnread(conversationId);
+  const readState = useReadState(session?.token, organizationId, conversationId, { apiUrl });
   const notificationsState = platform.useNotifications({
     userId: session?.user.id ?? '',
     enabled: session ? !settings.isLoading && notificationsEnabled : false,
     api,
     token: session?.token,
   });
-  const realtimeStore = useRealtimeStore(messagesState, presenceState, typingState, unreadState, notificationsState);
+  const realtimeStore = useRealtimeStore(messagesState, presenceState, typingState, readState, notificationsState);
   const websocketState = useWebSocket(session?.token, realtimeStore.onEvent, { apiUrl });
 
-  platform.useTray({ unreadCount: unreadState.total, enabled: !!session });
+  platform.useTray({ unreadCount: readState.total, enabled: !!session });
   platform.useDeepLink();
 
   useEffect(() => {
@@ -109,6 +110,23 @@ function AuthenticatedShell({ platform }: { platform: Platform }): JSX.Element {
     }
   }, [organizationId, channelId, dmId]);
 
+  useEffect(() => {
+    if (!conversationId || !conversationType || messagesState.messages.length === 0) {
+      return;
+    }
+    const messageIds = messagesState.messages
+      .map((m) => m.id)
+      .filter((id) => !id.startsWith('pending-'));
+    if (messageIds.length === 0) {
+      return;
+    }
+    void readState.markRead(conversationId, conversationType, messageIds);
+    // Only re-run when the visible message set changes, not on every readState
+    // identity change (marking read updates readState.counts, which would
+    // otherwise retrigger this effect).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, conversationType, messagesState.messages]);
+
   return (
     <OrganizationProvider value={organizationsState}>
       <OrgMemberProvider value={orgMembersState}>
@@ -117,9 +135,11 @@ function AuthenticatedShell({ platform }: { platform: Platform }): JSX.Element {
             <MessageProvider value={messagesState}>
               <PresenceProvider value={presenceState}>
                 <TypingProvider value={typingState}>
-                  <RealtimeProvider value={websocketState}>
-                    <Shell />
-                  </RealtimeProvider>
+                  <ReadStateProvider value={readState}>
+                    <RealtimeProvider value={websocketState}>
+                      <Shell />
+                    </RealtimeProvider>
+                  </ReadStateProvider>
                 </TypingProvider>
               </PresenceProvider>
             </MessageProvider>
@@ -264,6 +284,7 @@ export default function PlatformShell({ platform }: PlatformShellProps): JSX.Ele
                 element={<div />}
               />
               <Route path="org/:organizationId/dm/:dmId" element={<div />} />
+              <Route path="org/:organizationId/search" element={<SearchResultsPage />} />
             </Route>
           </Routes>
         </ThemeProvider>

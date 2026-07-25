@@ -7,6 +7,7 @@ import type {
   InviteMemberRequest,
   Member,
   Organization,
+  UnreadCountsResponse,
   User,
 } from './types';
 
@@ -104,5 +105,12 @@ export class OrganizationsApi {
       },
     );
     return response.items;
+  }
+
+  async unreadCounts(token: string, organizationId: string): Promise<UnreadCountsResponse> {
+    return this.client.request<UnreadCountsResponse>(
+      `/organizations/${organizationId}/unread_counts`,
+      { token },
+    );
   }
 }

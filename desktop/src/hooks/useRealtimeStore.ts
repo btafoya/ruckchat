@@ -4,7 +4,7 @@ import type { MessagesState } from './useMessages';
 import type { NotificationState } from './useNotifications';
 import type { PresenceState } from './usePresence';
 import type { TypingState } from './useTyping';
-import type { UnreadState } from './useUnread';
+import type { ReadState } from './useReadState';
 
 export interface RealtimeStore {
   onEvent: (event: ServerEvent) => void;
@@ -14,7 +14,7 @@ export function useRealtimeStore(
   messages: MessagesState,
   presence: PresenceState,
   typing: TypingState,
-  unread: UnreadState,
+  readState: ReadState,
   notifications?: NotificationState,
 ): RealtimeStore {
   const onEvent = useCallback(
@@ -22,7 +22,7 @@ export function useRealtimeStore(
       switch (event.type) {
         case 'message.created':
           messages.appendMessage(event.message);
-          unread.increment(event.message.conversation_id);
+          readState.increment(event.message.conversation_id);
           void notifications?.maybeNotify(event);
           break;
         case 'message.updated':
@@ -51,9 +51,12 @@ export function useRealtimeStore(
         case 'connection.established':
           // Handled by connection status UI if needed.
           break;
+        case 'read_state.updated':
+          readState.applyRemoteRead(event.conversation_id);
+          break;
       }
     },
-    [messages, presence, typing, unread, notifications],
+    [messages, presence, typing, readState, notifications],
   );
 
   return useMemo(

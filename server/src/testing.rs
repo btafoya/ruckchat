@@ -10,10 +10,10 @@ use ruckchat_common::Result;
 use ruckchat_domain::{
     Channel, ChannelMembership, ChannelMembershipRepository, ChannelRepository,
     DirectMessageConversation, DirectMessageConversationRepository, File, FileRepository, Message,
-    MessageRepository, Organization, OrganizationMembership, OrganizationMembershipRepository,
-    OrganizationRepository, OrganizationSettings, OrganizationSettingsRepository, Reaction,
-    ReactionRepository, Role, Session, SessionRepository, User, UserRepository,
-    WebPushSubscription, WebPushSubscriptionRepository,
+    MessageReadRepository, MessageRepository, Organization, OrganizationMembership,
+    OrganizationMembershipRepository, OrganizationRepository, OrganizationSettings,
+    OrganizationSettingsRepository, Reaction, ReactionRepository, Role, Session, SessionRepository,
+    User, UserRepository, WebPushSubscription, WebPushSubscriptionRepository,
 };
 use ruckchat_id::{
     ChannelId, DirectMessageConversationId, FileId, MessageId, OrganizationId, SessionId, UserId,
@@ -709,6 +709,15 @@ impl MockMessageRepository {
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// Returns a handle to the underlying message store, so a
+    /// [`MockMessageReadRepository`] can compute unread counts against the
+    /// same messages this repository serves, mirroring how both traits are
+    /// backed by the same `messages` table in production.
+    #[must_use]
+    pub fn messages_handle(&self) -> Arc<Mutex<Vec<Message>>> {
+        self.messages.clone()
+    }
 }
 
 #[async_trait]
@@ -780,6 +789,70 @@ impl MessageRepository for MockMessageRepository {
         let start = offset.max(0) as usize;
         let end = (start + limit.max(0) as usize).min(filtered.len());
         Ok(filtered[start..end].to_vec())
+    }
+}
+
+/// In-memory message read-state repository.
+#[derive(Debug, Default, Clone)]
+pub struct MockMessageReadRepository {
+    reads: Arc<Mutex<std::collections::HashSet<(UserId, MessageId)>>>,
+    messages: Arc<Mutex<Vec<Message>>>,
+}
+
+impl MockMessageReadRepository {
+    /// Creates an empty repository backed by the given messages, used to
+    /// compute unread counts the same way the SQLx implementation does.
+    #[must_use]
+    pub fn new(messages: Arc<Mutex<Vec<Message>>>) -> Self {
+        Self {
+            reads: Arc::new(Mutex::new(std::collections::HashSet::new())),
+            messages,
+        }
+    }
+}
+
+#[async_trait]
+impl MessageReadRepository for MockMessageReadRepository {
+    async fn mark_read(&self, user_id: UserId, message_ids: &[MessageId]) -> Result<()> {
+        let mut reads = self.reads.lock().unwrap();
+        for message_id in message_ids {
+            reads.insert((user_id, *message_id));
+        }
+        Ok(())
+    }
+
+    async fn unread_counts_by_conversation(
+        &self,
+        user_id: UserId,
+        conversation_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, i64>> {
+        let reads = self.reads.lock().unwrap();
+        let messages = self.messages.lock().unwrap();
+        let mut counts = std::collections::HashMap::new();
+        for message in messages.iter() {
+            if !conversation_ids.contains(&message.conversation_id)
+                || message.is_deleted()
+                || message.author_id == user_id
+                || reads.contains(&(user_id, message.id))
+            {
+                continue;
+            }
+            *counts.entry(message.conversation_id).or_insert(0) += 1;
+        }
+        Ok(counts)
+    }
+
+    async fn unread_message_ids(
+        &self,
+        user_id: UserId,
+        message_ids: &[MessageId],
+    ) -> Result<std::collections::HashSet<MessageId>> {
+        let reads = self.reads.lock().unwrap();
+        Ok(message_ids
+            .iter()
+            .filter(|id| !reads.contains(&(user_id, **id)))
+            .copied()
+            .collect())
     }
 }
 
@@ -947,6 +1020,22 @@ impl EventBus for MockEventBus {
         });
         Ok(())
     }
+
+    async fn publish_read_state_updated(
+        &self,
+        _user_id: ruckchat_id::UserId,
+        conversation_id: Uuid,
+        message_ids: &[MessageId],
+    ) -> ruckchat_common::Result<()> {
+        self.events
+            .lock()
+            .unwrap()
+            .push(ServerEvent::ReadStateUpdated {
+                conversation_id,
+                message_ids: message_ids.to_vec(),
+            });
+        Ok(())
+    }
 }
 
 /// In-memory file repository.
@@ -1000,6 +1089,18 @@ impl FileRepository for MockFileRepository {
     async fn attach_to_message(&self, message_id: MessageId, file_id: FileId) -> Result<()> {
         self.attachments.lock().unwrap().push((message_id, file_id));
         Ok(())
+    }
+
+    async fn message_ids_with_attachments(
+        &self,
+        message_ids: &[MessageId],
+    ) -> Result<std::collections::HashSet<MessageId>> {
+        let attachments = self.attachments.lock().unwrap();
+        Ok(attachments
+            .iter()
+            .filter(|(message_id, _)| message_ids.contains(message_id))
+            .map(|(message_id, _)| *message_id)
+            .collect())
     }
 }
 

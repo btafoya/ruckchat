@@ -2,7 +2,10 @@
 
 use crate::{
     Error,
-    handlers::{auth::AuthUser, dto::ListResponse, dto::UserResponse},
+    handlers::{
+        auth::AuthUser,
+        dto::{ListResponse, UnreadCountsResponse, UserResponse},
+    },
     services::dto::{ChangeRoleRequest, CreateOrganizationRequest, InviteMemberRequest},
     state::AppState,
 };
@@ -147,6 +150,19 @@ pub async fn search_members(
         .map(|user| UserResponse::from_domain(&user))
         .collect();
     Ok(Json(ListResponse::new(items)))
+}
+
+/// Returns unread message counts per conversation for the caller.
+pub async fn unread_counts(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(organization_id): Path<Uuid>,
+) -> Result<Json<UnreadCountsResponse>, Error> {
+    let counts = state
+        .read_state
+        .unread_counts(auth_user.id, OrganizationId::from_uuid(organization_id))
+        .await?;
+    Ok(Json(UnreadCountsResponse { counts }))
 }
 
 /// Organization member response.

@@ -239,6 +239,22 @@ impl FileService {
         self.deps.files.list_by_organization(organization_id).await
     }
 
+    /// Returns, of the given messages, those with at least one attached file.
+    /// Used by search's `has:attachment` operator.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying repository query fails.
+    pub async fn message_ids_with_attachments(
+        &self,
+        message_ids: &[ruckchat_id::MessageId],
+    ) -> ruckchat_common::Result<std::collections::HashSet<ruckchat_id::MessageId>> {
+        self.deps
+            .files
+            .message_ids_with_attachments(message_ids)
+            .await
+    }
+
     /// Attaches a file to a message.
     ///
     /// # Errors

@@ -107,6 +107,15 @@ impl EventBus for NoOpEventBus {
     ) -> ruckchat_common::Result<()> {
         Ok(())
     }
+
+    async fn publish_read_state_updated(
+        &self,
+        _user_id: ruckchat_id::UserId,
+        _conversation_id: uuid::Uuid,
+        _message_ids: &[ruckchat_id::MessageId],
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
 }
 
 /// All services wired with SQLx repositories for a single test.

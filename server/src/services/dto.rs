@@ -144,6 +144,13 @@ pub struct EditMessageRequest {
     pub content: String,
 }
 
+/// Request to mark messages as read in a conversation.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MarkReadRequest {
+    /// Identifiers of the messages to mark as read.
+    pub message_ids: Vec<MessageId>,
+}
+
 /// Request to start a direct message conversation.
 #[derive(Debug, Clone, Deserialize)]
 pub struct StartDmRequest {

@@ -319,6 +319,79 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /organizations/{organization_id}/unread_counts:
+    parameters:
+      - name: organization_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    get:
+      summary: Get unread message counts per conversation for the caller
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Unread counts keyed by conversation id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /organizations/{organization_id}/search:
+    parameters:
+      - name: organization_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    get:
+      summary: Search messages, channels, people, and files
+      description: >-
+        Accepts the raw search box text, including Gmail-style operators
+        (`from:`, `in:`, `has:attachment`, `before:`/`after:`, `is:unread`)
+        parsed server-side.
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Search results grouped by content type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /organizations/{organization_id}/channels:
     parameters:
       - name: organization_id
@@ -541,6 +614,35 @@ paths:
       responses:
         '204':
           description: Member removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /channels/{channel_id}/read:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    post:
+      summary: Mark messages in a channel as read by the caller
+      tags: [Channels]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkReadRequest'
+      responses:
+        '204':
+          description: Messages marked read
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -776,6 +878,35 @@ paths:
       responses:
         '204':
           description: Conversation hidden
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /direct_messages/{conversation_id}/read:
+    parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    post:
+      summary: Mark messages in a DM conversation as read by the caller
+      tags: [Direct Messages]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkReadRequest'
+      responses:
+        '204':
+          description: Messages marked read
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3068,6 +3199,47 @@ components:
       properties:
         content:
           type: string
+
+    MarkReadRequest:
+      type: object
+      required: [message_ids]
+      properties:
+        message_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+
+    SearchResponse:
+      type: object
+      required: [messages, channels, people, files]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+        people:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+
+    UnreadCountsResponse:
+      type: object
+      required: [counts]
+      properties:
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+          description: Unread message count keyed by conversation id.
 
     StartDmRequest:
       type: object

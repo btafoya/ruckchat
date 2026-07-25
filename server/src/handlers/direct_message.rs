@@ -6,7 +6,7 @@ use crate::{
         auth::AuthUser,
         dto::{ListResponse, PostDmMessageRequest},
     },
-    services::dto::{Pagination, StartDmRequest},
+    services::dto::{MarkReadRequest, Pagination, StartDmRequest},
     state::AppState,
 };
 use axum::{
@@ -102,4 +102,23 @@ pub async fn post_message(
         .post_message(auth_user.id, service_request)
         .await?;
     Ok((StatusCode::CREATED, Json(message)))
+}
+
+/// Marks messages in a direct message conversation as read by the caller.
+pub async fn mark_read(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(conversation_id): Path<Uuid>,
+    Json(request): Json<MarkReadRequest>,
+) -> Result<StatusCode, Error> {
+    state
+        .read_state
+        .mark_conversation_read(
+            auth_user.id,
+            conversation_id,
+            ConversationType::DirectMessage,
+            request.message_ids,
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
 }

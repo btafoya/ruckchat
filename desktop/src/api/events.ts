@@ -49,6 +49,12 @@ export interface ConnectionEstablishedEvent {
   user_id: string;
 }
 
+export interface ReadStateUpdatedEvent {
+  type: 'read_state.updated';
+  conversation_id: string;
+  message_ids: string[];
+}
+
 export type ServerEvent =
   | MessageCreatedEvent
   | MessageUpdatedEvent
@@ -57,7 +63,8 @@ export type ServerEvent =
   | ReactionRemovedEvent
   | TypingEvent
   | PresenceEvent
-  | ConnectionEstablishedEvent;
+  | ConnectionEstablishedEvent
+  | ReadStateUpdatedEvent;
 
 export interface EventEnvelope {
   type: string;

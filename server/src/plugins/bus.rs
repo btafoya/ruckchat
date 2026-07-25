@@ -120,4 +120,15 @@ impl EventBus for CompositeEventBus {
     ) -> ruckchat_common::Result<()> {
         self.websocket.publish_mention(user_id, message).await
     }
+
+    async fn publish_read_state_updated(
+        &self,
+        user_id: ruckchat_id::UserId,
+        conversation_id: uuid::Uuid,
+        message_ids: &[ruckchat_id::MessageId],
+    ) -> ruckchat_common::Result<()> {
+        self.websocket
+            .publish_read_state_updated(user_id, conversation_id, message_ids)
+            .await
+    }
 }

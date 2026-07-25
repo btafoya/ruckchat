@@ -460,6 +460,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organization_id}/unread_counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        /** Get unread message counts per conversation for the caller */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Unread counts keyed by conversation id */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UnreadCountsResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organization_id}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Search messages, channels, people, and files
+         * @description Accepts the raw search box text, including Gmail-style operators (`from:`, `in:`, `has:attachment`, `before:`/`after:`, `is:unread`) parsed server-side.
+         */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                    limit?: number;
+                    offset?: number;
+                };
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Search results grouped by content type */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SearchResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organization_id}/channels": {
         parameters: {
             query?: never;
@@ -770,6 +861,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/channels/{channel_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark messages in a channel as read by the caller */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    channel_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MarkReadRequest"];
+                };
+            };
+            responses: {
+                /** @description Messages marked read */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/channels/{channel_id}/messages": {
         parameters: {
             query?: {
@@ -1067,6 +1203,51 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Conversation hidden */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/direct_messages/{conversation_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark messages in a DM conversation as read by the caller */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversation_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MarkReadRequest"];
+                };
+            };
+            responses: {
+                /** @description Messages marked read */
                 204: {
                     headers: {
                         [name: string]: unknown;
@@ -3812,6 +3993,21 @@ export interface components {
         };
         EditMessageRequest: {
             content: string;
+        };
+        MarkReadRequest: {
+            message_ids: components["schemas"]["Uuid"][];
+        };
+        SearchResponse: {
+            messages: components["schemas"]["Message"][];
+            channels: components["schemas"]["Channel"][];
+            people: components["schemas"]["UserResponse"][];
+            files: components["schemas"]["File"][];
+        };
+        UnreadCountsResponse: {
+            /** @description Unread message count keyed by conversation id. */
+            counts: {
+                [key: string]: number;
+            };
         };
         StartDmRequest: {
             organization_id: components["schemas"]["Uuid"];

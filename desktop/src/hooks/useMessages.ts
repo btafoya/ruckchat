@@ -24,6 +24,10 @@ export interface MessagesState {
   appendMessage: (message: Message) => void;
   updateMessage: (message: Message) => void;
   removeMessage: (messageId: string) => void;
+  editingMessage: Message | null;
+  startEdit: (message: Message) => void;
+  cancelEdit: () => void;
+  saveEdit: (content: string) => Promise<void>;
 }
 
 export interface UseMessagesOptions {
@@ -47,6 +51,7 @@ export function useMessages(
   const [threadReplies, setThreadReplies] = useState<Message[]>([]);
   const [threadRepliesLoading, setThreadRepliesLoading] = useState(false);
   const [reactions, setReactions] = useState<Record<string, Reaction[]>>({});
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const api = useMemo(() => createApi(options.apiUrl), [options.apiUrl]);
   const pendingSendRef = useRef<Set<string>>(new Set());
   const pendingContentRef = useRef<Record<string, string>>({});
@@ -222,6 +227,34 @@ export function useMessages(
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
   }, []);
 
+  const startEdit = useCallback((message: Message) => {
+    setEditingMessage(message);
+  }, []);
+
+  const cancelEdit = useCallback(() => {
+    setEditingMessage(null);
+  }, []);
+
+  const saveEdit = useCallback(
+    async (content: string): Promise<void> => {
+      if (!token || !editingMessage) {
+        return;
+      }
+      const trimmed = content.trim();
+      if (!trimmed) {
+        return;
+      }
+      try {
+        const updated = await api.messages.edit(token, editingMessage.id, trimmed);
+        updateMessage(updated);
+        setEditingMessage(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to edit message');
+      }
+    },
+    [api, token, editingMessage, updateMessage],
+  );
+
   const addReaction = useCallback((messageId: string, reaction: Reaction) => {
     setReactions((prev) => {
       const list = prev[messageId] ?? [];
@@ -271,6 +304,10 @@ export function useMessages(
       appendMessage,
       updateMessage,
       removeMessage,
+      editingMessage,
+      startEdit,
+      cancelEdit,
+      saveEdit,
     }),
     [
       messages,
@@ -291,6 +328,10 @@ export function useMessages(
       appendMessage,
       updateMessage,
       removeMessage,
+      editingMessage,
+      startEdit,
+      cancelEdit,
+      saveEdit,
     ],
   );
 }

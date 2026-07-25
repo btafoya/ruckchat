@@ -154,6 +154,18 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   guarded against deleting the last server admin and against users with
   existing message/organization-ownership history via a foreign-key-violation
   → `409 Conflict` mapping).
+- Search and read-state issue work (`docs/ADR-015-Search-And-Read-State.md`):
+  message editing wired into the desktop client (`MessagesApi.edit`, a
+  Composer edit mode, an author-only "Edit" action) on top of the already-
+  existing backend edit/broadcast path; global search across messages,
+  channels, people, and files at `GET /organizations/{id}/search` with
+  Gmail-style `from:`/`in:`/`has:attachment`/`before:`/`after:`/`is:unread`
+  operators parsed server-side (`server/src/services/search.rs`); and a new
+  server-side, per-message read-state model (`message_reads` table,
+  `ReadStateService`, `POST /channels/{id}/read`,
+  `POST /direct_messages/{id}/read`, `GET /organizations/{id}/unread_counts`,
+  the `read_state.updated` WebSocket event) that replaced the old
+  `localStorage`-only `useUnread.ts` outright.
 - Mobile support (Flutter) is planned for a later phase.
 
 ## Commands
@@ -317,6 +329,14 @@ root/
 - `server/tests/spelling.rs` — Spell-checker endpoint integration tests.
 - `desktop/src/spelling/SpellingProofreader.ts` — `IProofreaderInterface` implementation calling the spelling REST endpoints.
 - `desktop/src/api/spelling.ts` — Spelling REST API client.
+- `server/src/services/read_state.rs` — Per-message read-state service (`message_reads` table).
+- `server/src/services/search.rs` — Cross-content-type search service and Gmail-style `parse_query`.
+- `server/src/handlers/search.rs` — Global search REST handler.
+- `server/tests/search_and_read_state.rs` — Search and read-state integration tests.
+- `desktop/src/hooks/useReadState.ts` — Server-backed unread badges (replaces the removed `useUnread.ts`).
+- `desktop/src/context/ReadStateContext.tsx` — Shared read-state instance for `Sidebar`/`PlatformShell`.
+- `desktop/src/components/SearchResultsPage.tsx` — Global search results route.
+- `desktop/src/api/messages.ts`, `desktop/src/api/search.ts` — Message-edit and search REST clients.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
 - `server/openapi.yaml` — Full REST API specification for the REST API, WebSocket upgrade, and MCP endpoint.
 - `Dockerfile` — Multi-stage SQLx-offline server image build.
@@ -330,7 +350,8 @@ root/
   `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md`,
   `docs/ADR-009-Plugin-SDK.md`, `docs/ADR-010-Runtime-YAML-Configuration.md`,
   `docs/ADR-011-Web-UI.md`, `docs/ADR-012-Migration-and-Packaging.md`,
-  `docs/ADR-013-Web-UI-Admin-Panel.md`, `docs/ADR-014-Spell-Checker.md` — Active ADRs.
+  `docs/ADR-013-Web-UI-Admin-Panel.md`, `docs/ADR-014-Spell-Checker.md`,
+  `docs/ADR-015-Search-And-Read-State.md` — Active ADRs.
 
 ## Environment
 

@@ -348,6 +348,15 @@ impl crate::services::events::EventBus for WebPushService {
     ) -> ruckchat_common::Result<()> {
         Ok(())
     }
+
+    async fn publish_read_state_updated(
+        &self,
+        _user_id: UserId,
+        _conversation_id: Uuid,
+        _message_ids: &[ruckchat_id::MessageId],
+    ) -> ruckchat_common::Result<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
