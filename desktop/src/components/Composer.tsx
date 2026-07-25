@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
 import Mention from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
 import suggestion from '@tiptap/suggestion';
@@ -174,6 +175,7 @@ export function Composer({
         },
       }),
       SpellcheckerExtension.configure({ proofreader }),
+      Image.configure({ HTMLAttributes: { class: 'max-w-full rounded-md' } }),
     ],
     content: loadDraft(conversationId),
     editorProps: {
@@ -310,8 +312,57 @@ export function Composer({
     return <div className="h-24 w-full rounded-md border border-border bg-bg p-3" />;
   }
 
+  const insertImage = () => {
+    const url = window.prompt('Image URL');
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  };
+
+  const toolbarActions: Array<{ key: string; label: string; title: string; active: boolean; run: () => void }> = [
+    { key: 'bold', label: 'B', title: 'Bold', active: editor.isActive('bold'), run: () => editor.chain().focus().toggleBold().run() },
+    { key: 'italic', label: 'I', title: 'Italic', active: editor.isActive('italic'), run: () => editor.chain().focus().toggleItalic().run() },
+    { key: 'strike', label: 'S', title: 'Strikethrough', active: editor.isActive('strike'), run: () => editor.chain().focus().toggleStrike().run() },
+    { key: 'code', label: '<>', title: 'Inline code', active: editor.isActive('code'), run: () => editor.chain().focus().toggleCode().run() },
+    { key: 'bulletList', label: '•', title: 'Bullet list', active: editor.isActive('bulletList'), run: () => editor.chain().focus().toggleBulletList().run() },
+    { key: 'orderedList', label: '1.', title: 'Numbered list', active: editor.isActive('orderedList'), run: () => editor.chain().focus().toggleOrderedList().run() },
+    { key: 'blockquote', label: '❝', title: 'Blockquote', active: editor.isActive('blockquote'), run: () => editor.chain().focus().toggleBlockquote().run() },
+    { key: 'codeBlock', label: '{}', title: 'Code block', active: editor.isActive('codeBlock'), run: () => editor.chain().focus().toggleCodeBlock().run() },
+  ];
+
   return (
     <div className="flex flex-col gap-2 border-t border-border bg-surface p-3">
+      {!showPreview && (
+        <div className="flex flex-wrap items-center gap-1">
+          {toolbarActions.map((action) => (
+            <button
+              key={action.key}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={action.run}
+              disabled={isSending}
+              title={action.title}
+              aria-pressed={action.active}
+              className={`rounded px-2 py-1 text-xs font-semibold hover:bg-surface-elevated disabled:opacity-50 ${
+                action.active ? 'bg-surface-elevated text-accent' : 'text-text'
+              }`}
+            >
+              {action.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={insertImage}
+            disabled={isSending}
+            title="Insert image"
+            className="rounded px-2 py-1 text-xs font-semibold text-text hover:bg-surface-elevated disabled:opacity-50"
+          >
+            Image
+          </button>
+        </div>
+      )}
+
       {pendingFiles.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {pendingFiles.map((file) => (

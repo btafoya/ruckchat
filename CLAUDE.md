@@ -86,9 +86,11 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   Tailwind CSS v4, and React Router v7. The `desktop/src-tauri` crate is part
   of the Cargo workspace. Features include API client + auth flow, core UI shell
   and navigation, state stores with real-time WebSocket sync, messaging (message
-  history with pagination, composer with markdown preview and @mention autocomplete,
-  typing indicators, reactions, file metadata attachments, thread replies, and
-  unread badges), native integrations (OS notifications, tray icon with unread count,
+  history with pagination, composer with markdown preview, a formatting toolbar
+  (bold/italic/strike/code/lists/blockquote/code block), inline image insertion
+  by URL, and @mention autocomplete, typing indicators, reactions, file metadata
+  attachments, thread replies, and unread badges), native integrations (OS
+  notifications, tray icon with unread count,
   file dialogs, deep links for `ruckchat://`), offline resilience (draft persistence
   and failed-send retry), a configurable backend URL settings screen, packaging
   metadata, tests, and docs.
@@ -275,7 +277,8 @@ root/
 - `desktop/src/components/MessagePane.tsx` — Message list, reactions, typing
   indicator, and thread pane host.
 - `desktop/src/components/Composer.tsx` — Message composer with markdown preview,
-  @mention autocomplete, file attachments, and typing WebSocket messages.
+  a formatting toolbar, inline image insertion by URL, @mention autocomplete,
+  file attachments, and typing WebSocket messages.
 - `desktop/src/components/ThreadPane.tsx` — Thread reply detail pane.
 - `desktop/src/components/MessageItem.tsx` — Individual message with reactions
   and reply action.

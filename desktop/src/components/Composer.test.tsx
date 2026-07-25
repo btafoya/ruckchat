@@ -142,6 +142,7 @@ vi.mock('@tiptap/react', async () => {
             },
           },
           setEditable: vi.fn(),
+          isActive: () => false,
           on: (event: string, cb: () => void) => {
             if (event === 'update') {
               listenersRef.current.update.push(cb);
