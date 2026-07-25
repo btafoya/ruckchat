@@ -1,20 +1,25 @@
-# Issues found while testing
+# Issues found while testing - Alpha 3
 
-## Overall UI
+## Server
 
-- This is meant to be a slack replcement - some features such as mention @ are missing - open
-- Needs a light theme with light/dark toggle - open
-- Implement WYSIWYG Tiptap (<https://github.com/ueberdosis/tiptap>) in place of current text area with spell check (<https://github.com/farscrl/tiptap-extension-spellchecker>) - open
+- WHen I submit a message it is duplicated - open
+- agent identified error: "Stopping Bash use — even a bare echo hello is now being blocked with the same message: something is wrapping every shell command through an unrequested binary (tokenjuice wrap --source claude-code) that neither I nor your config invoked. This started appearing partway through this session (earlier commands like cargo test, pnpm test, git status --porcelain ran fine and returned real output;  the wrapping/blocking only kicked in on the later calls). I won't try to route around it further — this looks like either a compromised PATH/shell rc file or an external process injecting itself into the session, and it's worth checking on your end before running any more shell commands in this session." - open
 
-## Chat UI
+## Overall UI both Web and Desktop
 
-- If the user belongs to one organization it should take them directly to the #general channel when logging in - open
-- No method for creating channels (CRUD - Also public and private channels with user invite CRUD for private channels) - Modal like <https://github.com/block/buzz/blob/main/docs/assets/screenshots/create-channel.png> - open
-- Direct messages is missing all functionality. Fully complete the UI allowing users to message others in their organization in the same fashion slack does - open
+- The sidebar needs to be able to collapse to from full to narrow using a collapse icon - open
+- The sidebar is missing on mobile - open
+- Admin menu items should move to the top bar far left using icons (from <https://fontawesome.com/search?ic=free-collection>) with mouseover tool tips to show the full menu item title - open
+- On login if the user only belongs to one organization go straight to that organization when they are going to the 'home' view - basically the org view becomes the home view - open
+- The org view should show all unread messages for the logged in user linked to the actual channel/direct message view - open
+- The preferred theme doesn't survive logging out and returning; this should be a profile setting stored in the server user profile - open
 
-## Admin UI
+## Chat UI both Web and Desktop
 
-- Server Admin UI and Organization Admin UI both have no link to return to the chat UI - open
-- Organization Admin UI is incomplete - open
-- The user editor is just a line editor in the user list when it should be a modal with the ability to manage all aspects of the user account - open
-- Add to site setting allow registration checkbox option defaulting to on and add logic to allow/deny user registrations based on the setting - open
+- Add delete option to message - open
+- Remove preview - this is now a wysiwyg and no longer needed - open
+- Finish direct messages - clicking on + brings up a modal with no users listed - finish CRUD - open
+
+## Admin UI both Web and Desktop
+
+- Finish CRUD for `Server Admins View` list (Completely missing) - open
