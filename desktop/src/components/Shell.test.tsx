@@ -11,6 +11,7 @@ import {
   PresenceProvider,
   RealtimeProvider,
   SessionProvider,
+  SettingsProvider,
   TypingProvider,
 } from '../context';
 import { mockSession } from '../test/mocks';
@@ -84,34 +85,48 @@ function Wrapper({ session, children }: { session: import('../hooks/useSession')
   const typingState = useTyping();
 
   return (
-    <SessionProvider
+    <SettingsProvider
       value={{
-        session,
+        apiUrl: 'http://localhost:3000',
+        notificationsEnabled: false,
+        theme: 'system',
         isLoading: false,
-        error: null,
-        login: vi.fn(),
-        register: vi.fn(),
-        logout: vi.fn(),
+        resolvedTheme: 'dark',
+        setApiUrl: vi.fn(),
+        setNotificationsEnabled: vi.fn(),
+        setTheme: vi.fn(),
+        reset: vi.fn(),
       }}
     >
-      <OrganizationProvider value={organizationsState}>
-        <OrgMemberProvider value={orgMembersState}>
-          <ChannelProvider value={channelsState}>
-            <DirectMessageProvider value={directMessagesState}>
-              <MessageProvider value={messagesState}>
-                <PresenceProvider value={presenceState}>
-                  <TypingProvider value={typingState}>
-                    <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
-                      {children}
-                    </RealtimeProvider>
-                  </TypingProvider>
-                </PresenceProvider>
-              </MessageProvider>
-            </DirectMessageProvider>
-          </ChannelProvider>
-        </OrgMemberProvider>
-      </OrganizationProvider>
-    </SessionProvider>
+      <SessionProvider
+        value={{
+          session,
+          isLoading: false,
+          error: null,
+          login: vi.fn(),
+          register: vi.fn(),
+          logout: vi.fn(),
+        }}
+      >
+        <OrganizationProvider value={organizationsState}>
+          <OrgMemberProvider value={orgMembersState}>
+            <ChannelProvider value={channelsState}>
+              <DirectMessageProvider value={directMessagesState}>
+                <MessageProvider value={messagesState}>
+                  <PresenceProvider value={presenceState}>
+                    <TypingProvider value={typingState}>
+                      <RealtimeProvider value={{ status: 'closed', send: vi.fn().mockReturnValue(true) }}>
+                        {children}
+                      </RealtimeProvider>
+                    </TypingProvider>
+                  </PresenceProvider>
+                </MessageProvider>
+              </DirectMessageProvider>
+            </ChannelProvider>
+          </OrgMemberProvider>
+        </OrganizationProvider>
+      </SessionProvider>
+    </SettingsProvider>
   );
 }
 

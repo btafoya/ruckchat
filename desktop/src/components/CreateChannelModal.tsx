@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createApi } from '../api';
-import { useChannelContext, useOrgMemberContext, useSessionContext } from '../context';
-import { useSettings } from '../hooks';
+import { useChannelContext, useOrgMemberContext, useSessionContext, useSettingsContext } from '../context';
 
 interface CreateChannelModalProps {
   organizationId: string;
@@ -12,7 +11,7 @@ interface CreateChannelModalProps {
 
 export function CreateChannelModal({ organizationId, onClose }: CreateChannelModalProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const { refresh } = useChannelContext();
   const { members } = useOrgMemberContext();

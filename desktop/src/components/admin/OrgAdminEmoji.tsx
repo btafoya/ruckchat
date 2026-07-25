@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
 import type { CreateEmojiRequest, CustomEmoji } from '../../api';
-import { useSessionContext } from '../../context';
-import { useSettings } from '../../hooks';
+import { useSessionContext, useSettingsContext } from '../../context';
 
 interface OrgAdminEmojiProps {
   organizationId: string;
@@ -10,7 +9,7 @@ interface OrgAdminEmojiProps {
 
 export function OrgAdminEmoji({ organizationId }: OrgAdminEmojiProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [emoji, setEmoji] = useState<CustomEmoji[]>([]);
   const [isLoading, setIsLoading] = useState(false);

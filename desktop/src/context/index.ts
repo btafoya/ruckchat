@@ -1,4 +1,5 @@
 export { SessionContext, SessionProvider, useSessionContext } from './SessionContext';
+export { SettingsContext, SettingsProvider, useSettingsContext } from './SettingsContext';
 export { OrganizationContext, OrganizationProvider, useOrganizationContext } from './OrganizationContext';
 export { OrgMemberContext, OrgMemberProvider, useOrgMemberContext } from './OrgMemberContext';
 export { ChannelContext, ChannelProvider, useChannelContext } from './ChannelContext';

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
 import type { CreateRoleRequest, OrganizationRole, UpdateRoleRequest } from '../../api';
-import { useSessionContext } from '../../context';
-import { useSettings } from '../../hooks';
+import { useSessionContext, useSettingsContext } from '../../context';
 
 interface OrgAdminRolesProps {
   organizationId: string;
@@ -10,7 +9,7 @@ interface OrgAdminRolesProps {
 
 export function OrgAdminRoles({ organizationId }: OrgAdminRolesProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [roles, setRoles] = useState<OrganizationRole[]>([]);
   const [isLoading, setIsLoading] = useState(false);

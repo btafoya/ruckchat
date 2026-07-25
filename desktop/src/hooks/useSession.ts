@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createApi, isUnauthorizedError } from '../api';
 import type { LoginRequest, RegisterRequest, User } from '../api';
-import { useSettings } from './useSettings';
+import { useSettingsContext } from '../context/SettingsContext';
 
 const TOKEN_KEY = 'ruckchat_session_token';
 
@@ -24,7 +24,7 @@ export function useSession(): SessionState {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
 
   useEffect(() => {

@@ -7,6 +7,7 @@ import {
   PlatformProvider,
   RealtimeProvider,
   SessionProvider,
+  SettingsProvider,
 } from '../context';
 import { mockPlatform } from '../test/platformMocks';
 import type { MessagesState } from '../hooks/useMessages';
@@ -238,38 +239,52 @@ const mockSession = {
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider
+    <SettingsProvider
       value={{
-        session: mockSession,
+        apiUrl: 'http://localhost:3000',
+        notificationsEnabled: false,
+        theme: 'system',
         isLoading: false,
-        error: null,
-        login: vi.fn(),
-        register: vi.fn(),
-        logout: vi.fn(),
+        resolvedTheme: 'dark',
+        setApiUrl: vi.fn(),
+        setNotificationsEnabled: vi.fn(),
+        setTheme: vi.fn(),
+        reset: vi.fn(),
       }}
     >
-      <DirectMessageProvider
+      <SessionProvider
         value={{
-          conversations: [
-            {
-              id: 'dm-1',
-              organization_id: 'org-1',
-              member_ids: ['user-1', 'user-2'],
-              created_at: '2026-01-01T00:00:00Z',
-            },
-          ],
+          session: mockSession,
           isLoading: false,
           error: null,
-          refresh: vi.fn(),
+          login: vi.fn(),
+          register: vi.fn(),
+          logout: vi.fn(),
         }}
       >
-        <MessageProvider value={mockMessageState}>
-          <RealtimeProvider value={{ status: 'open', send: mockSendWs }}>
-            <PlatformProvider platform={mockPlatform}>{children}</PlatformProvider>
-          </RealtimeProvider>
-        </MessageProvider>
-      </DirectMessageProvider>
-    </SessionProvider>
+        <DirectMessageProvider
+          value={{
+            conversations: [
+              {
+                id: 'dm-1',
+                organization_id: 'org-1',
+                member_ids: ['user-1', 'user-2'],
+                created_at: '2026-01-01T00:00:00Z',
+              },
+            ],
+            isLoading: false,
+            error: null,
+            refresh: vi.fn(),
+          }}
+        >
+          <MessageProvider value={mockMessageState}>
+            <RealtimeProvider value={{ status: 'open', send: mockSendWs }}>
+              <PlatformProvider platform={mockPlatform}>{children}</PlatformProvider>
+            </RealtimeProvider>
+          </MessageProvider>
+        </DirectMessageProvider>
+      </SessionProvider>
+    </SettingsProvider>
   );
 }
 

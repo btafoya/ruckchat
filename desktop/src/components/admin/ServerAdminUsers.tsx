@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
 import type { ServerUser } from '../../api';
-import { useSessionContext } from '../../context';
-import { useSettings } from '../../hooks';
+import { useSessionContext, useSettingsContext } from '../../context';
 import { EditUserModal } from './EditUserModal';
 
 export function ServerAdminUsers(): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [users, setUsers] = useState<ServerUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);

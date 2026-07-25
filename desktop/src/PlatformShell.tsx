@@ -17,6 +17,7 @@ import {
   useDirectMessageContext,
   useOrganizationContext,
   useSessionContext,
+  useSettingsContext,
 } from './context';
 import {
   useChannels,
@@ -27,7 +28,6 @@ import {
   usePresence,
   useRealtimeStore,
   useSession,
-  useSettings,
   useTyping,
   useUnread,
   useWebSocket,
@@ -57,7 +57,7 @@ interface PlatformShellProps {
 
 function AuthenticatedShell({ platform }: { platform: Platform }): JSX.Element {
   const { session } = useSessionContext();
-  const settings = useSettings();
+  const settings = useSettingsContext();
   const { apiUrl, notificationsEnabled } = settings;
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const organizationsState = useOrganizations(session?.token, { apiUrl });
@@ -168,7 +168,7 @@ function ChannelIndexRoute(): JSX.Element | null {
 
 function OrgAdminRoute(): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const organizationsState = useOrganizations(session?.token, { apiUrl });
   const params = useParams<{ organizationId: string }>();
 

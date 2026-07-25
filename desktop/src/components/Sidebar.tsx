@@ -9,8 +9,9 @@ import {
   useOrgMemberContext,
   useOrganizationContext,
   useSessionContext,
+  useSettingsContext,
 } from '../context';
-import { useSettings, useUnread } from '../hooks';
+import { useUnread } from '../hooks';
 import { ChannelSettingsModal } from './ChannelSettingsModal';
 import { CreateChannelModal } from './CreateChannelModal';
 import { StartDmModal } from './StartDmModal';
@@ -46,7 +47,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps): JSX.Elem
     refresh: refreshDms,
   } = useDirectMessageContext();
   const { members: orgMembers } = useOrgMemberContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const navigate = useNavigate();
   const params = useParams();

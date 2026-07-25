@@ -15,8 +15,8 @@ import {
   usePlatform,
   useRealtimeContext,
   useSessionContext,
+  useSettingsContext,
 } from '../context';
-import { useSettings } from '../hooks';
 import { MentionList, type MentionItem, type MentionListHandle, type MentionListProps } from './MentionList';
 import { MessageContent } from './MessageContent';
 import { SpellingProofreader } from '../spelling/SpellingProofreader';
@@ -65,7 +65,7 @@ export function Composer({
   const { send: sendWs } = useRealtimeContext();
   const { sendMessage } = useMessageContext();
   const platform = usePlatform();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
 
   const [isSending, setIsSending] = useState(false);

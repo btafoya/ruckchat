@@ -12,6 +12,7 @@ import {
   PresenceProvider,
   RealtimeProvider,
   SessionProvider,
+  SettingsProvider,
   TypingProvider,
 } from '../context';
 import { mockPlatform } from '../test/platformMocks';
@@ -124,6 +125,19 @@ const mockSession = {
 function renderPane(initialEntries = ['/org/org-1/channel/chan-1']) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
+      <SettingsProvider
+        value={{
+          apiUrl: 'http://localhost:3000',
+          notificationsEnabled: false,
+          theme: 'system',
+          isLoading: false,
+          resolvedTheme: 'dark',
+          setApiUrl: vi.fn(),
+          setNotificationsEnabled: vi.fn(),
+          setTheme: vi.fn(),
+          reset: vi.fn(),
+        }}
+      >
       <SessionProvider
         value={{
           session: mockSession,
@@ -195,6 +209,7 @@ function renderPane(initialEntries = ['/org/org-1/channel/chan-1']) {
           </OrgMemberProvider>
         </OrganizationProvider>
       </SessionProvider>
+      </SettingsProvider>
     </MemoryRouter>,
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
-import { useSettings } from '../hooks';
+import { useSettingsContext } from '../context';
 import { DEFAULT_API_URL } from '../config';
 
 const THEME_OPTIONS: Array<{ value: 'light' | 'dark' | 'system'; label: string }> = [
@@ -19,7 +19,7 @@ export function Settings(): JSX.Element {
     setNotificationsEnabled,
     setTheme,
     reset,
-  } = useSettings();
+  } = useSettingsContext();
   const [url, setUrl] = useState(apiUrl);
   const [saved, setSaved] = useState(false);
 

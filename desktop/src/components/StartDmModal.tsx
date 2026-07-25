@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createApi } from '../api';
-import { useDirectMessageContext, useOrgMemberContext, useSessionContext } from '../context';
-import { useSettings } from '../hooks';
+import { useDirectMessageContext, useOrgMemberContext, useSessionContext, useSettingsContext } from '../context';
 
 interface StartDmModalProps {
   organizationId: string;
@@ -12,7 +11,7 @@ interface StartDmModalProps {
 
 export function StartDmModal({ organizationId, onClose }: StartDmModalProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const { refresh } = useDirectMessageContext();
   const { members } = useOrgMemberContext();

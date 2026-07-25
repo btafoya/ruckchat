@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
 import type { AuditLogEntry } from '../../api';
-import { useSessionContext } from '../../context';
-import { useSettings } from '../../hooks';
+import { useSessionContext, useSettingsContext } from '../../context';
 
 export function ServerAdminAuditLog(): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);

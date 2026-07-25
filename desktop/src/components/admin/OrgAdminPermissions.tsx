@@ -5,8 +5,7 @@ import type {
   Permission,
   UpdatePermissionRequest,
 } from '../../api';
-import { useSessionContext } from '../../context';
-import { useSettings } from '../../hooks';
+import { useSessionContext, useSettingsContext } from '../../context';
 
 interface OrgAdminPermissionsProps {
   organizationId: string;
@@ -16,7 +15,7 @@ export function OrgAdminPermissions({
   organizationId,
 }: OrgAdminPermissionsProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isLoading, setIsLoading] = useState(false);

@@ -1,8 +1,7 @@
 import { useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
 import type { ServerUser } from '../../api';
-import { useSessionContext } from '../../context';
-import { useSettings } from '../../hooks';
+import { useSessionContext, useSettingsContext } from '../../context';
 
 interface EditUserModalProps {
   /** The user to edit, or null to create a new user. */
@@ -13,7 +12,7 @@ interface EditUserModalProps {
 
 export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const isCreating = user === null;
 

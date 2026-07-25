@@ -1,12 +1,12 @@
 import { useEffect, type JSX, type ReactNode } from 'react';
-import { useSettings } from '../hooks';
+import { useSettingsContext } from '../context';
 
 interface ThemeProviderProps {
   children: ReactNode;
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
-  const { resolvedTheme } = useSettings();
+  const { resolvedTheme } = useSettingsContext();
 
   useEffect(() => {
     const root = document.documentElement;

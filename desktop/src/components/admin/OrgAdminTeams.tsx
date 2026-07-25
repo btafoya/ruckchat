@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
 import type { Channel, CreateTeamRequest, Member, Team, TeamMember, TeamRoom, UpdateTeamRequest } from '../../api';
-import { useSessionContext } from '../../context';
-import { useSettings } from '../../hooks';
+import { useSessionContext, useSettingsContext } from '../../context';
 
 interface OrgAdminTeamsProps {
   organizationId: string;
@@ -10,7 +9,7 @@ interface OrgAdminTeamsProps {
 
 export function OrgAdminTeams({ organizationId }: OrgAdminTeamsProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -227,7 +226,7 @@ interface TeamPanelProps {
 
 function TeamMembersPanel({ organizationId, teamId }: TeamPanelProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [orgMembers, setOrgMembers] = useState<Member[]>([]);
@@ -330,7 +329,7 @@ function TeamMembersPanel({ organizationId, teamId }: TeamPanelProps): JSX.Eleme
 
 function TeamRoomsPanel({ organizationId, teamId }: TeamPanelProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [rooms, setRooms] = useState<TeamRoom[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);

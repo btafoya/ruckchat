@@ -3,8 +3,7 @@ import type { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
 import { createApi } from '../api';
 import type { Message } from '../api';
-import { useMessageContext, useSessionContext } from '../context';
-import { useSettings } from '../hooks';
+import { useMessageContext, useSessionContext, useSettingsContext } from '../context';
 import { MessageContent } from './MessageContent';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
@@ -18,7 +17,7 @@ interface MessageItemProps {
 export function MessageItem({ message, organizationId, showReplyButton = true }: MessageItemProps): JSX.Element {
   const { session } = useSessionContext();
   const { reactions, addReaction, removeReaction, retryMessage } = useMessageContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [isReacting, setIsReacting] = useState(false);
 

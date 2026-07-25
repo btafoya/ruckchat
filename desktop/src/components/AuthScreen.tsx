@@ -2,12 +2,11 @@ import { useEffect, useMemo, useState, type JSX } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthForm } from './AuthForm';
 import { createApi } from '../api';
-import { useSessionContext } from '../context';
-import { useSettings } from '../hooks';
+import { useSessionContext, useSettingsContext } from '../context';
 
 export function AuthScreen(): JSX.Element {
   const { session, isLoading, error, login, register } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null);
 

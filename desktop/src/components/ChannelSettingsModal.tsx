@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { createApi } from '../api';
 import type { Channel, ChannelMembership } from '../api';
-import { useChannelContext, useOrgMemberContext, useSessionContext } from '../context';
-import { useSettings } from '../hooks';
+import { useChannelContext, useOrgMemberContext, useSessionContext, useSettingsContext } from '../context';
 
 interface ChannelSettingsModalProps {
   channel: Channel;
@@ -12,7 +11,7 @@ interface ChannelSettingsModalProps {
 
 export function ChannelSettingsModal({ channel, onClose }: ChannelSettingsModalProps): JSX.Element {
   const { session } = useSessionContext();
-  const { apiUrl } = useSettings();
+  const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const { refresh } = useChannelContext();
   const { members: orgMembers } = useOrgMemberContext();
