@@ -49,8 +49,11 @@
 
 ## Decisions
 
-- Pending. Depends on whether ISSUES17 (server-stored preferences) lands first.
+- Collapsed width: `w-16` (64 px) showing two-letter initials for orgs/channels, initials for DMs, and two-letter abbreviations for admin/settings links.
+- Toggle placement: in the sidebar header, replacing the RuckChat title when collapsed and sitting next to the sign-out control when expanded.
+- Persistence: per-device in `localStorage` via `useSettings.ts` (`sidebarCollapsed` boolean), since ISSUES17 has not landed yet.
+- Mobile behavior: unchanged; the existing full-screen slide-over from ISSUES13 remains the mobile experience.
 
 ## Status
 
-Open.
+Completed.

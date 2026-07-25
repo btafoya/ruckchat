@@ -54,8 +54,22 @@
 
 ## Decisions
 
-- Pending. Need to decide whether to replace the sidebar entirely or add a complementary top icon bar.
+- Icon set: `@fortawesome/free-solid-svg-icons` via `@fortawesome/react-fontawesome` v3.
+- Layout: replace the left sidebar entirely with a horizontal, scrollable icon bar at the far-left of the top header in both `ServerAdminShell.tsx` and `OrgAdminShell.tsx`.
+- Tooltips: native `title` attributes plus `aria-label` on each icon button.
+- Mobile: the icon bar remains horizontal and scrollable; the previous hamburger drawer is removed because the icon bar is usable on small screens.
+- Icon mapping:
+  - Organizations: `building`
+  - Users: `users`
+  - Admins: `user-shield`
+  - Settings: `gear`
+  - Audit Log: `clipboard-list`
+  - Members: `users`
+  - Roles: `user-lock`
+  - Permissions: `key`
+  - Emoji: `face-smile`
+  - Teams: `people-group`
 
 ## Status
 
-Open.
+Completed.

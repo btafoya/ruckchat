@@ -41,8 +41,8 @@
 
 ## Decisions
 
-- Pending. Likely to share the `OrgAdminShell` mobile drawer pattern.
+- The hamburger toggle, `mobileOpen`/`onClose` wiring, and full-screen mobile drawer were already implemented in `Shell.tsx`/`Sidebar.tsx` during earlier work, so no additional changes were required.
 
 ## Status
 
-Open.
+Completed (already implemented).

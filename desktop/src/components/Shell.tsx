@@ -1,11 +1,12 @@
 import { useCallback, useState, type FormEvent, type JSX } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useSessionContext } from '../context';
+import { useSessionContext, useSettingsContext } from '../context';
 import { Sidebar } from './Sidebar';
 import { MessagePane } from './MessagePane';
 
 export function Shell(): JSX.Element {
   const { session, isLoading } = useSessionContext();
+  const { sidebarCollapsed, setSidebarCollapsed } = useSettingsContext();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const location = useLocation();
@@ -15,6 +16,10 @@ export function Shell(): JSX.Element {
 
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const toggleCollapsed = useCallback(
+    () => setSidebarCollapsed(!sidebarCollapsed),
+    [sidebarCollapsed, setSidebarCollapsed],
+  );
 
   const handleSearchSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -37,7 +42,12 @@ export function Shell(): JSX.Element {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg text-text">
-      <Sidebar mobileOpen={sidebarOpen} onClose={closeSidebar} />
+      <Sidebar
+        mobileOpen={sidebarOpen}
+        onClose={closeSidebar}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={toggleCollapsed}
+      />
 
       {sidebarOpen && (
         <button

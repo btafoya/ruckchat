@@ -150,11 +150,13 @@ function renderPane(
           apiUrl: 'http://localhost:3000',
           notificationsEnabled: false,
           theme: 'system',
+          sidebarCollapsed: false,
           isLoading: false,
           resolvedTheme: 'dark',
           setApiUrl: vi.fn(),
           setNotificationsEnabled: vi.fn(),
           setTheme: vi.fn(),
+          setSidebarCollapsed: vi.fn(),
           reset: vi.fn(),
         }}
       >

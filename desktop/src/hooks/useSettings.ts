@@ -9,6 +9,7 @@ export interface Settings {
   apiUrl: string;
   notificationsEnabled: boolean;
   theme: ThemePreference;
+  sidebarCollapsed: boolean;
 }
 
 export interface SettingsState extends Settings {
@@ -17,6 +18,7 @@ export interface SettingsState extends Settings {
   setApiUrl: (url: string) => void;
   setNotificationsEnabled: (enabled: boolean) => void;
   setTheme: (theme: ThemePreference) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   reset: () => void;
 }
 
@@ -34,7 +36,7 @@ function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) {
-      return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system' };
+      return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system', sidebarCollapsed: false };
     }
     const parsed = JSON.parse(raw) as unknown;
     if (typeof parsed === 'object' && parsed !== null) {
@@ -47,12 +49,13 @@ function loadSettings(): Settings {
         apiUrl: typeof settings.apiUrl === 'string' && settings.apiUrl.trim() ? settings.apiUrl : DEFAULT_API_URL,
         notificationsEnabled: typeof settings.notificationsEnabled === 'boolean' ? settings.notificationsEnabled : true,
         theme,
+        sidebarCollapsed: typeof settings.sidebarCollapsed === 'boolean' ? settings.sidebarCollapsed : false,
       };
     }
   } catch {
     // ignore corrupted storage
   }
-  return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system' };
+  return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system', sidebarCollapsed: false };
 }
 
 function saveSettings(settings: Settings): void {
@@ -107,8 +110,16 @@ export function useSettings(): SettingsState {
     });
   }, []);
 
+  const setSidebarCollapsed = useCallback((collapsed: boolean) => {
+    setSettings((prev) => {
+      const next = { ...prev, sidebarCollapsed: collapsed };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
   const reset = useCallback(() => {
-    const next = { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system' as const };
+    const next = { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system' as const, sidebarCollapsed: false };
     setSettings(next);
     saveSettings(next);
   }, []);
@@ -121,8 +132,9 @@ export function useSettings(): SettingsState {
       setApiUrl,
       setNotificationsEnabled,
       setTheme,
+      setSidebarCollapsed,
       reset,
     }),
-    [settings, isLoading, resolvedTheme, setApiUrl, setNotificationsEnabled, setTheme, reset],
+    [settings, isLoading, resolvedTheme, setApiUrl, setNotificationsEnabled, setTheme, setSidebarCollapsed, reset],
   );
 }

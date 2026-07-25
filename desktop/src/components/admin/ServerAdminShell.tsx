@@ -1,13 +1,21 @@
 import type { JSX } from 'react';
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faBuilding,
+  faClipboardList,
+  faGear,
+  faUserShield,
+  faUsers,
+} from '@fortawesome/free-solid-svg-icons';
 import { useSessionContext } from '../../context';
 
 const tabs = [
-  { path: '/admin/server/organizations', label: 'Organizations' },
-  { path: '/admin/server/users', label: 'Users' },
-  { path: '/admin/server/admins', label: 'Admins' },
-  { path: '/admin/server/settings', label: 'Settings' },
-  { path: '/admin/server/audit-log', label: 'Audit Log' },
+  { path: '/admin/server/organizations', label: 'Organizations', icon: faBuilding },
+  { path: '/admin/server/users', label: 'Users', icon: faUsers },
+  { path: '/admin/server/admins', label: 'Admins', icon: faUserShield },
+  { path: '/admin/server/settings', label: 'Settings', icon: faGear },
+  { path: '/admin/server/audit-log', label: 'Audit Log', icon: faClipboardList },
 ];
 
 export function ServerAdminShell(): JSX.Element {
@@ -41,37 +49,36 @@ export function ServerAdminShell(): JSX.Element {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text">
-      <header className="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
-        <h1 className="text-lg font-semibold">Server Administration</h1>
-        <NavLink to="/" className="text-sm text-text-muted hover:text-text">
-          Back
-        </NavLink>
-      </header>
-      <div className="flex flex-1 overflow-hidden">
-        <nav
-          className="flex w-48 flex-shrink-0 flex-col gap-1 border-r border-border bg-surface p-3"
-          aria-label="Server admin"
-        >
+      <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
+        <nav className="flex items-center gap-1 overflow-x-auto" aria-label="Server admin">
           {tabs.map((tab) => (
             <NavLink
               key={tab.path}
               to={tab.path}
+              title={tab.label}
+              aria-label={tab.label}
               className={({ isActive }) =>
-                `rounded-md px-3 py-2 text-sm ${
+                `flex flex-shrink-0 items-center justify-center rounded-md p-2 text-lg ${
                   isActive
                     ? 'bg-accent text-text-inverse'
                     : 'text-text hover:bg-surface-elevated'
                 }`
               }
             >
-              {tab.label}
+              <FontAwesomeIcon icon={tab.icon} />
             </NavLink>
           ))}
         </nav>
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
-        </main>
-      </div>
+        <div className="flex flex-shrink-0 items-center gap-3 pl-4">
+          <h1 className="text-lg font-semibold">Server Administration</h1>
+          <NavLink to="/" className="text-sm text-text-muted hover:text-text">
+            Back
+          </NavLink>
+        </div>
+      </header>
+      <main className="flex-1 overflow-auto p-6">
+        <Outlet />
+      </main>
     </div>
   );
 }

@@ -441,9 +441,19 @@ of it.
 - Collapse state persistence may be promoted to server profile in ISSUES17.
 - Admin icon changes affect the same shells used in Phase 4.
 
+### Decisions
+
+- **ISSUES12**: Use a `w-16` narrow desktop dock; orgs/channels show the first two letters of their names, DMs show initials, and admin/settings links show two-letter abbreviations. The toggle lives in the sidebar header and state is persisted per-device in `localStorage` via `useSettings.ts`. Mobile keeps the existing full slide-over.
+- **ISSUES13**: The hamburger toggle, `mobileOpen`/`onClose` wiring, and full-screen mobile drawer were already present in `Shell.tsx`/`Sidebar.tsx` from earlier work; no additional changes were required.
+- **ISSUES14**: Use `@fortawesome/free-solid-svg-icons` + `@fortawesome/react-fontawesome` v3. Replace the left admin sidebars entirely with a horizontal, scrollable icon bar at the top-left of each admin shell; `title` attributes provide mouseover tooltips and `aria-label` provides accessibility text.
+
+### Status
+
+Completed.
+
 ### Verification
 
-- `cd desktop && pnpm typecheck && pnpm test` passes.
+- `cd desktop && pnpm typecheck && pnpm test` passes (30 tests).
 - `cd web && pnpm typecheck && pnpm build` succeeds.
 - Manual check: collapse/expand sidebar on desktop; open sidebar on a 375px viewport; hover admin icons to see tooltips.
 

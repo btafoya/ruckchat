@@ -1,15 +1,24 @@
-import { useState, type JSX } from 'react';
+import type { JSX } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faFaceSmile,
+  faGear,
+  faKey,
+  faPeopleGroup,
+  faUserLock,
+  faUsers,
+} from '@fortawesome/free-solid-svg-icons';
 import { useOrganizationContext, useSessionContext } from '../../context';
 import { getLastConversation } from '../../lastConversation';
 
 const tabs = [
-  { path: 'settings', label: 'Settings' },
-  { path: 'members', label: 'Members' },
-  { path: 'roles', label: 'Roles' },
-  { path: 'permissions', label: 'Permissions' },
-  { path: 'emoji', label: 'Emoji' },
-  { path: 'teams', label: 'Teams' },
+  { path: 'settings', label: 'Settings', icon: faGear },
+  { path: 'members', label: 'Members', icon: faUsers },
+  { path: 'roles', label: 'Roles', icon: faUserLock },
+  { path: 'permissions', label: 'Permissions', icon: faKey },
+  { path: 'emoji', label: 'Emoji', icon: faFaceSmile },
+  { path: 'teams', label: 'Teams', icon: faPeopleGroup },
 ];
 
 export function OrgAdminShell(): JSX.Element {
@@ -18,7 +27,6 @@ export function OrgAdminShell(): JSX.Element {
   const params = useParams();
   const location = useLocation();
   const organizationId = params.organizationId;
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const organization = organizations.find((o) => o.id === organizationId);
   const canAdmin =
@@ -58,61 +66,40 @@ export function OrgAdminShell(): JSX.Element {
     );
   }
 
-  const navClass = sidebarOpen
-    ? 'fixed inset-y-0 left-0 z-20 flex w-48 flex-shrink-0 flex-col gap-1 border-r border-border bg-surface p-3'
-    : 'hidden md:flex w-48 flex-shrink-0 flex-col gap-1 border-r border-border bg-surface p-3';
-
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text">
-      <header className="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Open navigation"
-            onClick={() => setSidebarOpen(true)}
-            className="rounded-md bg-surface-elevated px-2 py-1 text-sm md:hidden"
-          >
-            ☰
-          </button>
-          <h1 className="text-lg font-semibold">
-            {organization ? `${organization.name} Administration` : 'Organization Administration'}
-          </h1>
-        </div>
-        <NavLink to={backTo} className="text-sm text-text-muted hover:text-text">
-          Back
-        </NavLink>
-      </header>
-      <div className="flex flex-1 overflow-hidden">
-        {sidebarOpen && (
-          <button
-            type="button"
-            aria-label="Close navigation"
-            className="fixed inset-0 z-10 bg-overlay md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        <nav className={navClass} aria-label="Org admin">
+      <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
+        <nav className="flex items-center gap-1 overflow-x-auto" aria-label="Org admin">
           {tabs.map((tab) => (
             <NavLink
               key={tab.path}
               to={`/org/${organizationId}/admin/${tab.path}`}
-              onClick={() => setSidebarOpen(false)}
+              title={tab.label}
+              aria-label={tab.label}
               className={({ isActive }) =>
-                `rounded-md px-3 py-2 text-sm ${
+                `flex flex-shrink-0 items-center justify-center rounded-md p-2 text-lg ${
                   isActive
                     ? 'bg-accent text-text-inverse'
                     : 'text-text hover:bg-surface-elevated'
                 }`
               }
             >
-              {tab.label}
+              <FontAwesomeIcon icon={tab.icon} />
             </NavLink>
           ))}
         </nav>
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
-        </main>
-      </div>
+        <div className="flex flex-shrink-0 items-center gap-3 pl-4">
+          <h1 className="text-lg font-semibold">
+            {organization ? `${organization.name} Administration` : 'Organization Administration'}
+          </h1>
+          <NavLink to={backTo} className="text-sm text-text-muted hover:text-text">
+            Back
+          </NavLink>
+        </div>
+      </header>
+      <main className="flex-1 overflow-auto p-6">
+        <Outlet />
+      </main>
     </div>
   );
 }
