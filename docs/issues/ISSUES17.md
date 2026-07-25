@@ -51,8 +51,13 @@
 
 ## Decisions
 
-- Pending. Needs API design before implementation.
+- Theme values remain `light`, `dark`, and `system` (matching the existing client enum).
+- The preference is stored on the `users` table (`theme` column) and exposed on `UserResponse` and `UpdateProfileRequest`.
+- The existing `PATCH /api/v1/users/me` endpoint is extended with an optional `theme` field instead of adding a dedicated theme endpoint.
+- After login, registration, and profile restoration, the server-returned theme is applied to the local settings store; `localStorage` is only an offline fallback.
+- Theme changes from `Settings.tsx` are persisted to the server via the profile endpoint.
+- No real-time broadcast is implemented; theme is per-session and reloaded on the next login.
 
 ## Status
 
-Open.
+Implemented.

@@ -33,7 +33,7 @@ import {
   useTyping,
   useWebSocket,
 } from './hooks';
-import { AuthScreen, SearchResultsPage, Settings, Shell, ThemeProvider } from './components';
+import { AuthScreen, MessagePane, OrgHome, OrgIndex, SearchResultsPage, Settings, Shell, ThemeProvider } from './components';
 import {
   OrgAdminEmoji,
   OrgAdminMembers,
@@ -150,13 +150,21 @@ function AuthenticatedShell({ platform }: { platform: Platform }): JSX.Element {
   );
 }
 
-/** Redirects to the user's sole organization; otherwise defers to the sidebar org picker. */
+/** Redirects single-organization users to their org home; otherwise renders the org picker. */
 function OrgIndexRoute(): JSX.Element | null {
   const { organizations, isLoading } = useOrganizationContext();
-  if (isLoading || organizations.length !== 1) {
+  if (isLoading) {
     return null;
   }
-  return <Navigate to={`/org/${organizations[0].id}/channel`} replace />;
+  if (organizations.length === 1) {
+    return <Navigate to={`/org/${organizations[0].id}`} replace />;
+  }
+  return <OrgIndex />;
+}
+
+/** Renders the organization home view (unread channels and DMs). */
+function OrgHomeRoute(): JSX.Element {
+  return <OrgHome />;
 }
 
 /** Redirects to the last-selected conversation, or #general, within an organization. */
@@ -277,13 +285,14 @@ export default function PlatformShell({ platform }: PlatformShellProps): JSX.Ele
             <Route path="/*" element={<AuthenticatedShell platform={platform} />}>
               <Route index element={<Navigate to="/org" replace />} />
               <Route path="org" element={<OrgIndexRoute />} />
+              <Route path="org/:organizationId" element={<OrgHomeRoute />} />
               <Route path="org/:organizationId/channel" element={<ChannelIndexRoute />} />
-              <Route path="org/:organizationId/channel/:channelId" element={<div />} />
+              <Route path="org/:organizationId/channel/:channelId" element={<MessagePane />} />
               <Route
                 path="org/:organizationId/channel/:channelId/thread/:messageId"
-                element={<div />}
+                element={<MessagePane />}
               />
-              <Route path="org/:organizationId/dm/:dmId" element={<div />} />
+              <Route path="org/:organizationId/dm/:dmId" element={<MessagePane />} />
               <Route path="org/:organizationId/search" element={<SearchResultsPage />} />
             </Route>
           </Routes>

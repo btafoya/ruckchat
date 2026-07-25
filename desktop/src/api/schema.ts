@@ -3876,6 +3876,8 @@ export interface components {
             display_name: string;
             avatar_url?: string | null;
             is_server_admin: boolean;
+            /** @enum {string} */
+            theme: "light" | "dark" | "system";
         };
         UserList: {
             items: components["schemas"]["UserResponse"][];
@@ -4007,6 +4009,8 @@ export interface components {
         UpdateProfileRequest: {
             display_name?: string;
             avatar_url?: string | null;
+            /** @enum {string} */
+            theme?: "light" | "dark" | "system";
         };
         CreateOrganizationRequest: {
             name: string;

@@ -70,3 +70,43 @@ async fn update_profile_changes_display_name(pool: sqlx::PgPool) {
     let body = body_json(response).await;
     assert_eq!(body["display_name"], "Alice Updated");
 }
+
+#[sqlx::test]
+async fn update_profile_changes_theme(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (token, _email) = register_and_login(&client).await;
+
+    let response = client
+        .auth_request(
+            "PATCH",
+            "/users/me",
+            &token,
+            Some(json!({ "theme": "dark" })),
+        )
+        .await;
+    assert_status(&response, StatusCode::OK);
+
+    let body = body_json(response).await;
+    assert_eq!(body["theme"], "dark");
+
+    let response = client.auth_request("GET", "/users/me", &token, None).await;
+    assert_status(&response, StatusCode::OK);
+    let body = body_json(response).await;
+    assert_eq!(body["theme"], "dark");
+}
+
+#[sqlx::test]
+async fn update_profile_rejects_invalid_theme(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (token, _email) = register_and_login(&client).await;
+
+    let response = client
+        .auth_request(
+            "PATCH",
+            "/users/me",
+            &token,
+            Some(json!({ "theme": "invalid" })),
+        )
+        .await;
+    assert_status(&response, StatusCode::BAD_REQUEST);
+}

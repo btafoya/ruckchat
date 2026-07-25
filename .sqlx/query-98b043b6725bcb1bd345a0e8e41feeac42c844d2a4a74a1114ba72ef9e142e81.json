@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "TRUNCATE TABLE users, organizations, organization_memberships, organization_settings,\n         organization_roles, permissions, organization_role_permissions, custom_emoji,\n         teams, team_memberships, team_rooms, channels, channel_memberships,\n         direct_message_conversations, dm_members, messages, reactions, files, message_files\n         RESTART IDENTITY CASCADE",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "98b043b6725bcb1bd345a0e8e41feeac42c844d2a4a74a1114ba72ef9e142e81"
+}

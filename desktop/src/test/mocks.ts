@@ -7,6 +7,7 @@ export const mockUser: User = {
   display_name: 'Alice',
   avatar_url: null,
   is_server_admin: false,
+  theme: 'system',
 };
 
 export const mockOrganization: Organization = {

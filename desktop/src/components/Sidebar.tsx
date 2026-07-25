@@ -201,7 +201,7 @@ export function Sidebar({
           {organizations.map((org) => (
             <NavLink
               key={org.id}
-              to={`/org/${org.id}/channel`}
+              to={`/org/${org.id}`}
               title={org.name}
               onClick={handleNavClick}
               className={({ isActive }) =>

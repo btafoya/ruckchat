@@ -134,6 +134,8 @@ pub struct UpdateProfileRequest {
     pub display_name: Option<String>,
     /// New avatar URL, if changing.
     pub avatar_url: Option<String>,
+    /// UI theme preference, if changing.
+    pub theme: Option<String>,
 }
 
 /// Request to create an organization.

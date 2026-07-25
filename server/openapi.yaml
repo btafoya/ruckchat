@@ -2857,7 +2857,7 @@ components:
 
     UserResponse:
       type: object
-      required: [id, email, display_name, is_server_admin]
+      required: [id, email, display_name, is_server_admin, theme]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -2871,6 +2871,9 @@ components:
           nullable: true
         is_server_admin:
           type: boolean
+        theme:
+          type: string
+          enum: [light, dark, system]
 
     UserList:
       type: object
@@ -3169,6 +3172,9 @@ components:
         avatar_url:
           type: string
           nullable: true
+        theme:
+          type: string
+          enum: [light, dark, system]
 
     CreateOrganizationRequest:
       type: object

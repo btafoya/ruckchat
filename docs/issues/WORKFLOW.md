@@ -50,11 +50,11 @@ of it.
     or organization ownership returns `409 Conflict` (foreign-key
     violations are mapped to a clear error) and the last server admin cannot
     be deleted or demoted.
-- **Phase 5 — Shell and Navigation** ⏳ Open.
+- **Phase 5 — Shell and Navigation** ✅ Complete.
   - ISSUES12 — Collapsible sidebar (full ↔ narrow).
   - ISSUES13 — Sidebar on mobile.
   - ISSUES14 — Admin menu icons in top bar.
-- **Phase 6 — Home and User Profile** ⏳ Open.
+- **Phase 6 — Home and User Profile** ✅ Complete.
   - ISSUES15 — Single-organization home redirect.
   - ISSUES16 — Organization home unread-messages view.
   - ISSUES17 — Server-stored theme preference.

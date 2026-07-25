@@ -24,8 +24,8 @@ impl UserRepositorySqlx {
 impl UserRepository for UserRepositorySqlx {
     async fn create(&self, user: &User) -> Result<()> {
         sqlx::query!(
-            "INSERT INTO users (id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            "INSERT INTO users (id, email, display_name, password_hash, avatar_url, is_server_admin, theme, deactivated_at, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              ON CONFLICT (email) DO NOTHING",
             user.id.as_uuid(),
             user.email,
@@ -33,6 +33,7 @@ impl UserRepository for UserRepositorySqlx {
             user.password_hash,
             user.avatar_url,
             user.is_server_admin,
+            user.theme,
             user.deactivated_at,
             user.created_at,
             user.updated_at,
@@ -46,7 +47,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn by_id(&self, id: UserId) -> Result<Option<User>> {
         let row = sqlx::query_as!(
             UserRow,
-            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at FROM users WHERE id = $1",
+            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, theme, deactivated_at, created_at, updated_at FROM users WHERE id = $1",
             id.as_uuid()
         )
         .fetch_optional(&self.pool)
@@ -59,7 +60,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn by_email(&self, email: &str) -> Result<Option<User>> {
         let row = sqlx::query_as!(
             UserRow,
-            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at FROM users WHERE email = $1",
+            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, theme, deactivated_at, created_at, updated_at FROM users WHERE email = $1",
             email
         )
         .fetch_optional(&self.pool)
@@ -72,7 +73,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn update(&self, user: &User) -> Result<()> {
         let rows = sqlx::query!(
             "UPDATE users
-             SET email = $2, display_name = $3, password_hash = $4, avatar_url = $5, is_server_admin = $6, deactivated_at = $7, updated_at = $8
+             SET email = $2, display_name = $3, password_hash = $4, avatar_url = $5, is_server_admin = $6, theme = $7, deactivated_at = $8, updated_at = $9
              WHERE id = $1",
             user.id.as_uuid(),
             user.email,
@@ -80,6 +81,7 @@ impl UserRepository for UserRepositorySqlx {
             user.password_hash,
             user.avatar_url,
             user.is_server_admin,
+            user.theme,
             user.deactivated_at,
             user.updated_at,
         )
@@ -104,7 +106,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn list_all(&self, limit: i64, offset: i64) -> Result<Vec<User>> {
         let rows = sqlx::query_as!(
             UserRow,
-            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at
+            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, theme, deactivated_at, created_at, updated_at
              FROM users
              ORDER BY created_at DESC
              LIMIT $1 OFFSET $2",
@@ -131,7 +133,7 @@ impl UserRepository for UserRepositorySqlx {
     async fn list_admins(&self) -> Result<Vec<User>> {
         let rows = sqlx::query_as!(
             UserRow,
-            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at
+            "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, theme, deactivated_at, created_at, updated_at
              FROM users
              WHERE is_server_admin = TRUE
              ORDER BY created_at DESC"
@@ -162,6 +164,7 @@ struct UserRow {
     password_hash: String,
     avatar_url: Option<String>,
     is_server_admin: bool,
+    theme: String,
     deactivated_at: Option<time::OffsetDateTime>,
     created_at: time::OffsetDateTime,
     updated_at: time::OffsetDateTime,
@@ -180,6 +183,7 @@ fn into_user(row: UserRow) -> User {
         password_hash: row.password_hash,
         avatar_url: row.avatar_url,
         is_server_admin: row.is_server_admin,
+        theme: row.theme,
         deactivated_at: row.deactivated_at,
         created_at: row.created_at,
         updated_at: row.updated_at,

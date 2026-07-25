@@ -25,6 +25,9 @@ pub struct User {
     /// Whether the user is a server-wide administrator.
     #[serde(default)]
     pub is_server_admin: bool,
+    /// UI theme preference.
+    #[serde(default = "theme_default")]
+    pub theme: String,
     /// Timestamp when the user was deactivated, if applicable.
     #[serde(with = "time::serde::rfc3339::option")]
     pub deactivated_at: Option<OffsetDateTime>,
@@ -71,6 +74,7 @@ impl User {
             password_hash,
             avatar_url: None,
             is_server_admin: false,
+            theme: "system".to_string(),
             deactivated_at: None,
             created_at: now,
             updated_at: now,
@@ -137,11 +141,22 @@ impl User {
         self.updated_at = OffsetDateTime::now_utc();
     }
 
+    /// Updates the UI theme preference.
+    pub fn set_theme(&mut self, theme: impl Into<String>) {
+        self.theme = theme.into();
+        self.updated_at = OffsetDateTime::now_utc();
+    }
+
     /// Returns true if the user has been deactivated.
     #[must_use]
     pub fn is_active(&self) -> bool {
         self.deactivated_at.is_none()
     }
+}
+
+#[must_use]
+fn theme_default() -> String {
+    "system".to_string()
 }
 
 #[cfg(test)]

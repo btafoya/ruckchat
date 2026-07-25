@@ -43,8 +43,11 @@
 
 ## Decisions
 
-- Pending. Reproduction of the blank `/org` screen is needed to confirm whether this is a regression of Phase 3 or a missing auth-success redirect.
+- Redirect logic lives in `OrgIndexRoute` (`desktop/src/PlatformShell.tsx`) rather than in `AuthScreen`, keeping routing decisions centralized.
+- A single-organization user navigating to `/org` is redirected immediately to `/org/{organizationId}`.
+- Multi-organization and zero-organization users see the `OrgIndex` picker/empty-state view at `/org`.
+- `AuthScreen` continues to redirect to `/` on success; the existing index route chain (`/ -> /org -> /org/{id}`) handles the rest.
 
 ## Status
 
-Open.
+Implemented.

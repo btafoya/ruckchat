@@ -1,8 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
-import { useSettingsContext } from '../context';
+import { createApi } from '../api';
+import { useSessionContext, useSettingsContext } from '../context';
 import { DEFAULT_API_URL } from '../config';
+import type { ThemePreference } from '../hooks/useSettings';
 
 const THEME_OPTIONS: Array<{ value: 'light' | 'dark' | 'system'; label: string }> = [
   { value: 'light', label: 'Light' },
@@ -20,6 +22,8 @@ export function Settings(): JSX.Element {
     setTheme,
     reset,
   } = useSettingsContext();
+  const { session } = useSessionContext();
+  const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [url, setUrl] = useState(apiUrl);
   const [saved, setSaved] = useState(false);
 
@@ -34,6 +38,16 @@ export function Settings(): JSX.Element {
     reset();
     setUrl(DEFAULT_API_URL);
   }, [reset]);
+
+  const handleThemeChange = useCallback(
+    (value: ThemePreference) => {
+      setTheme(value);
+      if (session?.token) {
+        void api.auth.updateProfile(session.token, { theme: value });
+      }
+    },
+    [api, session?.token, setTheme],
+  );
 
   return (
     <div className="flex h-full flex-col bg-bg p-6 text-text">
@@ -79,7 +93,7 @@ export function Settings(): JSX.Element {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setTheme(option.value)}
+                onClick={() => handleThemeChange(option.value)}
                 className={`rounded-md px-3 py-1.5 text-sm ${
                   theme === option.value
                     ? 'bg-accent text-text-inverse'

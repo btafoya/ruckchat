@@ -1,18 +1,15 @@
 import { useCallback, useState, type FormEvent, type JSX } from 'react';
-import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { useSessionContext, useSettingsContext } from '../context';
 import { Sidebar } from './Sidebar';
-import { MessagePane } from './MessagePane';
 
 export function Shell(): JSX.Element {
   const { session, isLoading } = useSessionContext();
   const { sidebarCollapsed, setSidebarCollapsed } = useSettingsContext();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
-  const location = useLocation();
   const navigate = useNavigate();
   const { organizationId } = useParams<{ organizationId?: string }>();
-  const isSearchRoute = location.pathname.endsWith('/search');
 
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
@@ -81,7 +78,7 @@ export function Shell(): JSX.Element {
             </form>
           )}
         </div>
-        {isSearchRoute ? <Outlet /> : <MessagePane />}
+        <Outlet />
       </div>
     </div>
   );

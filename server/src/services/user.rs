@@ -65,6 +65,14 @@ impl UserService {
         if request.avatar_url.is_some() {
             user.set_avatar_url(request.avatar_url);
         }
+        if let Some(theme) = request.theme {
+            if !["light", "dark", "system"].contains(&theme.as_str()) {
+                return Err(Error::validation(
+                    "theme must be one of light, dark, or system",
+                ));
+            }
+            user.set_theme(theme);
+        }
 
         self.deps.users.update(&user).await?;
         Ok(user)
@@ -163,6 +171,7 @@ mod tests {
                 UpdateProfileRequest {
                     display_name: Some("Alice Updated".into()),
                     avatar_url: None,
+                    theme: None,
                 },
             )
             .await

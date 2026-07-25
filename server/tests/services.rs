@@ -608,6 +608,7 @@ async fn user_profile_update() {
             UpdateProfileRequest {
                 display_name: Some("New Name".into()),
                 avatar_url: Some("https://example.com/avatar.png".into()),
+                theme: None,
             },
         )
         .await

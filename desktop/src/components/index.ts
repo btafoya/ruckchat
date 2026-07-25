@@ -2,6 +2,8 @@ export { AuthForm } from './AuthForm';
 export { AuthScreen } from './AuthScreen';
 export { Composer } from './Composer';
 export { MessagePane } from './MessagePane';
+export { OrgHome } from './OrgHome';
+export { OrgIndex } from './OrgIndex';
 export { SearchResultsPage } from './SearchResultsPage';
 export { Settings } from './Settings';
 export { Shell } from './Shell';

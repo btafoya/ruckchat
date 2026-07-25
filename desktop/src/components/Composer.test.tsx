@@ -22,7 +22,7 @@ const mockUploadFile = vi
 const mockSearchMembers = vi.fn().mockImplementation(async (_token: string, _orgId: string, query: string) => {
   if (query.toLowerCase().includes('user')) {
     return [
-      { id: 'user-2', email: 'user2@example.com', display_name: 'user-2', avatar_url: null, is_server_admin: false },
+      { id: 'user-2', email: 'user2@example.com', display_name: 'user-2', avatar_url: null, is_server_admin: false, theme: 'system' },
     ];
   }
   return [];
@@ -262,7 +262,7 @@ const mockMessageState: MessagesState = {
 
 const mockSession = {
   token: 'token',
-  user: { id: 'user-1', email: 'user@example.com', display_name: 'User', avatar_url: null, is_server_admin: false },
+  user: { id: 'user-1', email: 'user@example.com', display_name: 'User', avatar_url: null, is_server_admin: false, theme: 'system' as const },
 };
 
 function Wrapper({ children }: { children: React.ReactNode }) {

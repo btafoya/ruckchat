@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, deactivated_at, created_at, updated_at FROM users WHERE email = $1",
+  "query": "SELECT id, email, display_name, password_hash, avatar_url, is_server_admin, theme, deactivated_at, created_at, updated_at FROM users ORDER BY created_at",
   "describe": {
     "columns": [
       {
@@ -35,24 +35,27 @@
       },
       {
         "ordinal": 6,
+        "name": "theme",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
         "name": "deactivated_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -61,10 +64,11 @@
       false,
       true,
       false,
+      false,
       true,
       false,
       false
     ]
   },
-  "hash": "4d3f5514c22d8671a9f6064bf89f1aae69a52e2ee62148c85c65a10817904874"
+  "hash": "79abf2bee9399cae463ad664d4b3f80c9728848f599cb9548227cb51add62259"
 }

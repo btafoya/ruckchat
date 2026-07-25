@@ -47,8 +47,12 @@
 
 ## Decisions
 
-- Pending. Scope depends on whether the view is a simple unread list or a full recent-activity dashboard.
+- The organization home is a per-organization view at `/org/{organizationId}` rendered by `OrgHome`.
+- It lists every non-archived channel and every direct-message conversation for that organization, sorted by unread count descending (highest unread first).
+- Each row links to the channel (`/org/{id}/channel/{channelId}`) or DM (`/org/{id}/dm/{conversationId}`) and shows an unread badge when the count is greater than zero.
+- No new backend endpoint is added; the view composes existing `ChannelContext`, `DirectMessageContext`, `OrgMemberContext`, `ReadStateContext`, and `OrganizationContext` data.
+- The prior `/org` route becomes the multi-org picker / zero-org empty state (`OrgIndex`).
 
 ## Status
 
-Open.
+Implemented.

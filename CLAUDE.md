@@ -155,6 +155,16 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   guarded against deleting the last server admin and against users with
   existing message/organization-ownership history via a foreign-key-violation
   → `409 Conflict` mapping).
+- Home and user-profile issue work (`docs/issues/WORKFLOW.md` Phase 6):
+  `/org` now renders an `OrgIndex` picker/empty-state view (multi-org or zero-org)
+  and redirects a single-organization user to `/org/{id}`; the org home route
+  (`desktop/src/components/OrgHome.tsx`) lists non-archived channels and direct
+  messages for that organization, sorted by unread count descending, with links
+  into each conversation and unread badges driven by `ReadStateContext`. The
+  user's theme preference (`light`/`dark`/`system`) is now stored in the server
+  profile (`users.theme`, `User::theme`, `PATCH /api/v1/users/me`) and loaded on
+  login/registration/profile restore; `Settings.tsx` persists theme changes to
+  the server (`docs/ADR-017-Server-Stored-Theme-Preference.md`).
 - Search and read-state issue work (`docs/ADR-015-Search-And-Read-State.md`):
   message editing wired into the desktop client (`MessagesApi.edit`, a
   Composer edit mode, an author-only "Edit" action) on top of the already-
@@ -358,6 +368,14 @@ root/
   URL on startup.
 - `desktop/src/components/Settings.tsx` — Backend URL and notification settings
   screen.
+- `desktop/src/components/OrgHome.tsx` — Organization home view listing
+  unread-sorted channels and direct messages with links into each conversation.
+- `desktop/src/components/OrgIndex.tsx` — Organization picker for multi-org
+  users and empty state for users with no organizations.
+- `desktop/src/PlatformShell.tsx` — Authenticated router shell; redirects
+  single-org `/org` to `/org/{id}` and renders `OrgHome` as the org route.
+- `crates/ruckchat-domain/src/user.rs` — User aggregate with server-stored
+  `theme` preference.
 - `desktop/src-tauri/src/lib.rs` — Tray setup, `set_unread_count`,
   `get_deep_link_url`, and plugin initialization.
 - `server/tests/` — Integration tests against PostgreSQL.
@@ -403,7 +421,8 @@ root/
   `docs/ADR-011-Web-UI.md`, `docs/ADR-012-Migration-and-Packaging.md`,
   `docs/ADR-013-Web-UI-Admin-Panel.md`, `docs/ADR-014-Spell-Checker.md`,
   `docs/ADR-015-Search-And-Read-State.md`,
-  `docs/ADR-016-Cursor-Based-Message-Pagination.md` — Active ADRs.
+  `docs/ADR-016-Cursor-Based-Message-Pagination.md`,
+  `docs/ADR-017-Server-Stored-Theme-Preference.md` — Active ADRs.
 
 ## Environment
 

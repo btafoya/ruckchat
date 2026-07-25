@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createApi, isUnauthorizedError } from '../api';
 import type { LoginRequest, RegisterRequest, User } from '../api';
 import { useSettingsContext } from '../context/SettingsContext';
+import type { ThemePreference } from './useSettings';
 
 const TOKEN_KEY = 'ruckchat_session_token';
 
@@ -24,8 +25,18 @@ export function useSession(): SessionState {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { apiUrl } = useSettingsContext();
+  const { apiUrl, setTheme } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
+
+  const applyServerTheme = useCallback(
+    (user: User) => {
+      const theme = user.theme;
+      if (theme === 'light' || theme === 'dark' || theme === 'system') {
+        setTheme(theme);
+      }
+    },
+    [setTheme],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +52,7 @@ export function useSession(): SessionState {
         const user = await api.auth.getProfile(token);
         if (!cancelled) {
           setSession({ token, user });
+          applyServerTheme(user);
         }
       } catch (err) {
         if (isUnauthorizedError(err)) {
@@ -67,6 +79,7 @@ export function useSession(): SessionState {
         const response = await api.auth.login(request);
         localStorage.setItem(TOKEN_KEY, response.token);
         setSession({ token: response.token, user: response.user });
+        applyServerTheme(response.user);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
@@ -95,6 +108,7 @@ export function useSession(): SessionState {
         });
         localStorage.setItem(TOKEN_KEY, loginResponse.token);
         setSession({ token: loginResponse.token, user: loginResponse.user });
+        applyServerTheme(loginResponse.user);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);

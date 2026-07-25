@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN theme VARCHAR(7) NOT NULL DEFAULT 'system';
