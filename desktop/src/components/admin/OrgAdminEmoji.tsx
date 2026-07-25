@@ -14,9 +14,10 @@ export function OrgAdminEmoji({ organizationId }: OrgAdminEmojiProps): JSX.Eleme
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [emoji, setEmoji] = useState<CustomEmoji[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shortcode, setShortcode] = useState('');
-  const [fileId, setFileId] = useState('');
+  const [file, setFile] = useState<globalThis.File | null>(null);
 
   const token = session?.token ?? '';
 
@@ -40,15 +41,20 @@ export function OrgAdminEmoji({ organizationId }: OrgAdminEmojiProps): JSX.Eleme
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !shortcode || !fileId) return;
-    const request: CreateEmojiRequest = { shortcode, file_id: fileId };
+    if (!token || !shortcode || !file) return;
+    setIsUploading(true);
+    setError(null);
     try {
+      const uploaded = await api.files.uploadFile(token, organizationId, file);
+      const request: CreateEmojiRequest = { shortcode, file_id: uploaded.id };
       await api.orgAdmin.createEmoji(token, organizationId, request);
       setShortcode('');
-      setFileId('');
+      setFile(null);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create emoji');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -78,18 +84,17 @@ export function OrgAdminEmoji({ organizationId }: OrgAdminEmojiProps): JSX.Eleme
           className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
         />
         <input
-          type="text"
-          value={fileId}
-          onChange={(e) => setFileId(e.target.value)}
-          placeholder="file id"
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="rounded bg-surface px-3 py-2 text-sm outline-none ring-accent focus:ring"
         />
         <button
           type="submit"
-          disabled={!shortcode || !fileId}
+          disabled={!shortcode || !file || isUploading}
           className="rounded bg-accent px-4 py-2 text-sm font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-50"
         >
-          Create
+          {isUploading ? 'Uploading...' : 'Create'}
         </button>
       </form>
 

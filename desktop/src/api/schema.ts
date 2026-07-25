@@ -683,7 +683,32 @@ export interface paths {
             };
             cookie?: never;
         };
-        get?: never;
+        /** List the explicit members of a channel */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    channel_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Channel members */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChannelMembershipList"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
         put?: never;
         /** Add a member to a channel */
         post: {
@@ -2561,6 +2586,248 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/admin/organizations/{organization_id}/teams/{team_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: components["schemas"]["Uuid"];
+                team_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        /** List members of a team */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                    team_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Team member list */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamMemberList"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** Add a user to a team */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                    team_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddTeamMemberRequest"];
+                };
+            };
+            responses: {
+                /** @description Team membership created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamMembership"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{organization_id}/teams/{team_id}/members/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: components["schemas"]["Uuid"];
+                team_id: components["schemas"]["Uuid"];
+                user_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a user from a team */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                    team_id: components["schemas"]["Uuid"];
+                    user_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Team member removed */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{organization_id}/teams/{team_id}/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: components["schemas"]["Uuid"];
+                team_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        /** List channels linked to a team */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                    team_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Team room list */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamRoomList"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** Link a channel to a team */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                    team_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddTeamRoomRequest"];
+                };
+            };
+            responses: {
+                /** @description Team room link created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamRoom"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/organizations/{organization_id}/teams/{team_id}/rooms/{channel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: components["schemas"]["Uuid"];
+                team_id: components["schemas"]["Uuid"];
+                channel_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlink a channel from a team */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    organization_id: components["schemas"]["Uuid"];
+                    team_id: components["schemas"]["Uuid"];
+                    channel_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Team room link removed */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/server/organizations": {
         parameters: {
             query?: never;
@@ -2805,7 +3072,31 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
+        /** Permanently delete a user account */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    user_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
         options?: never;
         head?: never;
         /** Update a user's profile as a server admin */
@@ -3367,6 +3658,9 @@ export interface components {
             /** Format: date-time */
             joined_at: string;
         };
+        ChannelMembershipList: {
+            items: components["schemas"]["ChannelMembership"][];
+        };
         Message: {
             id: components["schemas"]["Uuid"];
             conversation_id: components["schemas"]["Uuid"];
@@ -3728,6 +4022,23 @@ export interface components {
         };
         MemberList: {
             items: components["schemas"]["MemberResponse"][];
+        };
+        TeamMemberResponse: {
+            user: components["schemas"]["UserResponse"];
+            /** @enum {string} */
+            role: "owner" | "leader" | "member";
+        };
+        TeamMemberList: {
+            items: components["schemas"]["TeamMemberResponse"][];
+        };
+        TeamRoomList: {
+            items: components["schemas"]["TeamRoom"][];
+        };
+        AddTeamMemberRequest: {
+            user_id: components["schemas"]["Uuid"];
+        };
+        AddTeamRoomRequest: {
+            channel_id: components["schemas"]["Uuid"];
         };
         UpdateOrganizationSettingsRequest: {
             /** Format: int64 */

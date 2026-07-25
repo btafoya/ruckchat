@@ -41,8 +41,11 @@ export function ServerAdminShell(): JSX.Element {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-bg text-text">
-      <header className="border-b border-border bg-surface px-6 py-4">
+      <header className="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
         <h1 className="text-lg font-semibold">Server Administration</h1>
+        <NavLink to="/" className="text-sm text-text-muted hover:text-text">
+          Back
+        </NavLink>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <nav

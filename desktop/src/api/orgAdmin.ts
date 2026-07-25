@@ -1,5 +1,7 @@
 import { ApiClient } from './client';
 import type {
+  AddTeamMemberRequest,
+  AddTeamRoomRequest,
   CreateEmojiRequest,
   CreatePermissionRequest,
   CreateRoleRequest,
@@ -10,6 +12,9 @@ import type {
   OrganizationSettings,
   Permission,
   Team,
+  TeamMember,
+  TeamMembership,
+  TeamRoom,
   UpdateOrganizationSettingsRequest,
   UpdatePermissionRequest,
   UpdateRoleRequest,
@@ -247,6 +252,92 @@ export class OrgAdminApi {
   ): Promise<void> {
     await this.client.request<void>(
       `/api/v1/admin/organizations/${organizationId}/teams/${teamId}`,
+      {
+        method: 'DELETE',
+        token,
+      },
+    );
+  }
+
+  async listTeamMembers(
+    token: string,
+    organizationId: string,
+    teamId: string,
+  ): Promise<TeamMember[]> {
+    const response = await this.client.request<{ items: TeamMember[] }>(
+      `/api/v1/admin/organizations/${organizationId}/teams/${teamId}/members`,
+      { token },
+    );
+    return response.items;
+  }
+
+  async addTeamMember(
+    token: string,
+    organizationId: string,
+    teamId: string,
+    request: AddTeamMemberRequest,
+  ): Promise<TeamMembership> {
+    return this.client.request<TeamMembership>(
+      `/api/v1/admin/organizations/${organizationId}/teams/${teamId}/members`,
+      {
+        method: 'POST',
+        token,
+        body: request,
+      },
+    );
+  }
+
+  async removeTeamMember(
+    token: string,
+    organizationId: string,
+    teamId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.client.request<void>(
+      `/api/v1/admin/organizations/${organizationId}/teams/${teamId}/members/${userId}`,
+      {
+        method: 'DELETE',
+        token,
+      },
+    );
+  }
+
+  async listTeamRooms(
+    token: string,
+    organizationId: string,
+    teamId: string,
+  ): Promise<TeamRoom[]> {
+    const response = await this.client.request<{ items: TeamRoom[] }>(
+      `/api/v1/admin/organizations/${organizationId}/teams/${teamId}/rooms`,
+      { token },
+    );
+    return response.items;
+  }
+
+  async addTeamRoom(
+    token: string,
+    organizationId: string,
+    teamId: string,
+    request: AddTeamRoomRequest,
+  ): Promise<TeamRoom> {
+    return this.client.request<TeamRoom>(
+      `/api/v1/admin/organizations/${organizationId}/teams/${teamId}/rooms`,
+      {
+        method: 'POST',
+        token,
+        body: request,
+      },
+    );
+  }
+
+  async removeTeamRoom(
+    token: string,
+    organizationId: string,
+    teamId: string,
+    channelId: string,
+  ): Promise<void> {
+    await this.client.request<void>(
+      `/api/v1/admin/organizations/${organizationId}/teams/${teamId}/rooms/${channelId}`,
       {
         method: 'DELETE',
         token,

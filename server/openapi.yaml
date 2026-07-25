@@ -1841,6 +1841,190 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/admin/organizations/{organization_id}/teams/{team_id}/members:
+    parameters:
+      - name: organization_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: team_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    get:
+      summary: List members of a team
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Team member list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMemberList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Add a user to a team
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTeamMemberRequest'
+      responses:
+        '201':
+          description: Team membership created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMembership'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/organizations/{organization_id}/teams/{team_id}/members/{user_id}:
+    parameters:
+      - name: organization_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: team_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    delete:
+      summary: Remove a user from a team
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Team member removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/organizations/{organization_id}/teams/{team_id}/rooms:
+    parameters:
+      - name: organization_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: team_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    get:
+      summary: List channels linked to a team
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Team room list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamRoomList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Link a channel to a team
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTeamRoomRequest'
+      responses:
+        '201':
+          description: Team room link created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamRoom'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/organizations/{organization_id}/teams/{team_id}/rooms/{channel_id}:
+    parameters:
+      - name: organization_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: team_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: channel_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    delete:
+      summary: Unlink a channel from a team
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Team room link removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/server/organizations:
     get:
       summary: List all organizations on the server
@@ -2048,6 +2232,23 @@ paths:
                 $ref: '#/components/schemas/ServerUserResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      summary: Permanently delete a user account
+      tags: [Server Admin]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '204':
+          description: User deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3360,6 +3561,48 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MemberResponse'
+
+    TeamMemberResponse:
+      type: object
+      required: [user, role]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        role:
+          type: string
+          enum: [owner, leader, member]
+
+    TeamMemberList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamMemberResponse'
+
+    TeamRoomList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamRoom'
+
+    AddTeamMemberRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id:
+          $ref: '#/components/schemas/Uuid'
+
+    AddTeamRoomRequest:
+      type: object
+      required: [channel_id]
+      properties:
+        channel_id:
+          $ref: '#/components/schemas/Uuid'
 
     UpdateOrganizationSettingsRequest:
       type: object

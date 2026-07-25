@@ -269,6 +269,142 @@ async fn server_admin_can_deactivate_and_reactivate_user(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn server_admin_can_delete_user(pool: PgPool) {
+    let client = TestClient::new(pool.clone()).await;
+    let (admin_token, _org_id, _admin_id) = server_admin_context(&client, &pool).await;
+
+    // Users created directly by a server admin have no organization or
+    // message history, so they can be deleted without a foreign-key conflict.
+    let create = client
+        .auth_request(
+            "POST",
+            "/api/v1/server/users",
+            &admin_token,
+            Some(json!({
+                "email": test_email("deletable-user"),
+                "display_name": "Deletable User"
+            })),
+        )
+        .await;
+    assert_status(&create, StatusCode::CREATED);
+    let create_body = body_json(create).await;
+    let user_id = create_body["user"]["id"].as_str().unwrap().to_string();
+
+    let delete = client
+        .auth_request(
+            "DELETE",
+            &format!("/api/v1/server/users/{}", user_id),
+            &admin_token,
+            None,
+        )
+        .await;
+    assert_status(&delete, StatusCode::NO_CONTENT);
+
+    let get = client
+        .auth_request(
+            "GET",
+            &format!("/api/v1/server/users/{}", user_id),
+            &admin_token,
+            None,
+        )
+        .await;
+    assert_status(&get, StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test]
+async fn server_admin_cannot_delete_last_admin(pool: PgPool) {
+    let client = TestClient::new(pool.clone()).await;
+    let (admin_token, _org_id, admin_id) = server_admin_context(&client, &pool).await;
+
+    let delete_self = client
+        .auth_request(
+            "DELETE",
+            &format!("/api/v1/server/users/{}", admin_id),
+            &admin_token,
+            None,
+        )
+        .await;
+    assert_status(&delete_self, StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test]
+async fn server_admin_cannot_delete_user_with_messages(pool: PgPool) {
+    let client = TestClient::new(pool.clone()).await;
+    let (admin_token, org_id, _admin_id) = server_admin_context(&client, &pool).await;
+    let email = test_email("messaging-user");
+    let password = "correct horse battery staple";
+
+    let create = client
+        .auth_request(
+            "POST",
+            "/api/v1/server/users",
+            &admin_token,
+            Some(json!({
+                "email": email,
+                "display_name": "Messaging User",
+                "password": password
+            })),
+        )
+        .await;
+    assert_status(&create, StatusCode::CREATED);
+    let create_body = body_json(create).await;
+    let user_id = create_body["user"]["id"].as_str().unwrap().to_string();
+
+    let invite = client
+        .auth_request(
+            "POST",
+            &format!("/organizations/{}/members", org_id),
+            &admin_token,
+            Some(json!({"email": email, "role": "member"})),
+        )
+        .await;
+    assert_status(&invite, StatusCode::CREATED);
+
+    let login = client
+        .request(
+            "POST",
+            "/auth/login",
+            Some(json!({"email": email, "password": password})),
+        )
+        .await;
+    assert_status(&login, StatusCode::OK);
+    let login_body = body_json(login).await;
+    let user_token = login_body["token"].as_str().unwrap().to_string();
+
+    let channels = client
+        .auth_request(
+            "GET",
+            &format!("/organizations/{}/channels", org_id),
+            &user_token,
+            None,
+        )
+        .await;
+    assert_status(&channels, StatusCode::OK);
+    let channels_body = body_json(channels).await;
+    let channel_id = channels_body["items"][0]["id"].as_str().unwrap();
+
+    let post = client
+        .auth_request(
+            "POST",
+            &format!("/channels/{}/messages", channel_id),
+            &user_token,
+            Some(json!({ "content": "hello" })),
+        )
+        .await;
+    assert_status(&post, StatusCode::CREATED);
+
+    let delete = client
+        .auth_request(
+            "DELETE",
+            &format!("/api/v1/server/users/{}", user_id),
+            &admin_token,
+            None,
+        )
+        .await;
+    assert_status(&delete, StatusCode::CONFLICT);
+}
+
+#[sqlx::test]
 async fn server_admin_can_manage_organizations(pool: PgPool) {
     let client = TestClient::new(pool.clone()).await;
     let (admin_token, _org_id, _admin_id) = server_admin_context(&client, &pool).await;

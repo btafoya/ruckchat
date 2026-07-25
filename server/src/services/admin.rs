@@ -5,12 +5,13 @@
 use crate::migrate::{self, ImportCounts, MigrateError, MigrationData};
 use ruckchat_common::{Error, Result};
 use ruckchat_domain::{
-    CustomEmoji, CustomEmojiRepository, Organization, OrganizationMembership,
+    ChannelRepository, CustomEmoji, CustomEmojiRepository, Organization, OrganizationMembership,
     OrganizationMembershipRepository, OrganizationRepository, OrganizationRole,
     OrganizationRoleRepository, OrganizationSettings, OrganizationSettingsRepository, Permission,
-    PermissionRepository, Role, Team, TeamRepository, UserRepository,
+    PermissionRepository, Role, Team, TeamMembership, TeamMembershipRepository, TeamRepository,
+    TeamRoom, TeamRoomRepository, UserRepository,
 };
-use ruckchat_id::{FileId, OrganizationId, UserId};
+use ruckchat_id::{ChannelId, FileId, OrganizationId, TeamId, UserId};
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -33,6 +34,12 @@ pub struct AdminServiceDeps {
     pub emoji: Arc<dyn CustomEmojiRepository + Send + Sync>,
     /// Team repository.
     pub teams: Arc<dyn TeamRepository + Send + Sync>,
+    /// Team membership repository.
+    pub team_memberships: Arc<dyn TeamMembershipRepository + Send + Sync>,
+    /// Team-room link repository.
+    pub team_rooms: Arc<dyn TeamRoomRepository + Send + Sync>,
+    /// Channel repository, used to validate team-room links.
+    pub channels: Arc<dyn ChannelRepository + Send + Sync>,
     /// Organization settings repository.
     pub organization_settings: Arc<dyn OrganizationSettingsRepository + Send + Sync>,
     /// File repository, used to validate emoji file references.
@@ -446,6 +453,150 @@ impl AdminService {
             .await?
             .ok_or_else(|| Error::NotFound("team".into()))?;
         Ok(())
+    }
+
+    /// Lists members of a team, joined with their user records.
+    pub async fn list_team_members(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        team_id: TeamId,
+    ) -> Result<Vec<(TeamMembership, ruckchat_domain::User)>> {
+        self.require_admin(caller_id, organization_id).await?;
+        self.load_org_team(organization_id, team_id).await?;
+        let memberships = self.deps.team_memberships.list_by_team(team_id).await?;
+        let mut result = Vec::with_capacity(memberships.len());
+        for membership in memberships {
+            if let Some(user) = self.deps.users.by_id(membership.user_id).await? {
+                result.push((membership, user));
+            }
+        }
+        Ok(result)
+    }
+
+    /// Adds a user to a team.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Forbidden`] for non-admins, or [`Error::NotFound`]
+    /// when the team or user does not exist, or the user is not an
+    /// organization member.
+    pub async fn add_team_member(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        team_id: TeamId,
+        user_id: UserId,
+    ) -> Result<TeamMembership> {
+        self.require_admin(caller_id, organization_id).await?;
+        self.load_org_team(organization_id, team_id).await?;
+        self.deps
+            .memberships
+            .by_ids(user_id, organization_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("organization member".into()))?;
+        let membership = TeamMembership::new(team_id, user_id, ruckchat_domain::TeamRole::Member);
+        self.deps.team_memberships.create(&membership).await?;
+        Ok(membership)
+    }
+
+    /// Removes a user from a team.
+    pub async fn remove_team_member(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        team_id: TeamId,
+        user_id: UserId,
+    ) -> Result<()> {
+        self.require_admin(caller_id, organization_id).await?;
+        self.load_org_team(organization_id, team_id).await?;
+        self.deps
+            .team_memberships
+            .delete(team_id, user_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("team membership".into()))?;
+        Ok(())
+    }
+
+    /// Lists channels linked to a team.
+    pub async fn list_team_rooms(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        team_id: TeamId,
+    ) -> Result<Vec<TeamRoom>> {
+        self.require_admin(caller_id, organization_id).await?;
+        self.load_org_team(organization_id, team_id).await?;
+        self.deps.team_rooms.list_by_team(team_id).await
+    }
+
+    /// Links a channel to a team.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Forbidden`] for non-admins, or [`Error::NotFound`]
+    /// when the team or channel does not exist.
+    pub async fn add_team_room(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        team_id: TeamId,
+        channel_id: ChannelId,
+    ) -> Result<TeamRoom> {
+        self.require_admin(caller_id, organization_id).await?;
+        self.load_org_team(organization_id, team_id).await?;
+        let channel = self
+            .deps
+            .channels
+            .by_id(channel_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("channel".into()))?;
+        if channel.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "channel does not belong to this organization".into(),
+            ));
+        }
+        let link = TeamRoom::new(team_id, channel_id);
+        self.deps.team_rooms.create(&link).await?;
+        Ok(link)
+    }
+
+    /// Unlinks a channel from a team.
+    pub async fn remove_team_room(
+        &self,
+        caller_id: UserId,
+        organization_id: OrganizationId,
+        team_id: TeamId,
+        channel_id: ChannelId,
+    ) -> Result<()> {
+        self.require_admin(caller_id, organization_id).await?;
+        self.load_org_team(organization_id, team_id).await?;
+        self.deps
+            .team_rooms
+            .delete(team_id, channel_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("team room".into()))?;
+        Ok(())
+    }
+
+    /// Loads a team and verifies it belongs to the given organization.
+    async fn load_org_team(
+        &self,
+        organization_id: OrganizationId,
+        team_id: TeamId,
+    ) -> Result<Team> {
+        let team = self
+            .deps
+            .teams
+            .by_id(team_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("team".into()))?;
+        if team.organization_id != organization_id {
+            return Err(Error::Forbidden(
+                "team does not belong to this organization".into(),
+            ));
+        }
+        Ok(team)
     }
 
     async fn require_admin(

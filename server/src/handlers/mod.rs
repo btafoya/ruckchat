@@ -141,7 +141,7 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         )
         .route(
             "/api/v1/server/users/{user_id}",
-            patch(server_admin::update_user),
+            patch(server_admin::update_user).delete(server_admin::delete_user),
         )
         .route(
             "/api/v1/server/users/{user_id}/reset-password",
@@ -220,6 +220,22 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route(
             "/api/v1/admin/organizations/{organization_id}/teams/{team_id}",
             patch(admin::update_team).delete(admin::delete_team),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/teams/{team_id}/members",
+            get(admin::list_team_members).post(admin::add_team_member),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/teams/{team_id}/members/{user_id}",
+            delete(admin::remove_team_member),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/teams/{team_id}/rooms",
+            get(admin::list_team_rooms).post(admin::add_team_room),
+        )
+        .route(
+            "/api/v1/admin/organizations/{organization_id}/teams/{team_id}/rooms/{channel_id}",
+            delete(admin::remove_team_room),
         )
         .route("/", get(web_assets::serve_root))
         .route("/{*path}", get(web_assets::serve_asset))

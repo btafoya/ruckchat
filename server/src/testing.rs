@@ -130,6 +130,18 @@ impl UserRepository for MockUserRepository {
             .cloned()
             .collect())
     }
+
+    async fn delete(&self, id: UserId) -> Result<Option<()>> {
+        let mut users = self.users.lock().unwrap();
+        let existing_id = users.iter().position(|u| u.id == id);
+        match existing_id {
+            Some(index) => {
+                users.remove(index);
+                Ok(Some(()))
+            }
+            None => Ok(None),
+        }
+    }
 }
 
 /// In-memory session repository.

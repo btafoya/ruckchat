@@ -240,6 +240,19 @@ pub async fn reactivate_user(
     Ok(Json(ServerUserResponse::from_domain(&user)))
 }
 
+/// Permanently deletes a user account.
+pub async fn delete_user(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(user_id): Path<Uuid>,
+) -> Result<StatusCode, Error> {
+    state
+        .server_admin
+        .delete_user(auth_user.id, UserId::from_uuid(user_id))
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// Lists current server administrators.
 pub async fn list_server_admins(
     State(state): State<AppState>,

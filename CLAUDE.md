@@ -130,6 +130,27 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   `desktop/src/spelling/SpellingProofreader.ts` wires
   `@farscrl/tiptap-extension-spellchecker` into the shared composer. Gated by
   the `spelling_enabled` / `spelling_default_language` server settings.
+- Conversation discovery issue work (`docs/issues/WORKFLOW.md` Phase 3):
+  single-organization auto-redirect to the last-selected channel or
+  `#general` (`OrgIndexRoute` / `ChannelIndexRoute` and
+  `desktop/src/lastConversation.ts`), channel creation/management for any
+  organization member with creator/manager edit and archive rights, and
+  direct-message start/list/hide-reappear via
+  `desktop/src/components/StartDmModal.tsx`.
+- Admin UI polish issue work (`docs/issues/WORKFLOW.md` Phase 4): back-to-chat
+  links in `ServerAdminShell.tsx` and `OrgAdminShell.tsx`; a collapsible
+  mobile nav for `OrgAdminShell.tsx`; a complete `OrgAdminMembers.tsx`
+  (invite/list/role-change/remove); per-team member and room management in
+  `OrgAdminTeams.tsx` backed by new
+  `/api/v1/admin/organizations/{id}/teams/{team_id}/members` and `/rooms`
+  endpoints; real file upload in `OrgAdminEmoji.tsx`; and
+  `desktop/src/components/admin/EditUserModal.tsx`, a combined create/edit
+  user modal with promote/demote, password reset, deactivate/reactivate, and
+  a danger-zone permanent delete backed by a new
+  `DELETE /api/v1/server/users/{user_id}` endpoint (`UserRepository::delete`,
+  guarded against deleting the last server admin and against users with
+  existing message/organization-ownership history via a foreign-key-violation
+  → `409 Conflict` mapping).
 - Mobile support (Flutter) is planned for a later phase.
 
 ## Commands
@@ -349,6 +370,18 @@ at runtime. All runtime settings live in `ruckchat.yaml`.
   including initialization, tool calls, and resource reads.
 - Desktop unit and component tests live in `desktop/src/**/*.test.tsx` and are run
   with `pnpm test` inside the `desktop/` directory.
+- **Web UI e2e testing (Playwright)**: `cd web && pnpm test:e2e` runs
+  `web/tests/*.spec.ts` against **https://ruck.premadev.com** — this domain is
+  a **local dev environment** (not a production deployment with real user
+  data), so it's safe for tests to register throwaway accounts, send
+  messages, and create/archive channels against it. Each spec self-registers
+  a uniquely-named account/organization, so specs don't collide with each
+  other or with prior runs. Override the target with `RUCKCHAT_E2E_BASE_URL`.
+  The admin-CRUD spec additionally needs `RUCKCHAT_E2E_ADMIN_EMAIL` /
+  `RUCKCHAT_E2E_ADMIN_PASSWORD` (an existing server-admin account on that
+  instance) and skips itself when they're unset, since there's no "first
+  user" to auto-promote on an already-populated instance. First-time setup:
+  `cd web && pnpm test:e2e:install` to fetch the Chromium binary.
 
 ## CodeGraph and MCP Tooling
 

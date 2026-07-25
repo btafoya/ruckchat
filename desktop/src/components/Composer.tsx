@@ -16,6 +16,7 @@ import {
   useRealtimeContext,
   useSessionContext,
 } from '../context';
+import { useSettings } from '../hooks';
 import { MentionList, type MentionItem, type MentionListHandle, type MentionListProps } from './MentionList';
 import { MessageContent } from './MessageContent';
 import { SpellingProofreader } from '../spelling/SpellingProofreader';
@@ -64,7 +65,8 @@ export function Composer({
   const { send: sendWs } = useRealtimeContext();
   const { sendMessage } = useMessageContext();
   const platform = usePlatform();
-  const api = useMemo(() => createApi(), []);
+  const { apiUrl } = useSettings();
+  const api = useMemo(() => createApi(apiUrl), [apiUrl]);
 
   const [isSending, setIsSending] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string }>>([]);
@@ -184,6 +186,10 @@ export function Composer({
       },
     },
     autofocus: false,
+    // Tiptap v3 defaults to no re-render on transactions (unlike v2); without
+    // this, `editor.isEmpty` below is read once and never refreshed as the
+    // user types, so the Send button stays stuck in its initial disabled state.
+    shouldRerenderOnTransaction: true,
   });
 
   useEffect(() => {

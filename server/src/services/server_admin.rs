@@ -319,6 +319,41 @@ impl ServerAdminService {
         Ok(user)
     }
 
+    /// Permanently deletes a user account.
+    pub async fn delete_user(&self, caller_id: UserId, user_id: UserId) -> Result<()> {
+        self.require_server_admin(caller_id).await?;
+        let user = self
+            .deps
+            .users
+            .by_id(user_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("user".into()))?;
+        if user.is_server_admin {
+            let admin_count = self.deps.users.count_admins().await?;
+            if admin_count <= 1 {
+                return Err(Error::Validation {
+                    message: "cannot delete the last server admin".into(),
+                });
+            }
+        }
+        self.deps
+            .users
+            .delete(user_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("user".into()))?;
+        self.audit(
+            caller_id,
+            None,
+            "user.deleted",
+            "user",
+            Some(user_id.as_uuid()),
+            None,
+            None,
+        )
+        .await?;
+        Ok(())
+    }
+
     /// Lists current server administrators.
     pub async fn list_server_admins(&self, caller_id: UserId) -> Result<Vec<User>> {
         self.require_server_admin(caller_id).await?;

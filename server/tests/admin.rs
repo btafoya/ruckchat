@@ -505,6 +505,155 @@ async fn list_and_create_emoji(pool: sqlx::PgPool) {
 }
 
 #[sqlx::test]
+async fn team_members_and_rooms_can_be_managed(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (owner_token, org_id, _owner_id) = owner_context(&client).await;
+
+    let member_email = test_email("team-member");
+    let member_register = client
+        .request(
+            "POST",
+            "/auth/register",
+            Some(json!({
+                "email": member_email,
+                "display_name": "Team Member",
+                "password": "correct horse battery staple",
+                "organization_name": "Other",
+                "organization_slug": format!("other-{}", Uuid::new_v4())
+            })),
+        )
+        .await;
+    assert_status(&member_register, StatusCode::CREATED);
+
+    let invite = client
+        .auth_request(
+            "POST",
+            &format!("/organizations/{}/members", org_id),
+            &owner_token,
+            Some(json!({"email": member_email, "role": "member"})),
+        )
+        .await;
+    assert_status(&invite, StatusCode::CREATED);
+    let invite_body = body_json(invite).await;
+    let member_user_id = invite_body["user_id"].as_str().unwrap().to_string();
+
+    let create_team = client
+        .auth_request(
+            "POST",
+            &format!("/api/v1/admin/organizations/{}/teams", org_id),
+            &owner_token,
+            Some(json!({"name": "Engineering"})),
+        )
+        .await;
+    assert_status(&create_team, StatusCode::CREATED);
+    let team_id = body_json(create_team).await["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let add_member = client
+        .auth_request(
+            "POST",
+            &format!(
+                "/api/v1/admin/organizations/{}/teams/{}/members",
+                org_id, team_id
+            ),
+            &owner_token,
+            Some(json!({"user_id": member_user_id})),
+        )
+        .await;
+    assert_status(&add_member, StatusCode::CREATED);
+
+    let list_members = client
+        .auth_request(
+            "GET",
+            &format!(
+                "/api/v1/admin/organizations/{}/teams/{}/members",
+                org_id, team_id
+            ),
+            &owner_token,
+            None,
+        )
+        .await;
+    assert_status(&list_members, StatusCode::OK);
+    let members_body = body_json(list_members).await;
+    let members = members_body["items"].as_array().unwrap();
+    assert_eq!(members.len(), 1);
+    assert_eq!(members[0]["user"]["id"], member_user_id);
+
+    let remove_member = client
+        .auth_request(
+            "DELETE",
+            &format!(
+                "/api/v1/admin/organizations/{}/teams/{}/members/{}",
+                org_id, team_id, member_user_id
+            ),
+            &owner_token,
+            None,
+        )
+        .await;
+    assert_status(&remove_member, StatusCode::NO_CONTENT);
+
+    let channels = client
+        .auth_request(
+            "GET",
+            &format!("/organizations/{}/channels", org_id),
+            &owner_token,
+            None,
+        )
+        .await;
+    assert_status(&channels, StatusCode::OK);
+    let channels_body = body_json(channels).await;
+    let channel_id = channels_body["items"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let add_room = client
+        .auth_request(
+            "POST",
+            &format!(
+                "/api/v1/admin/organizations/{}/teams/{}/rooms",
+                org_id, team_id
+            ),
+            &owner_token,
+            Some(json!({"channel_id": channel_id})),
+        )
+        .await;
+    assert_status(&add_room, StatusCode::CREATED);
+
+    let list_rooms = client
+        .auth_request(
+            "GET",
+            &format!(
+                "/api/v1/admin/organizations/{}/teams/{}/rooms",
+                org_id, team_id
+            ),
+            &owner_token,
+            None,
+        )
+        .await;
+    assert_status(&list_rooms, StatusCode::OK);
+    let rooms_body = body_json(list_rooms).await;
+    let rooms = rooms_body["items"].as_array().unwrap();
+    assert_eq!(rooms.len(), 1);
+    assert_eq!(rooms[0]["channel_id"], channel_id);
+
+    let remove_room = client
+        .auth_request(
+            "DELETE",
+            &format!(
+                "/api/v1/admin/organizations/{}/teams/{}/rooms/{}",
+                org_id, team_id, channel_id
+            ),
+            &owner_token,
+            None,
+        )
+        .await;
+    assert_status(&remove_room, StatusCode::NO_CONTENT);
+}
+
+#[sqlx::test]
 async fn admin_create_endpoints_forbidden_for_non_admin(pool: sqlx::PgPool) {
     let client = TestClient::new(pool).await;
     let (owner_token, org_id, _owner_id) = owner_context(&client).await;

@@ -43,6 +43,9 @@ pub trait UserRepository {
 
     /// Lists users with server administrator privileges.
     async fn list_admins(&self) -> Result<Vec<User>>;
+
+    /// Deletes a user by id.
+    async fn delete(&self, id: UserId) -> Result<Option<()>>;
 }
 
 /// Session data access.
@@ -384,6 +387,9 @@ pub trait TeamMembershipRepository {
 
     /// Lists members of a team.
     async fn list_by_team(&self, team_id: TeamId) -> Result<Vec<TeamMembership>>;
+
+    /// Removes a user from a team.
+    async fn delete(&self, team_id: TeamId, user_id: UserId) -> Result<Option<()>>;
 }
 
 /// Team-room link data access.
@@ -394,6 +400,9 @@ pub trait TeamRoomRepository {
 
     /// Lists channels linked to a team.
     async fn list_by_team(&self, team_id: TeamId) -> Result<Vec<TeamRoom>>;
+
+    /// Unlinks a channel from a team.
+    async fn delete(&self, team_id: TeamId, channel_id: ChannelId) -> Result<Option<()>>;
 }
 
 /// Web Push subscription data access.

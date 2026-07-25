@@ -1,8 +1,11 @@
 import { ApiClient } from './client';
 import type {
+  ChangeRoleRequest,
   Channel,
   CreateChannelRequest,
   CreateOrganizationRequest,
+  InviteMemberRequest,
+  Member,
   Organization,
   User,
 } from './types';
@@ -15,6 +18,48 @@ export class OrganizationsApi {
       token,
     });
     return response.items;
+  }
+
+  async listMembers(token: string, organizationId: string): Promise<Member[]> {
+    const response = await this.client.request<{ items: Member[] }>(
+      `/organizations/${organizationId}/members`,
+      { token },
+    );
+    return response.items;
+  }
+
+  async inviteMember(
+    token: string,
+    organizationId: string,
+    request: InviteMemberRequest,
+  ): Promise<void> {
+    await this.client.request<void>(`/organizations/${organizationId}/members`, {
+      method: 'POST',
+      token,
+      body: request,
+    });
+  }
+
+  async changeRole(
+    token: string,
+    organizationId: string,
+    request: ChangeRoleRequest,
+  ): Promise<void> {
+    await this.client.request<void>(`/organizations/${organizationId}/members`, {
+      method: 'PATCH',
+      token,
+      body: request,
+    });
+  }
+
+  async removeMember(token: string, organizationId: string, userId: string): Promise<void> {
+    await this.client.request<void>(
+      `/organizations/${organizationId}/members?user_id=${encodeURIComponent(userId)}`,
+      {
+        method: 'DELETE',
+        token,
+      },
+    );
   }
 
   async create(token: string, request: CreateOrganizationRequest): Promise<Organization> {

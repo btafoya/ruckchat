@@ -4,6 +4,7 @@ export { ServerAdminOrganizations } from './ServerAdminOrganizations';
 export { ServerAdminSettings } from './ServerAdminSettings';
 export { ServerAdminShell } from './ServerAdminShell';
 export { ServerAdminUsers } from './ServerAdminUsers';
+export { EditUserModal } from './EditUserModal';
 export { OrgAdminEmoji } from './OrgAdminEmoji';
 export { OrgAdminMembers } from './OrgAdminMembers';
 export { OrgAdminPermissions } from './OrgAdminPermissions';

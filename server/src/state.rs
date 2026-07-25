@@ -15,8 +15,8 @@ use crate::{
         MessageRepositorySqlx, OrganizationMembershipRepositorySqlx, OrganizationRepositorySqlx,
         OrganizationRoleRepositorySqlx, OrganizationSettingsRepositorySqlx,
         PermissionRepositorySqlx, ReactionRepositorySqlx, ServerSettingsRepositorySqlx,
-        SessionRepositorySqlx, TeamRepositorySqlx, UserRepositorySqlx,
-        WebPushSubscriptionRepositorySqlx,
+        SessionRepositorySqlx, TeamMembershipRepositorySqlx, TeamRepositorySqlx,
+        TeamRoomRepositorySqlx, UserRepositorySqlx, WebPushSubscriptionRepositorySqlx,
     },
     services::{
         admin::{AdminService, AdminServiceDeps},
@@ -210,6 +210,8 @@ impl AppState {
         let permissions_repo = Arc::new(PermissionRepositorySqlx::new(pool.clone()));
         let custom_emoji_repo = Arc::new(CustomEmojiRepositorySqlx::new(pool.clone()));
         let teams_repo = Arc::new(TeamRepositorySqlx::new(pool.clone()));
+        let team_memberships_repo = Arc::new(TeamMembershipRepositorySqlx::new(pool.clone()));
+        let team_rooms_repo = Arc::new(TeamRoomRepositorySqlx::new(pool.clone()));
         let server_settings_repo = Arc::new(ServerSettingsRepositorySqlx::new(pool.clone()));
         let audit_log_repo = Arc::new(AuditLogRepositorySqlx::new(pool.clone()));
 
@@ -349,6 +351,9 @@ impl AppState {
             permissions: permissions_repo.clone(),
             emoji: custom_emoji_repo.clone(),
             teams: teams_repo.clone(),
+            team_memberships: team_memberships_repo.clone(),
+            team_rooms: team_rooms_repo.clone(),
+            channels: channels_repo.clone(),
             organization_settings: settings_repo.clone(),
             files: files_repo.clone(),
         });

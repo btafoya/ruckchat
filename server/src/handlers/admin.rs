@@ -4,7 +4,7 @@
 
 use crate::{
     Error,
-    handlers::{auth::AuthUser, dto::ListResponse},
+    handlers::{auth::AuthUser, dto::ListResponse, dto::UserResponse},
     migrate::MigrationData,
     state::AppState,
 };
@@ -15,9 +15,10 @@ use axum::{
     response::IntoResponse,
 };
 use ruckchat_id::{
-    CustomEmojiId, FileId, OrganizationId, OrganizationRoleId, PermissionId, TeamId,
+    ChannelId, CustomEmojiId, FileId, OrganizationId, OrganizationRoleId, PermissionId, TeamId,
+    UserId,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Imports a migration snapshot into the target organization.
@@ -387,6 +388,144 @@ pub async fn delete_team(
         )
         .await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Lists members of a team.
+pub async fn list_team_members(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, team_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<ListResponse<TeamMemberResponse>>, Error> {
+    let members = state
+        .admin
+        .list_team_members(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            TeamId::from_uuid(team_id),
+        )
+        .await?;
+    let items = members
+        .into_iter()
+        .map(|(membership, user)| TeamMemberResponse {
+            user: UserResponse::from_domain(&user),
+            role: membership.role,
+        })
+        .collect();
+    Ok(Json(ListResponse::new(items)))
+}
+
+/// Adds a user to a team.
+pub async fn add_team_member(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, team_id)): Path<(Uuid, Uuid)>,
+    Json(request): Json<AddTeamMemberRequest>,
+) -> Result<impl IntoResponse, Error> {
+    let membership = state
+        .admin
+        .add_team_member(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            TeamId::from_uuid(team_id),
+            UserId::from_uuid(request.user_id),
+        )
+        .await?;
+    Ok((StatusCode::CREATED, Json(membership)))
+}
+
+/// Removes a user from a team.
+pub async fn remove_team_member(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, team_id, user_id)): Path<(Uuid, Uuid, Uuid)>,
+) -> Result<StatusCode, Error> {
+    state
+        .admin
+        .remove_team_member(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            TeamId::from_uuid(team_id),
+            UserId::from_uuid(user_id),
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Lists channels linked to a team.
+pub async fn list_team_rooms(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, team_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<ListResponse<ruckchat_domain::TeamRoom>>, Error> {
+    let rooms = state
+        .admin
+        .list_team_rooms(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            TeamId::from_uuid(team_id),
+        )
+        .await?;
+    Ok(Json(ListResponse::new(rooms)))
+}
+
+/// Links a channel to a team.
+pub async fn add_team_room(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, team_id)): Path<(Uuid, Uuid)>,
+    Json(request): Json<AddTeamRoomRequest>,
+) -> Result<impl IntoResponse, Error> {
+    let link = state
+        .admin
+        .add_team_room(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            TeamId::from_uuid(team_id),
+            ChannelId::from_uuid(request.channel_id),
+        )
+        .await?;
+    Ok((StatusCode::CREATED, Json(link)))
+}
+
+/// Unlinks a channel from a team.
+pub async fn remove_team_room(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path((organization_id, team_id, channel_id)): Path<(Uuid, Uuid, Uuid)>,
+) -> Result<StatusCode, Error> {
+    state
+        .admin
+        .remove_team_room(
+            auth_user.id,
+            OrganizationId::from_uuid(organization_id),
+            TeamId::from_uuid(team_id),
+            ChannelId::from_uuid(channel_id),
+        )
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Team member response.
+#[derive(Debug, Clone, Serialize)]
+pub struct TeamMemberResponse {
+    /// Public user information.
+    pub user: UserResponse,
+    /// Role within the team.
+    pub role: ruckchat_domain::TeamRole,
+}
+
+/// Request to add a user to a team.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AddTeamMemberRequest {
+    /// User to add.
+    pub user_id: Uuid,
+}
+
+/// Request to link a channel to a team.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AddTeamRoomRequest {
+    /// Channel to link.
+    pub channel_id: Uuid,
 }
 
 /// Request to update organization settings.

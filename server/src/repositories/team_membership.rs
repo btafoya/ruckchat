@@ -51,6 +51,21 @@ impl TeamMembershipRepository for TeamMembershipRepositorySqlx {
 
         Ok(rows.into_iter().map(into_membership).collect())
     }
+
+    async fn delete(&self, team_id: TeamId, user_id: UserId) -> Result<Option<()>> {
+        let result = sqlx::query!(
+            "DELETE FROM team_memberships WHERE team_id = $1 AND user_id = $2",
+            team_id.as_uuid(),
+            user_id.as_uuid(),
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        if result.rows_affected() == 0 {
+            return Ok(None);
+        }
+        Ok(Some(()))
+    }
 }
 
 #[derive(sqlx::FromRow)]

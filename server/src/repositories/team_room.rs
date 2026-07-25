@@ -49,6 +49,21 @@ impl TeamRoomRepository for TeamRoomRepositorySqlx {
 
         Ok(rows.into_iter().map(into_team_room).collect())
     }
+
+    async fn delete(&self, team_id: TeamId, channel_id: ChannelId) -> Result<Option<()>> {
+        let result = sqlx::query!(
+            "DELETE FROM team_rooms WHERE team_id = $1 AND channel_id = $2",
+            team_id.as_uuid(),
+            channel_id.as_uuid(),
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        if result.rows_affected() == 0 {
+            return Ok(None);
+        }
+        Ok(Some(()))
+    }
 }
 
 #[derive(sqlx::FromRow)]

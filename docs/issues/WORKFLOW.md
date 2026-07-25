@@ -26,10 +26,30 @@ of it.
     existing conversation), list with resolved display names, hide/reappear
     on new message, all wired through `desktop/src/components/StartDmModal.tsx`
     and `Sidebar.tsx`.
-- **Phase 4 — Admin UI Polish** ⏸ Pending Phase 2.
-  - ISSUES6 — Back-to-chat link in admin UIs.
-  - ISSUES7 — Complete organization admin UI.
-  - ISSUES8 — User editor modal in server admin.
+- **Phase 4 — Admin UI Polish** ✅ Complete.
+  - ISSUES6 — Back-to-chat link added to `ServerAdminShell.tsx` (to `/`) and
+    `OrgAdminShell.tsx` (to the last-selected channel/DM via
+    `lastConversation.ts`, falling back to the organization's channel index).
+  - ISSUES7 — Organization admin UI completed: `OrgAdminMembers.tsx` now
+    supports invite-by-email, role change, and removal (backed by the
+    existing `/organizations/{id}/members` endpoints); `OrgAdminTeams.tsx`
+    gained per-team member and room management panels backed by new
+    `TeamMembershipRepository`/`TeamRoomRepository` `delete` methods and new
+    `/api/v1/admin/organizations/{id}/teams/{team_id}/members[/…]` and
+    `/rooms[/…]` endpoints; `OrgAdminEmoji.tsx` now uploads a file via the
+    files API instead of accepting a raw file ID; `OrgAdminShell.tsx` gained a
+    collapsible mobile navigation matching the main `Shell`/`Sidebar`
+    pattern. Roles, Permissions, and organization Settings screens were
+    already complete from prior work.
+  - ISSUES8 — `EditUserModal.tsx` replaces inline row editing in
+    `ServerAdminUsers.tsx`: profile fields, server-admin promote/demote,
+    password reset, deactivate/reactivate, and a danger-zone permanent delete
+    with confirmation. Deletion is backed by a new
+    `DELETE /api/v1/server/users/{user_id}` endpoint and
+    `UserRepository::delete`; deleting a user with existing message history
+    or organization ownership returns `409 Conflict` (foreign-key
+    violations are mapped to a clear error) and the last server admin cannot
+    be deleted or demoted.
 
 ## Guiding principles
 
@@ -326,6 +346,36 @@ of it.
 - Org admin and user editor modals use the theme tokens from Phase 1.
 - The back-to-chat link destination depends on the last-selected channel store
   introduced in Phase 3.
+
+### Verification
+
+- `cargo fmt --all` passes.
+- `cargo check --workspace` passes.
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes.
+- `cargo nextest run --workspace` passes (259 tests), including new
+  `server_admin::server_admin_can_delete_user`,
+  `server_admin::server_admin_cannot_delete_last_admin`,
+  `server_admin::server_admin_cannot_delete_user_with_messages`, and
+  `admin::team_members_and_rooms_can_be_managed`.
+- `cd desktop && pnpm typecheck && pnpm test` passes (25 tests).
+- `cd web && pnpm typecheck && pnpm build` succeeds.
+- Manual check (Playwright against a local server + `web` dev server, isolated
+  throwaway database): registered a first user (auto-promoted server admin);
+  created a second user via the `EditUserModal` create flow and saw the
+  generated password notice; opened the edit modal and exercised promote,
+  password reset, and the danger-zone delete confirmation; invited the second
+  user into the organization via `OrgAdminMembers.tsx` and changed their role;
+  created a team in `OrgAdminTeams.tsx`, expanded its management panel, and
+  added/removed a member and a room; confirmed the `ServerAdminShell` and
+  `OrgAdminShell` "Back" links navigate to the chat UI; confirmed the mobile
+  hamburger toggle shows/hides the `OrgAdminShell` sidebar at a 375px
+  viewport.
+- This manual pass caught and fixed a pre-existing bug: `OrgAdminShell.tsx`'s
+  tab `NavLink`s used relative paths (e.g. `to="settings"`), so clicking a tab
+  from a nested admin route appended to the current path instead of replacing
+  it (e.g. `/admin/members` → `/admin/members/settings`), eventually
+  navigating to a URL with no matching route. Tabs now build an absolute path
+  from `organizationId` (`/org/{id}/admin/{tab.path}`).
 
 ### Verification
 

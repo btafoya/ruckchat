@@ -195,6 +195,14 @@ function OrgAdminRolesRoute(): JSX.Element {
   return <OrgAdminRoles organizationId={organizationId} />;
 }
 
+function OrgAdminMembersRoute(): JSX.Element {
+  const { organizationId } = useParams<{ organizationId: string }>();
+  if (!organizationId) {
+    return <div className="text-text-muted">Organization not selected.</div>;
+  }
+  return <OrgAdminMembers organizationId={organizationId} />;
+}
+
 function OrgAdminPermissionsRoute(): JSX.Element {
   const { organizationId } = useParams<{ organizationId: string }>();
   if (!organizationId) {
@@ -240,7 +248,7 @@ export default function PlatformShell({ platform }: PlatformShellProps): JSX.Ele
             <Route path="/org/:organizationId/admin/*" element={<OrgAdminRoute />}>
               <Route index element={<Navigate to="settings" replace />} />
               <Route path="settings" element={<OrgAdminSettingsRoute />} />
-              <Route path="members" element={<OrgAdminMembers />} />
+              <Route path="members" element={<OrgAdminMembersRoute />} />
               <Route path="roles" element={<OrgAdminRolesRoute />} />
               <Route path="permissions" element={<OrgAdminPermissionsRoute />} />
               <Route path="emoji" element={<OrgAdminEmojiRoute />} />

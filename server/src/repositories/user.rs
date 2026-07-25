@@ -141,6 +141,17 @@ impl UserRepository for UserRepositorySqlx {
         .map_err(map_sqlx_err)?;
         Ok(rows.into_iter().map(into_user).collect())
     }
+
+    async fn delete(&self, id: UserId) -> Result<Option<()>> {
+        let result = sqlx::query!("DELETE FROM users WHERE id = $1", id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(map_delete_err)?;
+        if result.rows_affected() == 0 {
+            return Ok(None);
+        }
+        Ok(Some(()))
+    }
 }
 
 #[derive(sqlx::FromRow)]
@@ -180,4 +191,15 @@ fn map_sqlx_err(err: sqlx::Error) -> ruckchat_common::Error {
         sqlx::Error::RowNotFound => ruckchat_common::Error::NotFound("user".into()),
         _ => ruckchat_common::Error::Internal(err.to_string()),
     }
+}
+
+fn map_delete_err(err: sqlx::Error) -> ruckchat_common::Error {
+    if let Some(db_err) = err.as_database_error()
+        && db_err.is_foreign_key_violation()
+    {
+        return ruckchat_common::Error::Conflict(
+            "user has existing activity and cannot be deleted; deactivate instead".into(),
+        );
+    }
+    map_sqlx_err(err)
 }

@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -25,6 +27,7 @@
     "tippy.js": "^6.3.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.4",

@@ -16,3 +16,6 @@ web/dist/
 desktop/dist/
 .serena/
 .playwright-mcp/
+web/tests/.e2e-runtime/
+web/test-results/
+web/playwright-report/

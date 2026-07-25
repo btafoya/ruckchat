@@ -110,6 +110,13 @@ export class ServerAdminApi {
     });
   }
 
+  async deleteUser(token: string, userId: string): Promise<void> {
+    await this.client.request<void>(`/api/v1/server/users/${userId}`, {
+      method: 'DELETE',
+      token,
+    });
+  }
+
   async resetPassword(
     token: string,
     userId: string,
