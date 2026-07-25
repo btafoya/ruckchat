@@ -135,7 +135,9 @@ function renderNode(node: ProseMirrorNode, index: number): ReactNode {
 
   if (node.type === 'image' && typeof node.attrs?.src === 'string') {
     const alt = typeof node.attrs?.alt === 'string' ? node.attrs.alt : '';
-    return <img key={index} src={node.attrs.src} alt={alt} className="max-w-full rounded-md" />;
+    return (
+      <img key={index} src={node.attrs.src} alt={alt} className="max-w-full h-auto max-h-80 rounded-md" />
+    );
   }
 
   // Fallback for unknown nodes: render their children inline.

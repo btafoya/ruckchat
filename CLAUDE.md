@@ -88,9 +88,10 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   and navigation, state stores with real-time WebSocket sync, messaging (message
   history with pagination, composer with markdown preview, a formatting toolbar
   (bold/italic/strike/code/lists/blockquote/code block), inline image insertion
-  by URL, and @mention autocomplete, typing indicators, reactions, file metadata
-  attachments, thread replies, and unread badges), native integrations (OS
-  notifications, tray icon with unread count,
+  via a picker that uploads through the file service and embeds a
+  `/files/{file_id}/content` URL, and @mention autocomplete, typing indicators,
+  reactions, file metadata attachments, thread replies, and unread badges),
+  native integrations (OS notifications, tray icon with unread count,
   file dialogs, deep links for `ruckchat://`), offline resilience (draft persistence
   and failed-send retry), a configurable backend URL settings screen, packaging
   metadata, tests, and docs.
@@ -277,7 +278,8 @@ root/
 - `desktop/src/components/MessagePane.tsx` — Message list, reactions, typing
   indicator, and thread pane host.
 - `desktop/src/components/Composer.tsx` — Message composer with markdown preview,
-  a formatting toolbar, inline image insertion by URL, @mention autocomplete,
+  a formatting toolbar, an image picker that uploads via `FilesApi.uploadFile`
+  and inserts a `/files/{file_id}/content` image node, @mention autocomplete,
   file attachments, and typing WebSocket messages.
 - `desktop/src/components/ThreadPane.tsx` — Thread reply detail pane.
 - `desktop/src/components/MessageItem.tsx` — Individual message with reactions

@@ -120,6 +120,19 @@ pub async fn get_metadata(
     Ok(Json(file))
 }
 
+/// Streams a file's raw bytes for inline display or download.
+pub async fn content(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(file_id): Path<Uuid>,
+) -> Result<impl IntoResponse, Error> {
+    let (file, bytes) = state
+        .files
+        .get_file_content(auth_user.id, FileId::from_uuid(file_id))
+        .await?;
+    Ok(([(axum::http::header::CONTENT_TYPE, file.mime_type)], bytes))
+}
+
 /// Attaches a file to a message.
 pub async fn attach(
     State(state): State<AppState>,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { JSX } from 'react';
+import type { ChangeEvent, JSX } from 'react';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -72,7 +72,9 @@ export function Composer({
   const [isSending, setIsSending] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string }>>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const lastTypingRef = useRef(0);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const proofreader = useMemo(
     () => new SpellingProofreader(api, () => session?.token),
@@ -175,7 +177,7 @@ export function Composer({
         },
       }),
       SpellcheckerExtension.configure({ proofreader }),
-      Image.configure({ HTMLAttributes: { class: 'max-w-full rounded-md' } }),
+      Image.configure({ HTMLAttributes: { class: 'max-w-full h-auto max-h-80 rounded-md' } }),
     ],
     content: loadDraft(conversationId),
     editorProps: {
@@ -312,10 +314,24 @@ export function Composer({
     return <div className="h-24 w-full rounded-md border border-border bg-bg p-3" />;
   }
 
-  const insertImage = () => {
-    const url = window.prompt('Image URL');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
+  const handleImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !session) {
+      return;
+    }
+    setIsUploadingImage(true);
+    try {
+      const uploaded = await api.files.uploadFile(session.token, organizationId, file);
+      editor
+        .chain()
+        .focus()
+        .setImage({ src: `${apiUrl}/files/${uploaded.id}/content`, alt: uploaded.file_name })
+        .run();
+    } catch {
+      // ignore upload failures; the user can retry
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -353,13 +369,20 @@ export function Composer({
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={insertImage}
-            disabled={isSending}
+            onClick={() => imageInputRef.current?.click()}
+            disabled={isSending || isUploadingImage}
             title="Insert image"
             className="rounded px-2 py-1 text-xs font-semibold text-text hover:bg-surface-elevated disabled:opacity-50"
           >
-            Image
+            {isUploadingImage ? 'Uploading...' : 'Image'}
           </button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => void handleImageFileChange(e)}
+          />
         </div>
       )}
 

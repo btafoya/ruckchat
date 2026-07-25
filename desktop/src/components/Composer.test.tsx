@@ -16,6 +16,9 @@ import type { Message } from '../api';
 const mockSendMessage = vi.fn().mockResolvedValue({ id: 'msg-1' } as Message);
 const mockSendWs = vi.fn().mockReturnValue(true);
 const mockRecordUpload = vi.fn().mockResolvedValue({ id: 'file-1', file_name: 'notes.txt' });
+const mockUploadFile = vi
+  .fn()
+  .mockResolvedValue({ id: 'file-2', file_name: 'photo.png', mime_type: 'image/png', size_bytes: 10 });
 const mockSearchMembers = vi.fn().mockImplementation(async (_token: string, _orgId: string, query: string) => {
   if (query.toLowerCase().includes('user')) {
     return [
@@ -29,6 +32,7 @@ function clearMocks() {
   mockSendMessage.mockClear();
   mockSendWs.mockClear();
   mockRecordUpload.mockClear();
+  mockUploadFile.mockClear();
   mockSearchMembers.mockClear();
 }
 
@@ -39,6 +43,7 @@ vi.mock('../api', async () => {
     createApi: () => ({
       files: {
         recordUpload: mockRecordUpload,
+        uploadFile: mockUploadFile,
         attachToMessage: vi.fn().mockResolvedValue(undefined),
       },
       organizations: {
@@ -143,6 +148,13 @@ vi.mock('@tiptap/react', async () => {
           },
           setEditable: vi.fn(),
           isActive: () => false,
+          chain: (): unknown =>
+            new Proxy(
+              {},
+              {
+                get: (_target, prop) => (prop === 'run' ? () => undefined : () => editorRef.current.chain()),
+              },
+            ),
           on: (event: string, cb: () => void) => {
             if (event === 'update') {
               listenersRef.current.update.push(cb);
@@ -414,5 +426,25 @@ describe('Composer', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /Edit/i }));
     expect(screen.getByPlaceholderText(/Type a message/i)).toBeInTheDocument();
+  });
+
+  it('uploads a picked image via the Image toolbar button', async () => {
+    const { container } = render(
+      <Wrapper>
+        <Composer
+          conversationType="channel"
+          conversationId="chan-1"
+          organizationId="org-1"
+        />
+      </Wrapper>,
+    );
+    const file = new File(['pixel'], 'photo.png', { type: 'image/png' });
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+    await waitFor(() => {
+      expect(mockUploadFile).toHaveBeenCalledWith('token', 'org-1', file);
+    });
   });
 });

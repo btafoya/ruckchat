@@ -1322,6 +1322,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/files/{file_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        /** Get a file's raw bytes for inline display or download */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    file_id: components["schemas"]["Uuid"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description File content */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": string;
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/messages/{message_id}/attachments": {
         parameters: {
             query?: never;

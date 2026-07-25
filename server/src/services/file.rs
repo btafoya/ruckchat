@@ -181,6 +181,42 @@ impl FileService {
             .ok_or_else(|| Error::NotFound("file".into()))
     }
 
+    /// Loads a file's raw bytes for inline display or download.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::NotFound`] when the file does not exist,
+    /// [`Error::Forbidden`] when the caller is not a member of the owning
+    /// organization, and [`Error::Internal`] when the file cannot be read
+    /// from disk.
+    pub async fn get_file_content(
+        &self,
+        caller_id: UserId,
+        file_id: FileId,
+    ) -> ruckchat_common::Result<(File, Vec<u8>)> {
+        let file = self
+            .deps
+            .files
+            .by_id(file_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("file".into()))?;
+
+        let membership = self
+            .deps
+            .memberships
+            .by_ids(caller_id, file.organization_id)
+            .await?;
+        if membership.is_none() {
+            return Err(Error::Forbidden("must be an organization member".into()));
+        }
+
+        let bytes = tokio::fs::read(&file.storage_path)
+            .await
+            .map_err(|err| Error::Internal(format!("failed to read file: {err}")))?;
+
+        Ok((file, bytes))
+    }
+
     /// Lists files in an organization. The caller must be a member.
     ///
     /// # Errors
@@ -380,6 +416,53 @@ mod tests {
                     file_id: file_resp.id,
                 },
             )
+            .await
+            .unwrap_err();
+        assert!(matches!(err, Error::Forbidden(_)));
+    }
+
+    #[tokio::test]
+    async fn get_file_content_returns_bytes_for_member() {
+        let svc = service();
+        let (user_id, org_id) = seed_user_and_org(&svc).await;
+        let resp = svc
+            .upload_file(
+                user_id,
+                crate::services::dto::UploadFileRequest {
+                    organization_id: org_id,
+                    file_name: "pixel.png".into(),
+                    mime_type: "image/png".into(),
+                },
+                vec![1, 2, 3, 4],
+            )
+            .await
+            .unwrap();
+
+        let (file, bytes) = svc.get_file_content(user_id, resp.id).await.unwrap();
+        assert_eq!(file.file_name, "pixel.png");
+        assert_eq!(bytes, vec![1, 2, 3, 4]);
+    }
+
+    #[tokio::test]
+    async fn get_file_content_rejects_non_member() {
+        let svc = service();
+        let (user_id, org_id) = seed_user_and_org(&svc).await;
+        let resp = svc
+            .upload_file(
+                user_id,
+                crate::services::dto::UploadFileRequest {
+                    organization_id: org_id,
+                    file_name: "pixel.png".into(),
+                    mime_type: "image/png".into(),
+                },
+                vec![1, 2, 3, 4],
+            )
+            .await
+            .unwrap();
+
+        let outsider = User::new("outsider@example.com", "Outsider", "hash").unwrap();
+        let err = svc
+            .get_file_content(outsider.id, resp.id)
             .await
             .unwrap_err();
         assert!(matches!(err, Error::Forbidden(_)));

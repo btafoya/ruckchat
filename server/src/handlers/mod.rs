@@ -106,6 +106,7 @@ pub fn router(web_config: &ruckchat_config::WebConfig, base_url: &str) -> Router
         .route("/files", post(file::upload))
         .route("/files/record", post(file::record))
         .route("/files/{file_id}", get(file::get_metadata))
+        .route("/files/{file_id}/content", get(file::content))
         .route("/messages/{message_id}/attachments", post(file::attach))
         .route(
             "/plugins/{plugin}/commands/{command}",

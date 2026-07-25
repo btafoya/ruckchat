@@ -959,6 +959,34 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /files/{file_id}/content:
+    parameters:
+      - name: file_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Uuid'
+    get:
+      summary: Get a file's raw bytes for inline display or download
+      tags: [Files]
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /messages/{message_id}/attachments:
     parameters:
       - name: message_id
