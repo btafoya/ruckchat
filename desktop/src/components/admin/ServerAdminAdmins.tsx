@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
 import type { ServerUser } from '../../api';
 import { useSessionContext, useSettingsContext } from '../../context';
+import { ConfirmationModal } from './ConfirmationModal';
 
 export function ServerAdminAdmins(): JSX.Element {
   const { session } = useSessionContext();
@@ -13,6 +14,8 @@ export function ServerAdminAdmins(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [confirmDemote, setConfirmDemote] = useState<ServerUser | null>(null);
+  const [confirmPromote, setConfirmPromote] = useState<ServerUser | null>(null);
 
   const token = session?.token ?? '';
 
@@ -45,6 +48,20 @@ export function ServerAdminAdmins(): JSX.Element {
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to promote user');
+    } finally {
+      setConfirmPromote(null);
+    }
+  };
+
+  const demote = async (userId: string) => {
+    if (!token) return;
+    try {
+      await api.serverAdmin.demoteUser(token, userId);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to demote user');
+    } finally {
+      setConfirmDemote(null);
     }
   };
 
@@ -98,7 +115,7 @@ export function ServerAdminAdmins(): JSX.Element {
                   </div>
                   <button
                     type="button"
-                    onClick={() => void promote(user.id)}
+                    onClick={() => setConfirmPromote(user)}
                     className="text-xs text-accent hover:text-accent-hover"
                   >
                     Promote
@@ -115,12 +132,44 @@ export function ServerAdminAdmins(): JSX.Element {
       ) : (
         <ul className="divide-y divide-border">
           {admins.map((admin) => (
-            <li key={admin.id} className="py-3">
-              <div className="font-medium">{admin.display_name}</div>
-              <div className="text-sm text-text-muted">{admin.email}</div>
+            <li key={admin.id} className="flex items-center justify-between py-3">
+              <div>
+                <div className="font-medium">{admin.display_name}</div>
+                <div className="text-sm text-text-muted">{admin.email}</div>
+              </div>
+              {admins.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDemote(admin)}
+                  className="text-xs text-danger hover:text-danger-hover"
+                >
+                  Demote
+                </button>
+              )}
             </li>
           ))}
         </ul>
+      )}
+
+      {confirmPromote && (
+        <ConfirmationModal
+          title="Promote to server admin"
+          message={`Are you sure you want to promote ${confirmPromote.display_name} to server administrator?`}
+          confirmLabel="Promote"
+          onConfirm={() => void promote(confirmPromote.id)}
+          onCancel={() => setConfirmPromote(null)}
+        />
+      )}
+
+      {confirmDemote && (
+        <ConfirmationModal
+          title="Demote server admin"
+          message={`Are you sure you want to remove server administrator privileges from ${confirmDemote.display_name}?`}
+          confirmLabel="Demote"
+          confirmDanger
+          onConfirm={() => void demote(confirmDemote.id)}
+          onCancel={() => setConfirmDemote(null)}
+        />
       )}
     </div>
   );

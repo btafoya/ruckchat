@@ -2,6 +2,7 @@ import { useMemo, useState, type JSX } from 'react';
 import { createApi } from '../../api';
 import type { ServerUser } from '../../api';
 import { useSessionContext, useSettingsContext } from '../../context';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface EditUserModalProps {
   /** The user to edit, or null to create a new user. */
@@ -23,6 +24,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps): J
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirmPromotion, setConfirmPromotion] = useState(false);
 
   const token = session?.token ?? '';
 
@@ -85,6 +87,10 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps): J
         ? api.serverAdmin.demoteUser(token, user.id)
         : api.serverAdmin.promoteUser(token, user!.id),
     );
+  const confirmAndTogglePromotion = () => {
+    setConfirmPromotion(false);
+    void handleTogglePromotion();
+  };
 
   const handleToggleActivation = () =>
     runAction(user?.deactivated_at ? 'reactivate' : 'deactivate', () =>
@@ -203,7 +209,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps): J
               </button>
               <button
                 type="button"
-                onClick={() => void handleTogglePromotion()}
+                onClick={() => void setConfirmPromotion(true)}
                 className="rounded-md px-3 py-1.5 text-xs text-accent hover:bg-surface-elevated"
               >
                 {user.is_server_admin ? 'Demote from server admin' : 'Promote to server admin'}
@@ -230,6 +236,21 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps): J
               Delete user permanently
             </button>
           </div>
+        )}
+
+        {confirmPromotion && user && (
+          <ConfirmationModal
+            title={user.is_server_admin ? 'Demote server admin' : 'Promote to server admin'}
+            message={
+              user.is_server_admin
+                ? `Remove server administrator privileges from ${user.display_name}?`
+                : `Grant ${user.display_name} server administrator privileges?`
+            }
+            confirmLabel={user.is_server_admin ? 'Demote' : 'Promote'}
+            confirmDanger={user.is_server_admin}
+            onConfirm={confirmAndTogglePromotion}
+            onCancel={() => setConfirmPromotion(false)}
+          />
         )}
       </div>
     </div>
