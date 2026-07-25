@@ -33,6 +33,7 @@ function mockMessages(): MessagesState {
     loadNewer: vi.fn(),
     jumpToMessage: vi.fn(),
     sendMessage: vi.fn(),
+    deleteMessage: vi.fn(),
     retryMessage: vi.fn(),
     loadThreadReplies: vi.fn(),
     loadOlderReplies: vi.fn(),

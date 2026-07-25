@@ -239,6 +239,7 @@ const mockMessageState: MessagesState = {
   loadNewer: vi.fn(),
   jumpToMessage: vi.fn(),
   sendMessage: mockSendMessage,
+  deleteMessage: vi.fn(),
   retryMessage: vi.fn(),
   loadThreadReplies: vi.fn(),
   loadOlderReplies: vi.fn(),
@@ -421,28 +422,6 @@ describe('Composer', () => {
     await waitFor(() => {
       expect(mockSearchMembers).toHaveBeenCalledWith('token', 'org-1', 'user');
     });
-  });
-
-  it('toggles a simple preview', async () => {
-    render(
-      <Wrapper>
-        <Composer
-          conversationType="channel"
-          conversationId="chan-1"
-          organizationId="org-1"
-        />
-      </Wrapper>,
-    );
-    const input = screen.getByPlaceholderText(/Type a message/i);
-    await act(async () => {
-      fireEvent.change(input, { target: { value: 'hello world' } });
-    });
-    fireEvent.click(screen.getByRole('button', { name: /Preview/i }));
-    await waitFor(() => {
-      expect(screen.getByText('hello world')).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByRole('button', { name: /Edit/i }));
-    expect(screen.getByPlaceholderText(/Type a message/i)).toBeInTheDocument();
   });
 
   it('uploads a picked image via the Image toolbar button', async () => {

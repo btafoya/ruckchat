@@ -29,7 +29,7 @@ export function useRealtimeStore(
           messages.updateMessage(event.message);
           break;
         case 'message_deleted':
-          messages.removeMessage(event.message.id);
+          messages.updateMessage(event.message);
           break;
         case 'reaction_added':
           messages.addReaction(event.message_id, {

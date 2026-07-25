@@ -58,10 +58,10 @@ of it.
   - ISSUES15 — Single-organization home redirect.
   - ISSUES16 — Organization home unread-messages view.
   - ISSUES17 — Server-stored theme preference.
-- **Phase 7 — Messages and Composer** ⏳ Open.
-  - ISSUES10 — Submitted message duplicated.
-  - ISSUES18 — Add message delete option.
-  - ISSUES19 — Remove Markdown preview from composer.
+- **Phase 7 — Messages and Composer** ✅ Complete.
+  - ISSUES10 — Submitted message duplicated: fixed optimistic-send/WebSocket deduplication race in `useMessages.ts`.
+  - ISSUES18 — Add message delete option: author-only delete with inline confirmation, wired through API client, hook, and `MessageItem`; `message.deleted` WebSocket events update the message in place.
+  - ISSUES19 — Remove Markdown preview from composer: removed `showPreview` state, toggle, preview rendering, and related tests.
 - **Phase 8 — Direct Messages and Server Admin Completion** ⏳ Open.
   - ISSUES20 — Finish direct messages modal (empty user list).
   - ISSUES21 — Finish CRUD for server admins view.

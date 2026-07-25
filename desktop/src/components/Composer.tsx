@@ -19,7 +19,6 @@ import {
   useSettingsContext,
 } from '../context';
 import { MentionList, type MentionItem, type MentionListHandle, type MentionListProps } from './MentionList';
-import { MessageContent } from './MessageContent';
 import { SpellingProofreader } from '../spelling/SpellingProofreader';
 
 const TYPING_DEBOUNCE_MS = 1500;
@@ -71,7 +70,6 @@ export function Composer({
 
   const [isSending, setIsSending] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<Array<{ id: string; name: string }>>([]);
-  const [showPreview, setShowPreview] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const lastTypingRef = useRef(0);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -276,26 +274,12 @@ export function Composer({
       if (sent) {
         editor.commands.clearContent();
         setPendingFiles([]);
-        setShowPreview(false);
         onSent?.(sent);
       }
     } finally {
       setIsSending(false);
     }
   }, [editor, isSending, onSent, parentId, pendingFiles, sendMessage, editingMessage, saveEdit]);
-
-  useEffect(() => {
-    if (!editor || !showPreview) {
-      return;
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShowPreview(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [editor, showPreview]);
 
   useEffect(() => {
     if (!editor) {
@@ -317,13 +301,6 @@ export function Composer({
       window.removeEventListener('keydown', onKeyDown, true);
     };
   }, [editor, handleSubmit, isSending]);
-
-  const previewContent = useMemo(() => {
-    if (!editor || editor.isEmpty) {
-      return '';
-    }
-    return JSON.stringify(editor.getJSON());
-  }, [editor, showPreview]);
 
   const removePendingFile = useCallback((fileId: string) => {
     setPendingFiles((prev) => prev.filter((f) => f.id !== fileId));
@@ -367,8 +344,7 @@ export function Composer({
 
   return (
     <div className="flex flex-col gap-2 border-t border-border bg-surface p-3">
-      {!showPreview && (
-        <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
           {toolbarActions.map((action) => (
             <button
               key={action.key}
@@ -403,7 +379,6 @@ export function Composer({
             onChange={(e) => void handleImageFileChange(e)}
           />
         </div>
-      )}
 
       {pendingFiles.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -426,17 +401,7 @@ export function Composer({
         </div>
       )}
 
-      {showPreview ? (
-        <div className="min-h-[6rem] rounded-md border border-border bg-bg p-3 text-sm text-text">
-          {previewContent ? (
-            <MessageContent content={previewContent} />
-          ) : (
-            <span className="text-text-muted">Nothing to preview</span>
-          )}
-        </div>
-      ) : (
-        <EditorContent editor={editor} disabled={isSending} />
-      )}
+      <EditorContent editor={editor} disabled={isSending} />
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -449,13 +414,6 @@ export function Composer({
               disabled={isSending}
             />
           )}
-          <button
-            type="button"
-            onClick={() => setShowPreview((p) => !p)}
-            className="rounded-md px-3 py-1.5 text-sm text-text hover:bg-surface-elevated"
-          >
-            {showPreview ? 'Edit' : 'Preview'}
-          </button>
         </div>
         <div className="flex items-center gap-2">
           {editingMessage && (

@@ -51,8 +51,8 @@
 
 ## Decisions
 
-- Pending. Author-only deletion is the safest default; needs confirmation UX design.
+- Author-only deletion. Inline confirmation: first click shows "Confirm Delete" for 3 seconds; second click performs the delete. The backend already soft-deletes and emits `message.deleted`; the frontend now wires `DELETE /api/v1/messages/{message_id}` through `MessagesApi.delete`, `useMessages.deleteMessage`, and a Delete button in `MessageItem`. The real-time handler updates the message in place so it renders `[deleted]` instead of removing it from the list.
 
 ## Status
 
-Open.
+Complete.

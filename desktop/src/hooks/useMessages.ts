@@ -22,6 +22,7 @@ export interface MessagesState {
   loadNewer: () => Promise<void>;
   jumpToMessage: (messageId: string) => Promise<void>;
   sendMessage: (content: string, parentId?: string, fileIds?: string[]) => Promise<Message | undefined>;
+  deleteMessage: (messageId: string) => Promise<void>;
   retryMessage: (messageId: string) => Promise<void>;
   loadThreadReplies: (messageId: string) => Promise<void>;
   loadOlderReplies: (messageId: string) => Promise<void>;
@@ -80,6 +81,7 @@ export function useMessages(
   const api = useMemo(() => createApi(options.apiUrl), [options.apiUrl]);
   const pendingSendRef = useRef<Set<string>>(new Set());
   const pendingContentRef = useRef<Record<string, string>>({});
+  const pendingCounterRef = useRef(0);
 
   const listPage = useCallback(
     async (query: { beforeId?: string; afterId?: string; aroundId?: string }) => {
@@ -201,7 +203,7 @@ export function useMessages(
         return undefined;
       }
 
-      const tempId = `pending-${Date.now()}`;
+      const tempId = `pending-${Date.now()}-${++pendingCounterRef.current}`;
       pendingContentRef.current[tempId] = trimmed;
       const now = new Date().toISOString();
       const optimistic: Message = {
@@ -235,7 +237,15 @@ export function useMessages(
           }
         }
 
-        setMessages((prev) => prev.map((m) => (m.id === tempId ? posted : m)));
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === posted.id)) {
+            // The WebSocket broadcast arrived before the REST response; the
+            // real message is already in the list, so just drop the optimistic
+            // pending copy instead of replacing it and creating a duplicate.
+            return prev.filter((m) => m.id !== tempId);
+          }
+          return prev.map((m) => (m.id === tempId ? posted : m));
+        });
         pendingSendRef.current.delete(tempId);
         delete pendingContentRef.current[tempId];
         return posted;
@@ -246,6 +256,33 @@ export function useMessages(
       }
     },
     [api, token, conversationType, conversationId, userId, userDisplayName],
+  );
+
+  const deleteMessage = useCallback(
+    async (messageId: string) => {
+      if (!token || !conversationType || !conversationId || !userId) {
+        return;
+      }
+      const target = messages.find((m) => m.id === messageId);
+      if (!target || target.author_id !== userId) {
+        return;
+      }
+      // Optimistically mark the message deleted in the local store so the UI
+      // updates immediately, then confirm with the server.
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, content: '', deleted_at: new Date().toISOString() }
+            : m,
+        ),
+      );
+      try {
+        await api.messages.delete(token, messageId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete message');
+      }
+    },
+    [api, messages, token, conversationType, conversationId, userId],
   );
 
   const retryMessage = useCallback(
@@ -367,11 +404,23 @@ export function useMessages(
         if (prev.some((m) => m.id === message.id)) {
           return prev;
         }
+        // If the current user just sent this message, it may already be
+        // represented by an optimistic pending item. Replace that pending item
+        // in place instead of appending a duplicate.
+        if (message.author_id === userId) {
+          for (const pendingId of pendingSendRef.current) {
+            if (pendingContentRef.current[pendingId] === message.content) {
+              pendingSendRef.current.delete(pendingId);
+              delete pendingContentRef.current[pendingId];
+              return prev.map((m) => (m.id === pendingId ? message : m));
+            }
+          }
+        }
         return [...prev, message];
       });
       setLastAppendedId(message.id);
     },
-    [conversationId, hasMoreNewer],
+    [conversationId, hasMoreNewer, userId],
   );
 
   const updateMessage = useCallback((message: Message) => {
@@ -473,6 +522,7 @@ export function useMessages(
       loadNewer,
       jumpToMessage,
       sendMessage,
+      deleteMessage,
       retryMessage,
       loadThreadReplies,
       loadOlderReplies,
@@ -508,6 +558,7 @@ export function useMessages(
       loadNewer,
       jumpToMessage,
       sendMessage,
+      deleteMessage,
       retryMessage,
       loadThreadReplies,
       loadOlderReplies,

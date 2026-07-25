@@ -43,8 +43,8 @@
 
 ## Decisions
 
-- Pending. Requires a reproduction test before choosing the fix.
+- Client-side fix: track recently sent content per pending optimistic message and, when a `message.created` WebSocket event arrives from the current user with matching content, replace the pending item in place rather than appending. The REST-response path also checks whether the real message already exists and drops the pending copy if so. Pending IDs now include a monotonic counter to avoid `Date.now()` collisions.
 
 ## Status
 
-Open.
+Complete.

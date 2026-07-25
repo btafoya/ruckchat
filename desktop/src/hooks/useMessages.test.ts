@@ -41,6 +41,82 @@ describe('useMessages offline retry', () => {
   });
 });
 
+describe('useMessages send deduplication', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('does not duplicate a message when the WebSocket arrives before the REST response', async () => {
+    const postedMessage = {
+      id: 'real-msg-1',
+      conversation_id: 'conv-1',
+      conversation_type: 'channel' as const,
+      author_id: 'user-1',
+      author_display_name: null,
+      content: 'hello world',
+      mentioned_user_ids: [],
+      created_at: '2026-01-01T00:00:02Z',
+      updated_at: '2026-01-01T00:00:02Z',
+      deleted_at: null,
+    };
+    let resolvePost: (value: typeof postedMessage) => void = () => {};
+    const postMessage = vi.fn().mockImplementation(
+      () =>
+        new Promise<typeof postedMessage>((resolve) => {
+          resolvePost = resolve;
+        }),
+    );
+
+    vi.doMock('../api', () => ({
+      createApi: () => ({
+        channels: {
+          postMessage,
+          listMessages: vi.fn().mockResolvedValue({ items: [], has_more_older: false, has_more_newer: false }),
+          listReplies: vi.fn().mockResolvedValue({ items: [], has_more_older: false, has_more_newer: false }),
+        },
+        directMessages: { postMessage: vi.fn() },
+        files: { attachToMessage: vi.fn() },
+      }),
+    }));
+
+    const { useMessages: useMessagesMocked } = await import('./useMessages');
+    const { result } = renderHook(() => useMessagesMocked('token', 'channel', 'conv-1', 'user-1'));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    let sendPromise: Promise<unknown>;
+    await act(async () => {
+      sendPromise = result.current.sendMessage('hello world');
+    });
+
+    // The optimistic pending message should be visible.
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].id.startsWith('pending-')).toBe(true);
+
+    // Simulate the WebSocket broadcast arriving before postMessage resolves.
+    act(() => {
+      result.current.appendMessage(postedMessage);
+    });
+
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].id).toBe('real-msg-1');
+
+    // Now let the REST response resolve.
+    await act(async () => {
+      resolvePost(postedMessage);
+      await sendPromise;
+    });
+
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].id).toBe('real-msg-1');
+    expect(postMessage).toHaveBeenCalledTimes(1);
+
+    vi.doUnmock('../api');
+  });
+});
+
 describe('useMessages appendMessage conversation scoping', () => {
   beforeEach(() => {
     vi.resetModules();

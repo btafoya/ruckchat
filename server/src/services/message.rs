@@ -859,6 +859,62 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn author_can_delete_message() {
+        let (svc, events) = service();
+        let (author_id, _, channel_id) = seed_channel(&svc, false).await;
+        let msg = svc
+            .post_message(
+                author_id,
+                PostMessageRequest {
+                    conversation_id: channel_id.as_uuid(),
+                    conversation_type: ConversationType::Channel,
+                    parent_id: None,
+                    content: "hello".into(),
+                },
+            )
+            .await
+            .unwrap();
+
+        svc.delete_message(author_id, msg.id).await.unwrap();
+
+        let deleted = svc.deps.messages.by_id(msg.id).await.unwrap().unwrap();
+        assert!(deleted.is_deleted());
+        assert!(deleted.content.is_empty());
+        assert!(events.events().iter().any(|e| matches!(
+            e,
+            crate::services::events::ServerEvent::MessageDeleted { message } if message.id == msg.id
+        )));
+    }
+
+    #[tokio::test]
+    async fn outsider_cannot_delete_message() {
+        let (svc, _events) = service();
+        let (author_id, org_id, channel_id) = seed_channel(&svc, false).await;
+        let msg = svc
+            .post_message(
+                author_id,
+                PostMessageRequest {
+                    conversation_id: channel_id.as_uuid(),
+                    conversation_type: ConversationType::Channel,
+                    parent_id: None,
+                    content: "hello".into(),
+                },
+            )
+            .await
+            .unwrap();
+
+        let outsider = User::new("outsider@example.com", "Outsider", "hash").unwrap();
+        svc.deps
+            .memberships
+            .create(&OrganizationMembership::new(outsider.id, org_id, Role::Member).unwrap())
+            .await
+            .unwrap();
+
+        let err = svc.delete_message(outsider.id, msg.id).await.unwrap_err();
+        assert!(matches!(err, Error::Forbidden(_)));
+    }
+
+    #[tokio::test]
     async fn author_can_edit_message() {
         let (svc, _events) = service();
         let (author_id, _, channel_id) = seed_channel(&svc, false).await;

@@ -38,8 +38,8 @@
 
 ## Decisions
 
-- Pending. Low-risk cleanup; should land before further Composer UI changes.
+- Remove the `showPreview` state, the Preview/Edit toggle button, the preview rendering branch, the Escape-to-close preview handler, and all preview-related tests. The composer is purely WYSIWYG via Tiptap.
 
 ## Status
 
-Open.
+Complete.

@@ -11,4 +11,11 @@ export class MessagesApi {
       body: { content },
     });
   }
+
+  async delete(token: string, messageId: string): Promise<void> {
+    return this.client.request(`/messages/${messageId}`, {
+      method: 'DELETE',
+      token,
+    });
+  }
 }

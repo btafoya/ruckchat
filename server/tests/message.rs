@@ -138,4 +138,91 @@ async fn delete_message(pool: sqlx::PgPool) {
         .auth_request("DELETE", &format!("/messages/{message_id}"), &token, None)
         .await;
     assert_status(&response, StatusCode::NO_CONTENT);
+
+    // Soft-deleted messages are filtered from history lists, so the channel
+    // now appears empty on reload. The WebSocket event already updated open
+    // clients to render the message as [deleted] before the reload.
+    let response = client
+        .auth_request(
+            "GET",
+            &format!("/channels/{channel_id}/messages"),
+            &token,
+            None,
+        )
+        .await;
+    let body = body_json(response).await;
+    let messages = body["items"].as_array().unwrap();
+    assert_eq!(messages.len(), 0);
+}
+
+#[sqlx::test]
+async fn non_author_cannot_delete_message(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (author_token, org_id, channel_id) = setup_channel(&client).await;
+
+    let response = client
+        .auth_request(
+            "POST",
+            &format!("/channels/{channel_id}/messages"),
+            &author_token,
+            Some(json!({ "content": "delete me" })),
+        )
+        .await;
+    let body = body_json(response).await;
+    let message_id = body["id"].as_str().unwrap().to_string();
+
+    // Register a separate user and invite them to the same organization.
+    let other_email = test_email("message-other");
+    let password = "correct horse battery staple";
+    let register = client
+        .request(
+            "POST",
+            "/auth/register",
+            Some(json!({
+                "email": other_email,
+                "display_name": "Other",
+                "password": password,
+                "organization_name": "Other",
+                "organization_slug": uuid::Uuid::new_v4().to_string()
+            })),
+        )
+        .await;
+    assert_status(&register, StatusCode::CREATED);
+
+    let invite = client
+        .auth_request(
+            "POST",
+            &format!("/organizations/{org_id}/members"),
+            &author_token,
+            Some(json!({
+                "email": other_email,
+                "role": "member"
+            })),
+        )
+        .await;
+    assert_status(&invite, StatusCode::CREATED);
+
+    let login = client
+        .request(
+            "POST",
+            "/auth/login",
+            Some(json!({
+                "email": other_email,
+                "password": password
+            })),
+        )
+        .await;
+    assert_status(&login, StatusCode::OK);
+    let login_body = body_json(login).await;
+    let other_token = login_body["token"].as_str().unwrap().to_string();
+
+    let response = client
+        .auth_request(
+            "DELETE",
+            &format!("/messages/{message_id}"),
+            &other_token,
+            None,
+        )
+        .await;
+    assert_status(&response, StatusCode::FORBIDDEN);
 }

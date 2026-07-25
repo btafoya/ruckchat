@@ -104,6 +104,7 @@ const mockMessageState: MessagesState = {
   loadNewer: vi.fn().mockResolvedValue(undefined),
   jumpToMessage: vi.fn().mockResolvedValue(undefined),
   sendMessage: vi.fn().mockResolvedValue(undefined),
+  deleteMessage: vi.fn().mockResolvedValue(undefined),
   retryMessage: vi.fn().mockResolvedValue(undefined),
   loadThreadReplies: vi.fn().mockResolvedValue(undefined),
   loadOlderReplies: vi.fn().mockResolvedValue(undefined),

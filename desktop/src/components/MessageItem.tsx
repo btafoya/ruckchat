@@ -26,7 +26,8 @@ export function MessageItem({
   onVisible,
 }: MessageItemProps): JSX.Element {
   const { session } = useSessionContext();
-  const { reactions, addReaction, removeReaction, retryMessage, startEdit } = useMessageContext();
+  const { reactions, addReaction, removeReaction, retryMessage, startEdit, deleteMessage } = useMessageContext();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [isReacting, setIsReacting] = useState(false);
@@ -65,6 +66,7 @@ export function MessageItem({
   const isDeleted = message.deleted_at != null;
   const isPending = message.id.startsWith('pending-');
   const canEdit = !isDeleted && !isPending && message.author_id === session?.user.id;
+  const canDelete = !isDeleted && !isPending && message.author_id === session?.user.id;
 
   const grouped = useMemo(() => {
     const map = new Map<string, { count: number; hasMe: boolean }>();
@@ -80,6 +82,16 @@ export function MessageItem({
     }
     return Array.from(map.entries());
   }, [messageReactions, session?.user.id]);
+
+  const confirmDeleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (confirmDeleteTimeoutRef.current) {
+        clearTimeout(confirmDeleteTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleReaction = useCallback(
     async (emoji: string) => {
@@ -106,6 +118,22 @@ export function MessageItem({
     },
     [addReaction, api, isReacting, message.id, messageReactions, removeReaction, session],
   );
+
+  const handleDelete = useCallback(() => {
+    if (isConfirmingDelete) {
+      if (confirmDeleteTimeoutRef.current) {
+        clearTimeout(confirmDeleteTimeoutRef.current);
+        confirmDeleteTimeoutRef.current = null;
+      }
+      void deleteMessage(message.id);
+      setIsConfirmingDelete(false);
+      return;
+    }
+    setIsConfirmingDelete(true);
+    confirmDeleteTimeoutRef.current = setTimeout(() => {
+      setIsConfirmingDelete(false);
+    }, 3000);
+  }, [isConfirmingDelete, deleteMessage, message.id]);
 
   const replyPath =
     message.conversation_type === 'channel'
@@ -196,6 +224,15 @@ export function MessageItem({
             className="ml-2 text-xs text-text-muted hover:text-text"
           >
             Edit
+          </button>
+        )}
+        {canDelete && (
+          <button
+            type="button"
+            onClick={() => void handleDelete()}
+            className={`ml-2 text-xs ${isConfirmingDelete ? 'text-danger hover:text-danger-hover' : 'text-text-muted hover:text-text'}`}
+          >
+            {isConfirmingDelete ? 'Confirm Delete' : 'Delete'}
           </button>
         )}
         {isPending && (
