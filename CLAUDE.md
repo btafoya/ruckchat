@@ -103,8 +103,8 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
 - Phase 10: Browser-based Web UI that reuses `desktop/src` React code through a
   `desktop/src/platform/` abstraction layer, is served by the Rust server as
   static assets (embedded or from a configured directory), supports PWA
-  install/service-worker offline caching, and adds Web Push notifications using a
-  server-managed VAPID key.
+  install/service-worker offline caching with a network-first app-shell
+  strategy, and adds Web Push notifications using a server-managed VAPID key.
 - Phase 12: Migration and packaging tools. The server CLI supports versioned
   JSON domain-data export/import with idempotent `ON CONFLICT DO NOTHING`
   semantics and a dry-run mode. The repository includes a multi-stage `Dockerfile`
@@ -339,10 +339,15 @@ root/
 - `desktop/src/components/ThreadPane.tsx` — Thread reply detail pane.
 - `desktop/src/components/MessageItem.tsx` — Individual message with reactions
   and reply action.
-- `desktop/src/hooks/useMessages.ts` — Message history, send, failed-send retry,
-  reactions cache, and thread reply loading.
-- `desktop/src/hooks/useUnread.ts` — Local unread counts driven by WebSocket
-  events.
+- `desktop/src/hooks/useMessages.ts` — Cursor-paginated message history,
+  send/retry, reactions, thread replies, live-tail anchoring, and `?message=<id>`
+  deep-link jumping.
+- `desktop/src/hooks/useReadState.ts` — Server-backed unread counts and
+  read-state API.
+- `desktop/src/context/ReadStateContext.tsx` — Shared read-state instance for
+  `Sidebar`/`PlatformShell`.
+- `desktop/src/hooks/useMarkReadBatcher.ts` — Batches scroll-into-view
+  read-state calls.
 - `desktop/src/hooks/useSettings.ts` — Configurable backend URL and notification
   preference, persisted in `localStorage`.
 - `desktop/src/hooks/useNotifications.ts` — OS notification permission and
@@ -636,6 +641,13 @@ server image and builds cross-platform desktop installers.
   image itself causes when it's the older side. After a source-build restart
   that applied new migrations, run `./scripts/build-server.sh` to refresh
   `ruckchat-server:latest` too before switching back to the plain path.
+
+- WebSocket event payload tags: the shared `ServerEvent` enum uses serde
+  `rename_all = "snake_case"`, so emitted JSON tags are `message_created`,
+  `reaction_added`, etc. The Rust envelope's `event_type()` returns
+  dot-notation strings (`message.created`, `reaction.added`). Client-side
+  switch statements must match the serde tag (`message_created`), not the
+  envelope string, or live events will be silently dropped.
 
 - The desktop client defaults to `http://localhost:3000` for development and
   exposes a settings screen to change the backend URL. The chosen URL is stored
