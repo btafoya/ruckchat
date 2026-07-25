@@ -2,9 +2,10 @@
 
 use async_trait::async_trait;
 use ruckchat_common::Result;
-use ruckchat_domain::{Message, MessageRepository};
-use ruckchat_id::{MessageId, OrganizationId, UserId};
+use ruckchat_domain::{File, Message, MessageCursor, MessageRepository};
+use ruckchat_id::{FileId, MessageId, OrganizationId, UserId};
 use sqlx::PgPool;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 /// SQLx-backed message repository.
@@ -18,6 +19,58 @@ impl MessageRepositorySqlx {
     #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
+    }
+
+    /// Loads attached files for a batch of messages in a single query, keyed
+    /// by message id.
+    async fn load_attachments(&self, message_ids: &[Uuid]) -> Result<HashMap<Uuid, Vec<File>>> {
+        if message_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let rows = sqlx::query!(
+            "SELECT mf.message_id, f.id, f.organization_id, f.uploaded_by, f.file_name, f.mime_type, f.size_bytes, f.storage_path, f.thumbnail_path, f.created_at
+             FROM message_files mf
+             JOIN files f ON f.id = mf.file_id
+             WHERE mf.message_id = ANY($1)
+             ORDER BY f.created_at",
+            message_ids
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        let mut attachments: HashMap<Uuid, Vec<File>> = HashMap::new();
+        for row in rows {
+            let file = File {
+                id: FileId::from_uuid(row.id),
+                organization_id: OrganizationId::from_uuid(row.organization_id),
+                uploaded_by: UserId::from_uuid(row.uploaded_by),
+                file_name: row.file_name,
+                mime_type: row.mime_type,
+                size_bytes: row.size_bytes,
+                storage_path: row.storage_path,
+                thumbnail_path: row.thumbnail_path,
+                created_at: row.created_at,
+            };
+            attachments.entry(row.message_id).or_default().push(file);
+        }
+        Ok(attachments)
+    }
+
+    /// Converts rows into messages and batch-attaches their files.
+    async fn hydrate(&self, rows: Vec<MessageRow>) -> Result<Vec<Message>> {
+        let mut messages = rows
+            .into_iter()
+            .map(into_message)
+            .collect::<Result<Vec<_>>>()?;
+        let ids: Vec<Uuid> = messages.iter().map(|m| m.id.as_uuid()).collect();
+        let mut attachments = self.load_attachments(&ids).await?;
+        for message in &mut messages {
+            message.attachments = attachments
+                .remove(&message.id.as_uuid())
+                .unwrap_or_default();
+        }
+        Ok(messages)
     }
 }
 
@@ -63,14 +116,70 @@ impl MessageRepository for MessageRepositorySqlx {
         .await
         .map_err(map_sqlx_err)?;
 
-        Ok(row.map(into_message).transpose()?)
+        let Some(row) = row else {
+            return Ok(None);
+        };
+        let mut message = into_message(row)?;
+        let mut attachments = self.load_attachments(&[message.id.as_uuid()]).await?;
+        message.attachments = attachments
+            .remove(&message.id.as_uuid())
+            .unwrap_or_default();
+        Ok(Some(message))
     }
 
-    async fn list_by_conversation(
+    async fn list_before(
         &self,
         conversation_id: Uuid,
+        before: Option<MessageCursor>,
         limit: i64,
-        offset: i64,
+    ) -> Result<Vec<Message>> {
+        let rows = match before {
+            Some(cursor) => {
+                sqlx::query_as!(
+                    MessageRow,
+                    "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at
+                     FROM messages m
+                     LEFT JOIN users u ON u.id = m.author_id
+                     WHERE m.conversation_id = $1 AND m.deleted_at IS NULL
+                       AND (m.created_at, m.id) < ($2, $3)
+                     ORDER BY m.created_at DESC, m.id DESC
+                     LIMIT $4",
+                    conversation_id,
+                    cursor.created_at,
+                    cursor.id.as_uuid(),
+                    limit
+                )
+                .fetch_all(&self.pool)
+                .await
+            }
+            None => {
+                sqlx::query_as!(
+                    MessageRow,
+                    "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at
+                     FROM messages m
+                     LEFT JOIN users u ON u.id = m.author_id
+                     WHERE m.conversation_id = $1 AND m.deleted_at IS NULL
+                     ORDER BY m.created_at DESC, m.id DESC
+                     LIMIT $2",
+                    conversation_id,
+                    limit
+                )
+                .fetch_all(&self.pool)
+                .await
+            }
+        }
+        .map_err(map_sqlx_err)?;
+
+        let mut messages = self.hydrate(rows).await?;
+        messages.reverse();
+        Ok(messages)
+    }
+
+    async fn list_after(
+        &self,
+        conversation_id: Uuid,
+        after: MessageCursor,
+        limit: i64,
     ) -> Result<Vec<Message>> {
         let rows = sqlx::query_as!(
             MessageRow,
@@ -78,19 +187,94 @@ impl MessageRepository for MessageRepositorySqlx {
              FROM messages m
              LEFT JOIN users u ON u.id = m.author_id
              WHERE m.conversation_id = $1 AND m.deleted_at IS NULL
-             ORDER BY m.created_at DESC
-             LIMIT $2 OFFSET $3",
+               AND (m.created_at, m.id) > ($2, $3)
+             ORDER BY m.created_at ASC, m.id ASC
+             LIMIT $4",
             conversation_id,
-            limit,
-            offset
+            after.created_at,
+            after.id.as_uuid(),
+            limit
         )
         .fetch_all(&self.pool)
         .await
         .map_err(map_sqlx_err)?;
 
-        rows.into_iter()
-            .map(into_message)
-            .collect::<Result<Vec<_>>>()
+        self.hydrate(rows).await
+    }
+
+    async fn list_replies_before(
+        &self,
+        parent_id: MessageId,
+        before: Option<MessageCursor>,
+        limit: i64,
+    ) -> Result<Vec<Message>> {
+        let rows = match before {
+            Some(cursor) => {
+                sqlx::query_as!(
+                    MessageRow,
+                    "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at
+                     FROM messages m
+                     LEFT JOIN users u ON u.id = m.author_id
+                     WHERE m.parent_id = $1 AND m.deleted_at IS NULL
+                       AND (m.created_at, m.id) < ($2, $3)
+                     ORDER BY m.created_at DESC, m.id DESC
+                     LIMIT $4",
+                    parent_id.as_uuid(),
+                    cursor.created_at,
+                    cursor.id.as_uuid(),
+                    limit
+                )
+                .fetch_all(&self.pool)
+                .await
+            }
+            None => {
+                sqlx::query_as!(
+                    MessageRow,
+                    "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at
+                     FROM messages m
+                     LEFT JOIN users u ON u.id = m.author_id
+                     WHERE m.parent_id = $1 AND m.deleted_at IS NULL
+                     ORDER BY m.created_at DESC, m.id DESC
+                     LIMIT $2",
+                    parent_id.as_uuid(),
+                    limit
+                )
+                .fetch_all(&self.pool)
+                .await
+            }
+        }
+        .map_err(map_sqlx_err)?;
+
+        let mut messages = self.hydrate(rows).await?;
+        messages.reverse();
+        Ok(messages)
+    }
+
+    async fn list_replies_after(
+        &self,
+        parent_id: MessageId,
+        after: MessageCursor,
+        limit: i64,
+    ) -> Result<Vec<Message>> {
+        let rows = sqlx::query_as!(
+            MessageRow,
+            "SELECT m.id, m.conversation_id, m.conversation_type, m.parent_id, m.author_id, u.display_name AS author_display_name, m.content, m.mentioned_user_ids, m.created_at, m.updated_at, m.deleted_at
+             FROM messages m
+             LEFT JOIN users u ON u.id = m.author_id
+             WHERE m.parent_id = $1 AND m.deleted_at IS NULL
+               AND (m.created_at, m.id) > ($2, $3)
+             ORDER BY m.created_at ASC, m.id ASC
+             LIMIT $4",
+            parent_id.as_uuid(),
+            after.created_at,
+            after.id.as_uuid(),
+            limit
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        self.hydrate(rows).await
     }
 
     async fn update(&self, message: &Message) -> Result<()> {
@@ -175,9 +359,7 @@ impl MessageRepository for MessageRepositorySqlx {
         .await
         .map_err(map_sqlx_err)?;
 
-        rows.into_iter()
-            .map(into_message)
-            .collect::<Result<Vec<_>>>()
+        self.hydrate(rows).await
     }
 }
 
@@ -215,6 +397,7 @@ fn into_message(row: MessageRow) -> Result<Message> {
             .into_iter()
             .map(ruckchat_id::UserId::from_uuid)
             .collect(),
+        attachments: Vec::new(),
         created_at: row.created_at,
         updated_at: row.updated_at,
         deleted_at: row.deleted_at,

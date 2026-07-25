@@ -6,7 +6,33 @@ export type Channel = components['schemas']['Channel'];
 export type ChannelMembership = components['schemas']['ChannelMembership'];
 export type DirectMessageConversation = components['schemas']['DirectMessageConversation'];
 export type Message = components['schemas']['Message'];
-export type MessageList = components['schemas']['MessageList'];
+export type MessageWithReadState = components['schemas']['MessageWithReadState'];
+export type MessagePageResponse = components['schemas']['MessagePageResponse'];
+
+/** Cursor-pagination query for message history/thread-replies endpoints. */
+export interface MessagePageQuery {
+  beforeId?: string;
+  afterId?: string;
+  aroundId?: string;
+  limit?: number;
+}
+
+export function messagePageParams(query: MessagePageQuery): URLSearchParams {
+  const params = new URLSearchParams();
+  if (query.beforeId) {
+    params.set('before_id', query.beforeId);
+  }
+  if (query.afterId) {
+    params.set('after_id', query.afterId);
+  }
+  if (query.aroundId) {
+    params.set('around_id', query.aroundId);
+  }
+  if (query.limit !== undefined) {
+    params.set('limit', String(query.limit));
+  }
+  return params;
+}
 export type File = components['schemas']['File'];
 export type FileResponse = components['schemas']['FileResponse'];
 export type Reaction = components['schemas']['Reaction'];

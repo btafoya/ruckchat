@@ -85,7 +85,7 @@ describe('useWebSocket', () => {
           type: 'message.created',
           id: '00000000-0000-0000-0000-000000000001',
           timestamp: '2026-01-01T00:00:00Z',
-          payload: { type: 'message.created', message: { id: 'msg-1', content: 'hi' } },
+          payload: { type: 'message_created', message: { id: 'msg-1', content: 'hi' } },
         }),
       );
     });

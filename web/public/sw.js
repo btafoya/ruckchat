@@ -1,8 +1,14 @@
 /* eslint-disable no-restricted-globals */
 
 const CACHE_NAME = 'ruckchat-assets-__BUILD_HASH__';
-const STATIC_PATHS =
-  /^\/(?:assets\/(?:index-[^/]+\.(?:js|css)|[^/]+\.(?:js|css|png|svg|woff2)))?$|^\/(?:icons\/[^/]+|manifest\.json|favicon\.ico|index\.html)?$/;
+// Content-hashed, immutable per build: safe to serve from cache forever.
+const HASHED_ASSET_PATHS =
+  /^\/assets\/(?:index-[^/]+\.(?:js|css)|[^/]+\.(?:js|css|png|svg|woff2))$/;
+// Mutable app-shell references: their content (and the hashed asset URLs they
+// point to) changes on every deploy, so they must be network-first - caching
+// these cache-first left users stuck on old builds indefinitely, unaware a
+// newer one was ever deployed.
+const SHELL_PATHS = /^\/$|^\/(?:icons\/[^/]+|manifest\.json|favicon\.ico|index\.html)$/;
 
 // Set during install: true when an older cache (from a previous deploy)
 // existed, false on a genuine first-ever install. Used in activate to decide
@@ -86,23 +92,35 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   const requestUrl = new URL(event.request.url);
-  if (
-    requestUrl.origin !== self.location.origin ||
-    !STATIC_PATHS.test(requestUrl.pathname)
-  ) {
+  if (requestUrl.origin !== self.location.origin) {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
-      return fetch(event.request).then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      });
-    }),
-  );
+  if (HASHED_ASSET_PATHS.test(requestUrl.pathname)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) {
+          return cached;
+        }
+        return fetch(event.request).then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        });
+      }),
+    );
+    return;
+  }
+
+  if (SHELL_PATHS.test(requestUrl.pathname)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
+    );
+  }
 });

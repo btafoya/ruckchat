@@ -4,8 +4,10 @@
 //! exact fields a service operation needs and can include fields that do not
 //! belong to the domain model, such as raw passwords or pagination cursors.
 
+use ruckchat_domain::Message;
 use ruckchat_id::{FileId, MessageId, OrganizationId, UserId};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// Pagination parameters for list operations.
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -35,6 +37,61 @@ impl Pagination {
             offset: self.offset.max(0),
         }
     }
+}
+
+/// Query parameters for cursor-paginated message history and thread
+/// replies. See ADR-016 for why this replaces `Pagination` on those routes.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(default)]
+pub struct MessagePageQuery {
+    /// Return the messages immediately older than this message id.
+    pub before_id: Option<Uuid>,
+    /// Return the messages immediately newer than this message id.
+    pub after_id: Option<Uuid>,
+    /// Return messages centered on this message id, both directions.
+    pub around_id: Option<Uuid>,
+    /// Maximum number of messages to return (per side, for `around_id`).
+    pub limit: i64,
+}
+
+impl Default for MessagePageQuery {
+    fn default() -> Self {
+        Self {
+            before_id: None,
+            after_id: None,
+            around_id: None,
+            limit: 50,
+        }
+    }
+}
+
+impl MessagePageQuery {
+    /// Caps the limit; leaves the id fields untouched.
+    #[must_use]
+    pub fn normalized(self) -> Self {
+        Self {
+            limit: self.limit.clamp(1, 100),
+            ..self
+        }
+    }
+}
+
+/// A page of cursor-paginated messages plus continuation flags.
+///
+/// `has_more_older`/`has_more_newer` are only authoritative for the
+/// direction(s) actually requested: an initial or `before_id` load answers
+/// `has_more_older` truthfully; an `after_id` load answers `has_more_newer`
+/// truthfully; an `around_id` load answers both. The non-requested
+/// direction is set to `true` as a "not authoritative, don't overwrite your
+/// existing state with this" placeholder rather than a false negative.
+#[derive(Debug, Clone)]
+pub struct MessagePage {
+    /// Messages in ascending (oldest-first) order.
+    pub messages: Vec<Message>,
+    /// Whether older messages may still exist beyond this page.
+    pub has_more_older: bool,
+    /// Whether newer messages may still exist beyond this page.
+    pub has_more_newer: bool,
 }
 
 /// Request to register a new user.

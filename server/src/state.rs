@@ -340,6 +340,7 @@ impl AppState {
                 messages: messages_repo.clone(),
                 memberships: memberships_repo.clone(),
                 settings: settings_repo.clone(),
+                events: Arc::new(events.clone()),
             },
             files_directory,
         );

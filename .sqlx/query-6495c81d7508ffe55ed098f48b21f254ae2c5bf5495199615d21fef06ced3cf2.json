@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mf.message_id, f.id, f.organization_id, f.uploaded_by, f.file_name, f.mime_type, f.size_bytes, f.storage_path, f.thumbnail_path, f.created_at\n             FROM message_files mf\n             JOIN files f ON f.id = mf.file_id\n             WHERE mf.message_id = ANY($1)\n             ORDER BY f.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "message_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "organization_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "uploaded_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "file_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "mime_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "size_bytes",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "storage_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "thumbnail_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "6495c81d7508ffe55ed098f48b21f254ae2c5bf5495199615d21fef06ced3cf2"
+}

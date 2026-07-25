@@ -909,8 +909,13 @@ export interface paths {
     "/channels/{channel_id}/messages": {
         parameters: {
             query?: {
+                /** @description Return the messages immediately older than this message id. */
+                before_id?: components["schemas"]["Uuid"];
+                /** @description Return the messages immediately newer than this message id. */
+                after_id?: components["schemas"]["Uuid"];
+                /** @description Return messages centered on this message id, both directions. */
+                around_id?: components["schemas"]["Uuid"];
                 limit?: number;
-                offset?: number;
             };
             header?: never;
             path: {
@@ -918,12 +923,17 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Get message history for a channel */
+        /** Get cursor-paginated message history for a channel */
         get: {
             parameters: {
                 query?: {
+                    /** @description Return the messages immediately older than this message id. */
+                    before_id?: components["schemas"]["Uuid"];
+                    /** @description Return the messages immediately newer than this message id. */
+                    after_id?: components["schemas"]["Uuid"];
+                    /** @description Return messages centered on this message id, both directions. */
+                    around_id?: components["schemas"]["Uuid"];
                     limit?: number;
-                    offset?: number;
                 };
                 header?: never;
                 path: {
@@ -933,13 +943,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description List of messages */
+                /** @description Page of messages */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MessageList"];
+                        "application/json": components["schemas"]["MessagePageResponse"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -952,8 +962,13 @@ export interface paths {
         post: {
             parameters: {
                 query?: {
+                    /** @description Return the messages immediately older than this message id. */
+                    before_id?: components["schemas"]["Uuid"];
+                    /** @description Return the messages immediately newer than this message id. */
+                    after_id?: components["schemas"]["Uuid"];
+                    /** @description Return messages centered on this message id, both directions. */
+                    around_id?: components["schemas"]["Uuid"];
                     limit?: number;
-                    offset?: number;
                 };
                 header?: never;
                 path: {
@@ -1062,8 +1077,13 @@ export interface paths {
     "/messages/{message_id}/replies": {
         parameters: {
             query?: {
+                /** @description Return the replies immediately older than this message id. */
+                before_id?: components["schemas"]["Uuid"];
+                /** @description Return the replies immediately newer than this message id. */
+                after_id?: components["schemas"]["Uuid"];
+                /** @description Return replies centered on this message id, both directions. */
+                around_id?: components["schemas"]["Uuid"];
                 limit?: number;
-                offset?: number;
             };
             header?: never;
             path: {
@@ -1071,12 +1091,17 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Get thread replies */
+        /** Get cursor-paginated thread replies */
         get: {
             parameters: {
                 query?: {
+                    /** @description Return the replies immediately older than this message id. */
+                    before_id?: components["schemas"]["Uuid"];
+                    /** @description Return the replies immediately newer than this message id. */
+                    after_id?: components["schemas"]["Uuid"];
+                    /** @description Return replies centered on this message id, both directions. */
+                    around_id?: components["schemas"]["Uuid"];
                     limit?: number;
-                    offset?: number;
                 };
                 header?: never;
                 path: {
@@ -1086,13 +1111,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description List of replies */
+                /** @description Page of replies */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MessageList"];
+                        "application/json": components["schemas"]["MessagePageResponse"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -1268,8 +1293,13 @@ export interface paths {
     "/direct_messages/{conversation_id}/messages": {
         parameters: {
             query?: {
+                /** @description Return the messages immediately older than this message id. */
+                before_id?: components["schemas"]["Uuid"];
+                /** @description Return the messages immediately newer than this message id. */
+                after_id?: components["schemas"]["Uuid"];
+                /** @description Return messages centered on this message id, both directions. */
+                around_id?: components["schemas"]["Uuid"];
                 limit?: number;
-                offset?: number;
             };
             header?: never;
             path: {
@@ -1277,12 +1307,17 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Get DM message history */
+        /** Get cursor-paginated DM message history */
         get: {
             parameters: {
                 query?: {
+                    /** @description Return the messages immediately older than this message id. */
+                    before_id?: components["schemas"]["Uuid"];
+                    /** @description Return the messages immediately newer than this message id. */
+                    after_id?: components["schemas"]["Uuid"];
+                    /** @description Return messages centered on this message id, both directions. */
+                    around_id?: components["schemas"]["Uuid"];
                     limit?: number;
-                    offset?: number;
                 };
                 header?: never;
                 path: {
@@ -1292,13 +1327,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description List of messages */
+                /** @description Page of messages */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MessageList"];
+                        "application/json": components["schemas"]["MessagePageResponse"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -1311,8 +1346,13 @@ export interface paths {
         post: {
             parameters: {
                 query?: {
+                    /** @description Return the messages immediately older than this message id. */
+                    before_id?: components["schemas"]["Uuid"];
+                    /** @description Return the messages immediately newer than this message id. */
+                    after_id?: components["schemas"]["Uuid"];
+                    /** @description Return messages centered on this message id, both directions. */
+                    around_id?: components["schemas"]["Uuid"];
                     limit?: number;
-                    offset?: number;
                 };
                 header?: never;
                 path: {
@@ -3894,6 +3934,7 @@ export interface components {
             author_display_name?: string | null;
             content: string;
             mentioned_user_ids: components["schemas"]["Uuid"][];
+            attachments?: components["schemas"]["File"][];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -3901,8 +3942,13 @@ export interface components {
             /** Format: date-time */
             deleted_at?: string | null;
         };
-        MessageList: {
-            items: components["schemas"]["Message"][];
+        MessageWithReadState: components["schemas"]["Message"] & {
+            is_unread: boolean;
+        };
+        MessagePageResponse: {
+            items: components["schemas"]["MessageWithReadState"][];
+            has_more_older: boolean;
+            has_more_newer: boolean;
         };
         DirectMessageConversation: {
             id: components["schemas"]["Uuid"];

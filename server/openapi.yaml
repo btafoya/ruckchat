@@ -657,6 +657,21 @@ paths:
         required: true
         schema:
           $ref: '#/components/schemas/Uuid'
+      - name: before_id
+        in: query
+        description: Return the messages immediately older than this message id.
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: after_id
+        in: query
+        description: Return the messages immediately newer than this message id.
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: around_id
+        in: query
+        description: Return messages centered on this message id, both directions.
+        schema:
+          $ref: '#/components/schemas/Uuid'
       - name: limit
         in: query
         schema:
@@ -664,25 +679,19 @@ paths:
           default: 50
           minimum: 1
           maximum: 100
-      - name: offset
-        in: query
-        schema:
-          type: integer
-          default: 0
-          minimum: 0
     get:
-      summary: Get message history for a channel
+      summary: Get cursor-paginated message history for a channel
       tags: [Messages]
       security:
         - bearerAuth: []
         - cookieAuth: []
       responses:
         '200':
-          description: List of messages
+          description: Page of messages
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageList'
+                $ref: '#/components/schemas/MessagePageResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -774,6 +783,21 @@ paths:
         required: true
         schema:
           $ref: '#/components/schemas/Uuid'
+      - name: before_id
+        in: query
+        description: Return the replies immediately older than this message id.
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: after_id
+        in: query
+        description: Return the replies immediately newer than this message id.
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: around_id
+        in: query
+        description: Return replies centered on this message id, both directions.
+        schema:
+          $ref: '#/components/schemas/Uuid'
       - name: limit
         in: query
         schema:
@@ -781,25 +805,19 @@ paths:
           default: 50
           minimum: 1
           maximum: 100
-      - name: offset
-        in: query
-        schema:
-          type: integer
-          default: 0
-          minimum: 0
     get:
-      summary: Get thread replies
+      summary: Get cursor-paginated thread replies
       tags: [Messages]
       security:
         - bearerAuth: []
         - cookieAuth: []
       responses:
         '200':
-          description: List of replies
+          description: Page of replies
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageList'
+                $ref: '#/components/schemas/MessagePageResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -921,6 +939,21 @@ paths:
         required: true
         schema:
           $ref: '#/components/schemas/Uuid'
+      - name: before_id
+        in: query
+        description: Return the messages immediately older than this message id.
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: after_id
+        in: query
+        description: Return the messages immediately newer than this message id.
+        schema:
+          $ref: '#/components/schemas/Uuid'
+      - name: around_id
+        in: query
+        description: Return messages centered on this message id, both directions.
+        schema:
+          $ref: '#/components/schemas/Uuid'
       - name: limit
         in: query
         schema:
@@ -928,25 +961,19 @@ paths:
           default: 50
           minimum: 1
           maximum: 100
-      - name: offset
-        in: query
-        schema:
-          type: integer
-          default: 0
-          minimum: 0
     get:
-      summary: Get DM message history
+      summary: Get cursor-paginated DM message history
       tags: [Direct Messages]
       security:
         - bearerAuth: []
         - cookieAuth: []
       responses:
         '200':
-          description: List of messages
+          description: Page of messages
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageList'
+                $ref: '#/components/schemas/MessagePageResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2978,6 +3005,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Uuid'
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
         created_at:
           type: string
           format: date-time
@@ -2989,14 +3020,27 @@ components:
           format: date-time
           nullable: true
 
-    MessageList:
+    MessageWithReadState:
+      allOf:
+        - $ref: '#/components/schemas/Message'
+        - type: object
+          required: [is_unread]
+          properties:
+            is_unread:
+              type: boolean
+
+    MessagePageResponse:
       type: object
-      required: [items]
+      required: [items, has_more_older, has_more_newer]
       properties:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/Message'
+            $ref: '#/components/schemas/MessageWithReadState'
+        has_more_older:
+          type: boolean
+        has_more_newer:
+          type: boolean
 
     DirectMessageConversation:
       type: object

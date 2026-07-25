@@ -1,12 +1,14 @@
 //! Message service.
 
 use crate::services::authorization::AuthorizationService;
-use crate::services::dto::{EditMessageRequest, Pagination, PostMessageRequest};
+use crate::services::dto::{
+    EditMessageRequest, MessagePage, MessagePageQuery, Pagination, PostMessageRequest,
+};
 use crate::services::events::EventBus;
 use ruckchat_common::Error;
 use ruckchat_domain::{
-    ChannelMembershipRepository, ChannelRepository, ConversationType, Message, MessageRepository,
-    OrganizationMembershipRepository, UserRepository,
+    ChannelMembershipRepository, ChannelRepository, ConversationType, Message, MessageCursor,
+    MessageRepository, OrganizationMembershipRepository, UserRepository,
 };
 use ruckchat_id::{ChannelId, DirectMessageConversationId, MessageId, OrganizationId, UserId};
 use std::collections::HashSet;
@@ -315,61 +317,193 @@ impl MessageService {
     /// # Errors
     ///
     /// Returns [`Error::Forbidden`] when the caller cannot read the conversation
-    /// or [`Error::NotFound`] when the channel does not exist.
+    /// or [`Error::NotFound`] when the channel or referenced anchor message
+    /// does not exist.
     pub async fn get_history(
         &self,
         caller_id: UserId,
         conversation_id: Uuid,
         conversation_type: ConversationType,
-        pagination: Pagination,
-    ) -> ruckchat_common::Result<Vec<Message>> {
+        query: MessagePageQuery,
+    ) -> ruckchat_common::Result<MessagePage> {
         self.require_can_read(caller_id, conversation_id, conversation_type)
             .await?;
+        let query = query.normalized();
 
-        let pagination = pagination.normalized();
-        self.deps
+        if let Some(around_id) = query.around_id {
+            let anchor = self.anchor_message(around_id).await?;
+            let cursor = MessageCursor {
+                created_at: anchor.created_at,
+                id: anchor.id,
+            };
+            let half = (query.limit / 2).max(1);
+            let older = self
+                .deps
+                .messages
+                .list_before(conversation_id, Some(cursor), half)
+                .await?;
+            let newer = self
+                .deps
+                .messages
+                .list_after(conversation_id, cursor, half)
+                .await?;
+            let has_more_older = older.len() as i64 == half;
+            let has_more_newer = newer.len() as i64 == half;
+            let mut messages = older;
+            messages.push(anchor);
+            messages.extend(newer);
+            return Ok(MessagePage {
+                messages,
+                has_more_older,
+                has_more_newer,
+            });
+        }
+
+        if let Some(after_id) = query.after_id {
+            let anchor = self.anchor_message(after_id).await?;
+            let cursor = MessageCursor {
+                created_at: anchor.created_at,
+                id: anchor.id,
+            };
+            let messages = self
+                .deps
+                .messages
+                .list_after(conversation_id, cursor, query.limit)
+                .await?;
+            let has_more_newer = messages.len() as i64 == query.limit;
+            return Ok(MessagePage {
+                messages,
+                has_more_older: true,
+                has_more_newer,
+            });
+        }
+
+        let before_cursor = match query.before_id {
+            Some(before_id) => {
+                let anchor = self.anchor_message(before_id).await?;
+                Some(MessageCursor {
+                    created_at: anchor.created_at,
+                    id: anchor.id,
+                })
+            }
+            None => None,
+        };
+        let has_more_newer = before_cursor.is_some();
+        let messages = self
+            .deps
             .messages
-            .list_by_conversation(conversation_id, pagination.limit, pagination.offset)
-            .await
+            .list_before(conversation_id, before_cursor, query.limit)
+            .await?;
+        let has_more_older = messages.len() as i64 == query.limit;
+        Ok(MessagePage {
+            messages,
+            has_more_older,
+            has_more_newer,
+        })
     }
 
     /// Returns replies to a parent message.
     ///
     /// # Errors
     ///
-    /// Returns [`Error::NotFound`] when the parent does not exist or
-    /// [`Error::Forbidden`] when the caller cannot read the conversation.
+    /// Returns [`Error::NotFound`] when the parent or a referenced anchor
+    /// message does not exist, or [`Error::Forbidden`] when the caller
+    /// cannot read the conversation.
     pub async fn get_thread_replies(
         &self,
         caller_id: UserId,
         parent_id: MessageId,
-        pagination: Pagination,
-    ) -> ruckchat_common::Result<Vec<Message>> {
+        query: MessagePageQuery,
+    ) -> ruckchat_common::Result<MessagePage> {
         let parent = self
             .deps
             .messages
             .by_id(parent_id)
             .await?
             .ok_or_else(|| Error::NotFound("message".into()))?;
-
         self.require_can_read(caller_id, parent.conversation_id, parent.conversation_type)
             .await?;
+        let query = query.normalized();
 
-        let all = self
+        if let Some(around_id) = query.around_id {
+            let anchor = self.anchor_message(around_id).await?;
+            let cursor = MessageCursor {
+                created_at: anchor.created_at,
+                id: anchor.id,
+            };
+            let half = (query.limit / 2).max(1);
+            let older = self
+                .deps
+                .messages
+                .list_replies_before(parent_id, Some(cursor), half)
+                .await?;
+            let newer = self
+                .deps
+                .messages
+                .list_replies_after(parent_id, cursor, half)
+                .await?;
+            let has_more_older = older.len() as i64 == half;
+            let has_more_newer = newer.len() as i64 == half;
+            let mut messages = older;
+            messages.push(anchor);
+            messages.extend(newer);
+            return Ok(MessagePage {
+                messages,
+                has_more_older,
+                has_more_newer,
+            });
+        }
+
+        if let Some(after_id) = query.after_id {
+            let anchor = self.anchor_message(after_id).await?;
+            let cursor = MessageCursor {
+                created_at: anchor.created_at,
+                id: anchor.id,
+            };
+            let messages = self
+                .deps
+                .messages
+                .list_replies_after(parent_id, cursor, query.limit)
+                .await?;
+            let has_more_newer = messages.len() as i64 == query.limit;
+            return Ok(MessagePage {
+                messages,
+                has_more_older: true,
+                has_more_newer,
+            });
+        }
+
+        let before_cursor = match query.before_id {
+            Some(before_id) => {
+                let anchor = self.anchor_message(before_id).await?;
+                Some(MessageCursor {
+                    created_at: anchor.created_at,
+                    id: anchor.id,
+                })
+            }
+            None => None,
+        };
+        let has_more_newer = before_cursor.is_some();
+        let messages = self
             .deps
             .messages
-            .list_by_conversation(parent.conversation_id, 1000, 0)
+            .list_replies_before(parent_id, before_cursor, query.limit)
             .await?;
-        let replies: Vec<Message> = all
-            .into_iter()
-            .filter(|m| m.parent_id == Some(parent_id) && !m.is_deleted())
-            .collect();
+        let has_more_older = messages.len() as i64 == query.limit;
+        Ok(MessagePage {
+            messages,
+            has_more_older,
+            has_more_newer,
+        })
+    }
 
-        let pagination = pagination.normalized();
-        let offset = pagination.offset as usize;
-        let limit = pagination.limit as usize;
-        let paginated = replies.into_iter().skip(offset).take(limit).collect();
-        Ok(paginated)
+    /// Loads a message by id for use as a pagination anchor.
+    async fn anchor_message(&self, message_id: Uuid) -> ruckchat_common::Result<Message> {
+        self.deps
+            .messages
+            .by_id(MessageId::from_uuid(message_id))
+            .await?
+            .ok_or_else(|| Error::NotFound("message".into()))
     }
 
     async fn organization_role(

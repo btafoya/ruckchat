@@ -133,16 +133,23 @@ pub async fn content(
     Ok(([(axum::http::header::CONTENT_TYPE, file.mime_type)], bytes))
 }
 
+/// Request body for attaching a file to a message. The message id is taken
+/// from the URL path, so only `file_id` is required here.
+#[derive(Debug, Deserialize)]
+pub struct AttachFileBody {
+    file_id: FileId,
+}
+
 /// Attaches a file to a message.
 pub async fn attach(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Path(message_id): Path<Uuid>,
-    Json(request): Json<AttachFileRequest>,
+    Json(body): Json<AttachFileBody>,
 ) -> Result<StatusCode, Error> {
     let attach_request = AttachFileRequest {
         message_id: MessageId::from_uuid(message_id),
-        file_id: request.file_id,
+        file_id: body.file_id,
     };
     state
         .files

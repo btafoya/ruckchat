@@ -2,55 +2,61 @@ import type { Message } from '../api/types';
 
 export type PresenceStatus = 'online' | 'offline';
 
+// These `type` discriminants match the server's `#[serde(tag = "type",
+// rename_all = "snake_case")]` on `ServerEvent` (server/src/services/events.rs)
+// verbatim - that's the tag on the *inner* payload object, which is what
+// clients actually switch on, not the outer envelope's dotted `event_type()`
+// string (e.g. "message.created"). The two must not be confused.
+
 export interface MessageCreatedEvent {
-  type: 'message.created';
+  type: 'message_created';
   message: Message;
 }
 
 export interface MessageUpdatedEvent {
-  type: 'message.updated';
+  type: 'message_updated';
   message: Message;
 }
 
 export interface MessageDeletedEvent {
-  type: 'message.deleted';
+  type: 'message_deleted';
   message: Message;
 }
 
 export interface ReactionAddedEvent {
-  type: 'reaction.added';
+  type: 'reaction_added';
   message_id: string;
   user_id: string;
   emoji: string;
 }
 
 export interface ReactionRemovedEvent {
-  type: 'reaction.removed';
+  type: 'reaction_removed';
   message_id: string;
   user_id: string;
   emoji: string;
 }
 
 export interface TypingEvent {
-  type: 'typing.updated';
+  type: 'typing';
   user_id: string;
   conversation_id: string;
   conversation_type: 'channel' | 'direct_message';
 }
 
 export interface PresenceEvent {
-  type: 'presence.updated';
+  type: 'presence';
   user_id: string;
   status: PresenceStatus;
 }
 
 export interface ConnectionEstablishedEvent {
-  type: 'connection.established';
+  type: 'connection_established';
   user_id: string;
 }
 
 export interface ReadStateUpdatedEvent {
-  type: 'read_state.updated';
+  type: 'read_state_updated';
   conversation_id: string;
   message_ids: string[];
 }

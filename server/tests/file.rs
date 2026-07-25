@@ -87,6 +87,85 @@ async fn record_and_list_files(pool: sqlx::PgPool) {
 }
 
 #[sqlx::test]
+async fn attach_file_to_message_shows_up_in_history(pool: sqlx::PgPool) {
+    let client = TestClient::new(pool).await;
+    let (token, org_id) = setup(&client).await;
+
+    let response = client
+        .auth_request(
+            "GET",
+            &format!("/organizations/{org_id}/channels"),
+            &token,
+            None,
+        )
+        .await;
+    assert_status(&response, StatusCode::OK);
+    let body = body_json(response).await;
+    let channel_id = body["items"][0]["id"].as_str().unwrap().to_string();
+
+    let response = client
+        .auth_request(
+            "POST",
+            &format!("/channels/{channel_id}/messages"),
+            &token,
+            Some(json!({ "content": "see the attached report" })),
+        )
+        .await;
+    assert_status(&response, StatusCode::CREATED);
+    let message_id = body_json(response).await["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let response = client
+        .auth_request(
+            "POST",
+            "/files/record",
+            &token,
+            Some(json!({
+                "organization_id": org_id,
+                "file_name": "report.pdf",
+                "mime_type": "application/pdf",
+                "size_bytes": 1024,
+                "storage_path": "orgs/uuid/report.pdf"
+            })),
+        )
+        .await;
+    assert_status(&response, StatusCode::CREATED);
+    let file_id = body_json(response).await["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // The real client only ever sends `file_id` in the body; `message_id`
+    // comes from the URL path. A stricter body type here previously caused
+    // every real attach request to fail JSON deserialization with a 422.
+    let response = client
+        .auth_request(
+            "POST",
+            &format!("/messages/{message_id}/attachments"),
+            &token,
+            Some(json!({ "file_id": file_id })),
+        )
+        .await;
+    assert_status(&response, StatusCode::OK);
+
+    let response = client
+        .auth_request(
+            "GET",
+            &format!("/channels/{channel_id}/messages"),
+            &token,
+            None,
+        )
+        .await;
+    assert_status(&response, StatusCode::OK);
+    let body = body_json(response).await;
+    let attachments = body["items"][0]["attachments"].as_array().unwrap();
+    assert_eq!(attachments.len(), 1);
+    assert_eq!(attachments[0]["id"], file_id);
+}
+
+#[sqlx::test]
 async fn multipart_upload_stores_file(pool: sqlx::PgPool) {
     let client = TestClient::new(pool).await;
     let (token, org_id) = setup(&client).await;

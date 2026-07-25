@@ -1,5 +1,13 @@
 import { ApiClient } from './client';
-import type { DirectMessageConversation, Message, MessageList, PostDmMessageRequest, StartDmRequest } from './types';
+import type {
+  DirectMessageConversation,
+  Message,
+  MessagePageQuery,
+  MessagePageResponse,
+  PostDmMessageRequest,
+  StartDmRequest,
+} from './types';
+import { messagePageParams } from './types';
 
 export class DirectMessagesApi {
   constructor(private readonly client: ApiClient) {}
@@ -31,19 +39,15 @@ export class DirectMessagesApi {
   async listMessages(
     token: string,
     conversationId: string,
-    limit = 50,
-    offset = 0,
-  ): Promise<Message[]> {
-    const params = new URLSearchParams();
-    params.set('limit', String(limit));
-    params.set('offset', String(offset));
-    const response = await this.client.request<MessageList>(
+    query: MessagePageQuery = {},
+  ): Promise<MessagePageResponse> {
+    const params = messagePageParams(query);
+    return this.client.request<MessagePageResponse>(
       `/direct_messages/${conversationId}/messages?${params.toString()}`,
       {
         token,
       },
     );
-    return response.items;
   }
 
   async postMessage(

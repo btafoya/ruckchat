@@ -10,7 +10,7 @@ use ruckchat_common::Result;
 use ruckchat_domain::{
     Channel, ChannelMembership, ChannelMembershipRepository, ChannelRepository,
     DirectMessageConversation, DirectMessageConversationRepository, File, FileRepository, Message,
-    MessageReadRepository, MessageRepository, Organization, OrganizationMembership,
+    MessageCursor, MessageReadRepository, MessageRepository, Organization, OrganizationMembership,
     OrganizationMembershipRepository, OrganizationRepository, OrganizationSettings,
     OrganizationSettingsRepository, Reaction, ReactionRepository, Role, Session, SessionRepository,
     User, UserRepository, WebPushSubscription, WebPushSubscriptionRepository,
@@ -742,22 +742,98 @@ impl MessageRepository for MockMessageRepository {
             .cloned())
     }
 
-    async fn list_by_conversation(
+    async fn list_before(
         &self,
         conversation_id: Uuid,
+        before: Option<MessageCursor>,
         limit: i64,
-        offset: i64,
     ) -> Result<Vec<Message>> {
         let messages = self.messages.lock().unwrap();
         let mut filtered: Vec<Message> = messages
             .iter()
-            .filter(|m| m.conversation_id == conversation_id && !m.is_deleted())
+            .filter(|m| {
+                m.conversation_id == conversation_id
+                    && !m.is_deleted()
+                    && before.is_none_or(|cursor| {
+                        (m.created_at, m.id.as_uuid()) < (cursor.created_at, cursor.id.as_uuid())
+                    })
+            })
             .cloned()
             .collect();
-        filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        let start = offset.max(0) as usize;
-        let end = (start + limit.max(0) as usize).min(filtered.len());
-        Ok(filtered[start..end].to_vec())
+        filtered
+            .sort_by(|a, b| (b.created_at, b.id.as_uuid()).cmp(&(a.created_at, a.id.as_uuid())));
+        filtered.truncate(limit.max(0) as usize);
+        filtered.reverse();
+        Ok(filtered)
+    }
+
+    async fn list_after(
+        &self,
+        conversation_id: Uuid,
+        after: MessageCursor,
+        limit: i64,
+    ) -> Result<Vec<Message>> {
+        let messages = self.messages.lock().unwrap();
+        let mut filtered: Vec<Message> = messages
+            .iter()
+            .filter(|m| {
+                m.conversation_id == conversation_id
+                    && !m.is_deleted()
+                    && (m.created_at, m.id.as_uuid()) > (after.created_at, after.id.as_uuid())
+            })
+            .cloned()
+            .collect();
+        filtered
+            .sort_by(|a, b| (a.created_at, a.id.as_uuid()).cmp(&(b.created_at, b.id.as_uuid())));
+        filtered.truncate(limit.max(0) as usize);
+        Ok(filtered)
+    }
+
+    async fn list_replies_before(
+        &self,
+        parent_id: MessageId,
+        before: Option<MessageCursor>,
+        limit: i64,
+    ) -> Result<Vec<Message>> {
+        let messages = self.messages.lock().unwrap();
+        let mut filtered: Vec<Message> = messages
+            .iter()
+            .filter(|m| {
+                m.parent_id == Some(parent_id)
+                    && !m.is_deleted()
+                    && before.is_none_or(|cursor| {
+                        (m.created_at, m.id.as_uuid()) < (cursor.created_at, cursor.id.as_uuid())
+                    })
+            })
+            .cloned()
+            .collect();
+        filtered
+            .sort_by(|a, b| (b.created_at, b.id.as_uuid()).cmp(&(a.created_at, a.id.as_uuid())));
+        filtered.truncate(limit.max(0) as usize);
+        filtered.reverse();
+        Ok(filtered)
+    }
+
+    async fn list_replies_after(
+        &self,
+        parent_id: MessageId,
+        after: MessageCursor,
+        limit: i64,
+    ) -> Result<Vec<Message>> {
+        let messages = self.messages.lock().unwrap();
+        let mut filtered: Vec<Message> = messages
+            .iter()
+            .filter(|m| {
+                m.parent_id == Some(parent_id)
+                    && !m.is_deleted()
+                    && (m.created_at, m.id.as_uuid()) > (after.created_at, after.id.as_uuid())
+            })
+            .cloned()
+            .collect();
+        filtered
+            .sort_by(|a, b| (a.created_at, a.id.as_uuid()).cmp(&(b.created_at, b.id.as_uuid())));
+        filtered.truncate(limit.max(0) as usize);
+        Ok(filtered)
     }
 
     async fn update(&self, message: &Message) -> Result<()> {

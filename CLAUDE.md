@@ -26,6 +26,7 @@ pnpm tauri dev
 
 ## Rules
 
+- Never use `http://localhost:8322/` as the url to access the webui, use `https://ruck.premadev.com/` instead
 - Always fully complete the task.
 - Never create stubs.
 - Always build for production use.
@@ -166,6 +167,48 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   `POST /direct_messages/{id}/read`, `GET /organizations/{id}/unread_counts`,
   the `read_state.updated` WebSocket event) that replaced the old
   `localStorage`-only `useUnread.ts` outright.
+- File attachment visibility fix: `Message` (`crates/ruckchat-domain/src/message.rs`)
+  gained an `attachments: Vec<File>` field, populated by
+  `MessageRepositorySqlx` (`server/src/repositories/message.rs`) via a batched
+  `message_files`/`files` join in `by_id`, `list_by_conversation`, and
+  `search`. `FileService::attach_file_to_message`
+  (`server/src/services/file.rs`) now publishes a `message.updated` event
+  after attaching so open clients see the attachment without a refresh.
+  `MessageItem.tsx` renders attachments as download links. The actual root
+  cause of attachments never appearing: `POST /messages/{id}/attachments`
+  (`server/src/handlers/file.rs`) deserialized its JSON body into the
+  service-layer `AttachFileRequest`, which required a `message_id` field the
+  real client (and the documented OpenAPI schema) never sent — every real
+  attach call 422'd and was silently swallowed by a `console.warn` in
+  `useMessages.ts`. Fixed by extracting a body-only `AttachFileBody { file_id
+  }` and building the service DTO from the path param instead. Regression
+  test: `attach_file_to_message_shows_up_in_history` in `server/tests/file.rs`.
+- Message list reload (`docs/ADR-016-Cursor-Based-Message-Pagination.md`):
+  replaced offset-based (`LIMIT/OFFSET`) message history/thread-reply
+  pagination with keyset pagination on a `(created_at, id)` cursor
+  (`MessageId` is a random `Uuid::new_v4()`, not time-sortable, so `id`
+  alone can't be a cursor). `MessageRepository::list_before`/`list_after`/
+  `list_replies_before`/`list_replies_after` replace `list_by_conversation`;
+  `MessageService::get_history`/`get_thread_replies` take a
+  `before_id`/`after_id`/`around_id`/`limit` `MessagePageQuery` and return a
+  `MessagePage` with `has_more_older`/`has_more_newer`. HTTP responses wrap
+  each message in `MessageWithReadState` (`is_unread: bool`, computed
+  per-caller at the handler layer via a new `ReadStateService::unread_ids`
+  passthrough — never on the shared domain `Message`, which is also the
+  WebSocket broadcast/MCP payload). The desktop/web `useMessages.ts` was
+  rewritten around this: ascending order end-to-end, `loadOlder`/
+  `loadNewer`/`jumpToMessage`, an explicit live-tail-vs-anchored-history
+  mode (`hasMoreNewer`) that gates whether WebSocket `message.created`
+  events get spliced into the loaded window, and a local unread-id `Set`
+  cleared via the new `useMarkReadBatcher` hook. `MessagePane.tsx`/
+  `ThreadPane.tsx` gained scroll-anchored automatic scroll-up pagination
+  (`IntersectionObserver` top sentinel), auto-follow with a "↓ N new
+  messages" pill when scrolled up, per-message unread dots
+  (`MessageItem.tsx`) that clear on scroll-into-view, and a `?message=<id>`
+  deep-link (wired from `SearchResultsPage.tsx`) that anchors and highlights
+  a specific message. `search.rs` and the MCP `get_messages`/
+  `search_messages` tools are unaffected. Integration tests:
+  `server/tests/message_pagination.rs`.
 - Mobile support (Flutter) is planned for a later phase.
 
 ## Commands
@@ -337,6 +380,9 @@ root/
 - `desktop/src/context/ReadStateContext.tsx` — Shared read-state instance for `Sidebar`/`PlatformShell`.
 - `desktop/src/components/SearchResultsPage.tsx` — Global search results route.
 - `desktop/src/api/messages.ts`, `desktop/src/api/search.ts` — Message-edit and search REST clients.
+- `crates/ruckchat-domain/src/repositories.rs` — `MessageCursor` and the `MessageRepository` keyset-pagination methods.
+- `server/tests/message_pagination.rs` — Cursor pagination and `is_unread` integration tests.
+- `desktop/src/hooks/useMarkReadBatcher.ts` — Batches scroll-into-view read-state calls.
 - `migrations/migrations/` — SQLx `.up.sql` / `.down.sql` migration files.
 - `server/openapi.yaml` — Full REST API specification for the REST API, WebSocket upgrade, and MCP endpoint.
 - `Dockerfile` — Multi-stage SQLx-offline server image build.
@@ -351,7 +397,8 @@ root/
   `docs/ADR-009-Plugin-SDK.md`, `docs/ADR-010-Runtime-YAML-Configuration.md`,
   `docs/ADR-011-Web-UI.md`, `docs/ADR-012-Migration-and-Packaging.md`,
   `docs/ADR-013-Web-UI-Admin-Panel.md`, `docs/ADR-014-Spell-Checker.md`,
-  `docs/ADR-015-Search-And-Read-State.md` — Active ADRs.
+  `docs/ADR-015-Search-And-Read-State.md`,
+  `docs/ADR-016-Cursor-Based-Message-Pagination.md` — Active ADRs.
 
 ## Environment
 

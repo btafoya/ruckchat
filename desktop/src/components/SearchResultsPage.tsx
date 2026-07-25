@@ -88,8 +88,8 @@ export function SearchResultsPage(): JSX.Element {
                 <Link
                   to={
                     message.conversation_type === 'channel'
-                      ? `/org/${organizationId}/channel/${message.conversation_id}`
-                      : `/org/${organizationId}/dm/${message.conversation_id}`
+                      ? `/org/${organizationId}/channel/${message.conversation_id}?message=${message.id}`
+                      : `/org/${organizationId}/dm/${message.conversation_id}?message=${message.id}`
                   }
                   className="block rounded-md p-2 hover:bg-surface-elevated"
                 >

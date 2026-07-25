@@ -10,12 +10,25 @@ use crate::{
     TeamMembership, TeamRoom, User, WebPushSubscription,
 };
 use async_trait::async_trait;
-use ruckchat_common::Result;
+use ruckchat_common::{Result, time::OffsetDateTime};
 use ruckchat_id::{
     ChannelId, CustomEmojiId, DirectMessageConversationId, FileId, MessageId, OrganizationId,
     OrganizationRoleId, PermissionId, SessionId, TeamId, UserId,
 };
 use uuid::Uuid;
+
+/// A message's position in `(created_at, id)` order, used as a keyset
+/// pagination cursor. `MessageId` is a random `Uuid::new_v4()` and is not
+/// time-sortable on its own, so a cursor must pair it with `created_at` to
+/// stay gapless and duplicate-free when multiple messages share a
+/// timestamp.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MessageCursor {
+    /// Timestamp component of the cursor.
+    pub created_at: OffsetDateTime,
+    /// Tiebreaker component of the cursor.
+    pub id: MessageId,
+}
 
 /// User data access.
 #[async_trait]
@@ -236,12 +249,42 @@ pub trait MessageRepository {
     /// Loads a message by id.
     async fn by_id(&self, id: MessageId) -> Result<Option<Message>>;
 
-    /// Lists messages in a conversation, newest first.
-    async fn list_by_conversation(
+    /// Returns up to `limit` messages in a conversation immediately older
+    /// than `before` (exclusive), or the newest `limit` messages if `before`
+    /// is `None`. Always ascending (oldest-first) order.
+    async fn list_before(
         &self,
         conversation_id: Uuid,
+        before: Option<MessageCursor>,
         limit: i64,
-        offset: i64,
+    ) -> Result<Vec<Message>>;
+
+    /// Returns up to `limit` messages in a conversation immediately newer
+    /// than `after` (exclusive), ascending order.
+    async fn list_after(
+        &self,
+        conversation_id: Uuid,
+        after: MessageCursor,
+        limit: i64,
+    ) -> Result<Vec<Message>>;
+
+    /// Returns up to `limit` replies to `parent_id` immediately older than
+    /// `before` (exclusive), or the newest `limit` replies if `before` is
+    /// `None`. Always ascending order.
+    async fn list_replies_before(
+        &self,
+        parent_id: MessageId,
+        before: Option<MessageCursor>,
+        limit: i64,
+    ) -> Result<Vec<Message>>;
+
+    /// Returns up to `limit` replies to `parent_id` immediately newer than
+    /// `after` (exclusive), ascending order.
+    async fn list_replies_after(
+        &self,
+        parent_id: MessageId,
+        after: MessageCursor,
+        limit: i64,
     ) -> Result<Vec<Message>>;
 
     /// Updates an existing message.

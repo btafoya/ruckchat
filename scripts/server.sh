@@ -164,6 +164,11 @@ do_start() {
         # `docker compose up` only builds an image if one doesn't already
         # exist locally; without an explicit --build it silently reuses a
         # stale image on every subsequent `start --build`, so force it here.
+        echo "Building Web UI assets..."
+        cd web
+        pnpm install
+        pnpm build
+        cd "${PROJECT_ROOT}"
         compose up -d --force-recreate --build
     else
         compose up -d --force-recreate

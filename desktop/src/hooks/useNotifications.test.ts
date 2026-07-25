@@ -31,7 +31,7 @@ describe('useNotifications', () => {
     });
 
     await result.current.maybeNotify({
-      type: 'message.created',
+      type: 'message_created',
       message: {
         ...mockMessage,
         conversation_type: 'direct_message',

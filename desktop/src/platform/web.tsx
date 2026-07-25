@@ -115,7 +115,7 @@ async function showNotification(title: string, options?: NotificationOptions): P
 }
 
 function shouldNotify(event: ServerEvent, userId: string): boolean {
-  if (event.type !== 'message.created') {
+  if (event.type !== 'message_created') {
     return false;
   }
   const { message } = event;
@@ -183,7 +183,7 @@ export function useNotifications(options: WebNotificationOptions): NotificationS
         if (!permissionRef.current) {
           return;
         }
-        if (event.type === 'message.created') {
+        if (event.type === 'message_created') {
           await showNotification('RuckChat', {
             body: event.message.content,
             icon: '/icons/icon-192x192.png',

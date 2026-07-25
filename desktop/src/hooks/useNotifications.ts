@@ -13,7 +13,7 @@ export interface NotificationState {
 }
 
 function shouldNotify(event: ServerEvent, userId: string): boolean {
-  if (event.type !== 'message.created') {
+  if (event.type !== 'message_created') {
     return false;
   }
   const { message } = event;
@@ -62,7 +62,7 @@ export function useNotifications(options: NotificationOptions): NotificationStat
         if (!permissionRef.current) {
           return;
         }
-        if (event.type === 'message.created') {
+        if (event.type === 'message_created') {
           sendNotification({
             title: 'RuckChat',
             body: event.message.content,

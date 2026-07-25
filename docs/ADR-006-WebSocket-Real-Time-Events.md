@@ -52,6 +52,17 @@ Introduce a WebSocket server with the following architecture:
 6. **JSON envelope protocol**: server-to-client events use a uniform envelope
    `{type, id, timestamp, payload}`. Client-to-server messages use a tagged enum
    (`typing`, `subscribe_organization`, `unsubscribe_organization`, `ping`).
+   The envelope's own `type` field is the dotted string from
+   `ServerEvent::event_type()` (e.g. `message.created`), but `payload` is the
+   `#[serde(tag = "type", rename_all = "snake_case")]`-tagged `ServerEvent`
+   enum itself, so `payload.type` is the *snake_case* variant name (e.g.
+   `message_created`, `presence`, `typing`) — a different string from the
+   envelope's own `type`. Clients dispatch on `payload.type`
+   (`desktop/src/hooks/useRealtimeStore.ts`), so its literals in
+   `desktop/src/api/events.ts` must match the snake_case tag, not the dotted
+   `event_type()` string; mixing the two silently drops every event (no error,
+   no unmatched-case log) since TypeScript's `as EventEnvelope` cast doesn't
+   validate the runtime shape.
 
 7. **Testing strategy**: unit tests cover `ConnectionManager` routing; service
    unit tests use `MockEventBus`; integration tests use `tokio-tungstenite`

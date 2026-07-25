@@ -113,10 +113,26 @@ impl McpService {
         conversation_type: ConversationType,
         pagination: Pagination,
     ) -> ruckchat_common::Result<Vec<Message>> {
-        self.deps
+        // The MCP tool keeps its existing `limit`/`offset` contract (see
+        // ADR-016: MCP is unaffected by the cursor-pagination redesign), but
+        // `MessageService::get_history` only supports cursor-based paging
+        // now. `offset` beyond the first page has no cursor equivalent here,
+        // so it's ignored; this tool only ever returns the newest `limit`
+        // messages.
+        let page = self
+            .deps
             .messages
-            .get_history(caller_id, conversation_id, conversation_type, pagination)
-            .await
+            .get_history(
+                caller_id,
+                conversation_id,
+                conversation_type,
+                crate::services::dto::MessagePageQuery {
+                    limit: pagination.limit,
+                    ..Default::default()
+                },
+            )
+            .await?;
+        Ok(page.messages)
     }
 
     /// Searches message content visible to the caller in an organization.

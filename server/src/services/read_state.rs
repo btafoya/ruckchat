@@ -112,6 +112,26 @@ impl ReadStateService {
             .unread_counts_by_conversation(caller_id, &conversation_ids)
             .await
     }
+
+    /// Returns, of the given messages, those the caller has not yet read.
+    ///
+    /// Callers must already know the caller can read these messages (e.g.
+    /// they came from an authorized `MessageService` call) — this method
+    /// does not itself re-check conversation visibility.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying read-state lookup fails.
+    pub async fn unread_ids(
+        &self,
+        caller_id: UserId,
+        message_ids: &[MessageId],
+    ) -> ruckchat_common::Result<std::collections::HashSet<MessageId>> {
+        self.deps
+            .reads
+            .unread_message_ids(caller_id, message_ids)
+            .await
+    }
 }
 
 #[cfg(test)]

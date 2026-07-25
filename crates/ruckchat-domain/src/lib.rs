@@ -43,10 +43,10 @@ pub use permission::Permission;
 pub use reaction::Reaction;
 pub use repositories::{
     AuditLogRepository, ChannelMembershipRepository, ChannelRepository, CustomEmojiRepository,
-    DirectMessageConversationRepository, FileRepository, MessageReadRepository, MessageRepository,
-    OrganizationMembershipRepository, OrganizationRepository, OrganizationRoleRepository,
-    OrganizationSettingsRepository, PermissionRepository, ReactionRepository,
-    RolePermissionRepository, ServerSettingsRepository, SessionRepository,
+    DirectMessageConversationRepository, FileRepository, MessageCursor, MessageReadRepository,
+    MessageRepository, OrganizationMembershipRepository, OrganizationRepository,
+    OrganizationRoleRepository, OrganizationSettingsRepository, PermissionRepository,
+    ReactionRepository, RolePermissionRepository, ServerSettingsRepository, SessionRepository,
     TeamMembershipRepository, TeamRepository, TeamRoomRepository, UserRepository,
     WebPushSubscriptionRepository,
 };

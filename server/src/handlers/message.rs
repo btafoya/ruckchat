@@ -4,9 +4,9 @@ use crate::{
     Error,
     handlers::{
         auth::AuthUser,
-        dto::{ListResponse, PostChannelMessageRequest},
+        dto::{MessagePageResponse, PostChannelMessageRequest},
     },
-    services::dto::{EditMessageRequest, Pagination},
+    services::dto::{EditMessageRequest, MessagePageQuery},
     state::AppState,
 };
 use axum::{
@@ -24,18 +24,19 @@ pub async fn list_history(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Path(channel_id): Path<Uuid>,
-    Query(pagination): Query<Pagination>,
-) -> Result<Json<ListResponse<ruckchat_domain::Message>>, Error> {
-    let messages = state
+    Query(query): Query<MessagePageQuery>,
+) -> Result<Json<MessagePageResponse>, Error> {
+    let page = state
         .messages
-        .get_history(
-            auth_user.id,
-            channel_id,
-            ConversationType::Channel,
-            pagination.normalized(),
-        )
+        .get_history(auth_user.id, channel_id, ConversationType::Channel, query)
         .await?;
-    Ok(Json(ListResponse::new(messages)))
+    let ids: Vec<MessageId> = page.messages.iter().map(|m| m.id).collect();
+    let unread = state.read_state.unread_ids(auth_user.id, &ids).await?;
+    Ok(Json(MessagePageResponse::from_page(
+        page,
+        auth_user.id,
+        &unread,
+    )))
 }
 
 /// Posts a message to a channel.
@@ -90,15 +91,17 @@ pub async fn list_replies(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Path(message_id): Path<Uuid>,
-    Query(pagination): Query<Pagination>,
-) -> Result<Json<ListResponse<ruckchat_domain::Message>>, Error> {
-    let replies = state
+    Query(query): Query<MessagePageQuery>,
+) -> Result<Json<MessagePageResponse>, Error> {
+    let page = state
         .messages
-        .get_thread_replies(
-            auth_user.id,
-            MessageId::from_uuid(message_id),
-            pagination.normalized(),
-        )
+        .get_thread_replies(auth_user.id, MessageId::from_uuid(message_id), query)
         .await?;
-    Ok(Json(ListResponse::new(replies)))
+    let ids: Vec<MessageId> = page.messages.iter().map(|m| m.id).collect();
+    let unread = state.read_state.unread_ids(auth_user.id, &ids).await?;
+    Ok(Json(MessagePageResponse::from_page(
+        page,
+        auth_user.id,
+        &unread,
+    )))
 }

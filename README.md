@@ -14,7 +14,7 @@ or Kubernetes. One Rust server, one PostgreSQL database, and a handful of
 clients.
 
 ## Current Status
-
+did you check eb
 Phases 1–12 are complete. The server is a working REST API with authentication,
 organizations, channels, direct messages, file metadata, WebSocket real-time
 events, an MCP server, a native plugin SDK, runtime YAML configuration, a

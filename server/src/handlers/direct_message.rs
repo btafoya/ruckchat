@@ -4,9 +4,9 @@ use crate::{
     Error,
     handlers::{
         auth::AuthUser,
-        dto::{ListResponse, PostDmMessageRequest},
+        dto::{ListResponse, MessagePageResponse, PostDmMessageRequest},
     },
-    services::dto::{MarkReadRequest, Pagination, StartDmRequest},
+    services::dto::{MarkReadRequest, MessagePageQuery, StartDmRequest},
     state::AppState,
 };
 use axum::{
@@ -16,6 +16,7 @@ use axum::{
     response::IntoResponse,
 };
 use ruckchat_domain::ConversationType;
+use ruckchat_id::MessageId;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -57,18 +58,24 @@ pub async fn list_messages(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Path(conversation_id): Path<Uuid>,
-    Query(pagination): Query<Pagination>,
-) -> Result<Json<ListResponse<ruckchat_domain::Message>>, Error> {
-    let messages = state
+    Query(query): Query<MessagePageQuery>,
+) -> Result<Json<MessagePageResponse>, Error> {
+    let page = state
         .messages
         .get_history(
             auth_user.id,
             conversation_id,
             ConversationType::DirectMessage,
-            pagination.normalized(),
+            query,
         )
         .await?;
-    Ok(Json(ListResponse::new(messages)))
+    let ids: Vec<MessageId> = page.messages.iter().map(|m| m.id).collect();
+    let unread = state.read_state.unread_ids(auth_user.id, &ids).await?;
+    Ok(Json(MessagePageResponse::from_page(
+        page,
+        auth_user.id,
+        &unread,
+    )))
 }
 
 /// Hides a direct message conversation from the caller's sidebar.

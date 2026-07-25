@@ -1,6 +1,7 @@
 //! File service.
 
 use crate::services::dto::{AttachFileRequest, FileResponse, RecordUploadRequest};
+use crate::services::events::EventBus;
 use ruckchat_common::Error;
 use ruckchat_domain::{
     File, FileRepository, MessageRepository, OrganizationMembershipRepository,
@@ -21,6 +22,8 @@ pub struct FileServiceDeps {
     pub memberships: Arc<dyn OrganizationMembershipRepository + Send + Sync>,
     /// Organization settings repository.
     pub settings: Arc<dyn OrganizationSettingsRepository + Send + Sync>,
+    /// Event bus for real-time updates.
+    pub events: Arc<dyn EventBus + Send + Sync>,
 }
 
 /// File metadata, storage, and attachment operations.
@@ -291,6 +294,17 @@ impl FileService {
             .attach_to_message(request.message_id, request.file_id)
             .await?;
 
+        let updated_message = self
+            .deps
+            .messages
+            .by_id(request.message_id)
+            .await?
+            .ok_or_else(|| Error::NotFound("message".into()))?;
+        self.deps
+            .events
+            .publish_message_updated(&updated_message)
+            .await?;
+
         Ok(())
     }
 }
@@ -300,8 +314,8 @@ mod tests {
     use super::*;
     use crate::services::dto::{AttachFileRequest, RecordUploadRequest};
     use crate::testing::{
-        MockFileRepository, MockMessageRepository, MockOrganizationMembershipRepository,
-        MockOrganizationSettingsRepository,
+        MockEventBus, MockFileRepository, MockMessageRepository,
+        MockOrganizationMembershipRepository, MockOrganizationSettingsRepository,
     };
     use ruckchat_domain::{Channel, ConversationType, Message, OrganizationMembership, Role, User};
     use ruckchat_id::OrganizationId;
@@ -315,6 +329,7 @@ mod tests {
                 messages: Arc::new(MockMessageRepository::new()),
                 memberships: Arc::new(MockOrganizationMembershipRepository::new()),
                 settings: Arc::new(MockOrganizationSettingsRepository::new()),
+                events: Arc::new(MockEventBus::new()),
             },
             dir,
         )

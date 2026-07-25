@@ -2,6 +2,7 @@ export { useChannels } from './useChannels';
 export { useDeepLink } from './useDeepLink';
 export { useDirectMessages } from './useDirectMessages';
 export { useMessages } from './useMessages';
+export { useMarkReadBatcher } from './useMarkReadBatcher';
 export { useNotifications, type NotificationState } from './useNotifications';
 export { useOrganizations } from './useOrganizations';
 export { useOrgMembers } from './useOrgMembers';

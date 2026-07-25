@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
 import { createApi } from '../api';
@@ -12,14 +12,54 @@ interface MessageItemProps {
   message: Message;
   organizationId: string;
   showReplyButton?: boolean;
+  /** Whether this message is unread by the caller; renders a dot marker. */
+  isUnread?: boolean;
+  /** Called once, the instant this message scrolls into view, when unread. */
+  onVisible?: (messageId: string) => void;
 }
 
-export function MessageItem({ message, organizationId, showReplyButton = true }: MessageItemProps): JSX.Element {
+export function MessageItem({
+  message,
+  organizationId,
+  showReplyButton = true,
+  isUnread = false,
+  onVisible,
+}: MessageItemProps): JSX.Element {
   const { session } = useSessionContext();
   const { reactions, addReaction, removeReaction, retryMessage, startEdit } = useMessageContext();
   const { apiUrl } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [isReacting, setIsReacting] = useState(false);
+  const rootRef = useRef<HTMLElement | null>(null);
+  const notifiedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isUnread || !onVisible || notifiedRef.current) {
+      return;
+    }
+    const node = rootRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+    // Without an explicit `root`, IntersectionObserver checks intersection
+    // against the top-level document viewport, not the actual scrollable
+    // message list — so items clipped by the list's own `overflow-y-auto`
+    // would still report as "intersecting" (the container itself is
+    // on-screen), marking everything read on mount. Anchor to the nearest
+    // scrollable ancestor instead.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !notifiedRef.current) {
+          notifiedRef.current = true;
+          onVisible(message.id);
+          observer.disconnect();
+        }
+      },
+      { root: node.closest('.overflow-y-auto'), threshold: 0.5 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [isUnread, onVisible, message.id]);
 
   const messageReactions = reactions[message.id] ?? [];
   const isDeleted = message.deleted_at != null;
@@ -73,8 +113,14 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
       : `/org/${organizationId}/dm/${message.conversation_id}/thread/${message.id}`;
 
   return (
-    <article className="flex flex-col gap-1 rounded-md p-2 hover:bg-message-hover">
+    <article ref={rootRef} className="flex flex-col gap-1 rounded-md p-2 hover:bg-message-hover">
       <div className="flex items-baseline gap-2">
+        {isUnread && (
+          <span
+            className="h-2 w-2 flex-shrink-0 rounded-full bg-accent"
+            aria-label="Unread message"
+          />
+        )}
         <span className="text-sm font-semibold text-accent">{message.author_display_name ?? message.author_id}</span>
         <span className="text-xs text-text-muted">{new Date(message.created_at).toLocaleString()}</span>
         {isPending && <span className="text-xs text-warning">Sending...</span>}
@@ -86,6 +132,22 @@ export function MessageItem({ message, organizationId, showReplyButton = true }:
           <MessageContent content={message.content} />
         )}
       </div>
+
+      {!isDeleted && message.attachments && message.attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {message.attachments.map((file) => (
+            <a
+              key={file.id}
+              href={`${apiUrl}/files/${file.id}/content`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 rounded-full bg-surface-elevated px-2 py-1 text-xs text-text hover:underline"
+            >
+              📎 {file.file_name}
+            </a>
+          ))}
+        </div>
+      )}
 
       {grouped.length > 0 && (
         <div className="mt-1 flex flex-wrap items-center gap-1">

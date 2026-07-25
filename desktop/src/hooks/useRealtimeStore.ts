@@ -20,18 +20,18 @@ export function useRealtimeStore(
   const onEvent = useCallback(
     (event: ServerEvent) => {
       switch (event.type) {
-        case 'message.created':
+        case 'message_created':
           messages.appendMessage(event.message);
           readState.increment(event.message.conversation_id);
           void notifications?.maybeNotify(event);
           break;
-        case 'message.updated':
+        case 'message_updated':
           messages.updateMessage(event.message);
           break;
-        case 'message.deleted':
+        case 'message_deleted':
           messages.removeMessage(event.message.id);
           break;
-        case 'reaction.added':
+        case 'reaction_added':
           messages.addReaction(event.message_id, {
             message_id: event.message_id,
             user_id: event.user_id,
@@ -39,20 +39,23 @@ export function useRealtimeStore(
             created_at: new Date().toISOString(),
           });
           break;
-        case 'reaction.removed':
+        case 'reaction_removed':
           messages.removeReaction(event.message_id, event.user_id, event.emoji);
           break;
-        case 'typing.updated':
+        case 'typing':
           typing.addTypingUser(event.conversation_id, event.user_id);
           break;
-        case 'presence.updated':
+        case 'presence':
           presence.setUserPresence(event.user_id, event.status);
           break;
-        case 'connection.established':
+        case 'connection_established':
           // Handled by connection status UI if needed.
           break;
-        case 'read_state.updated':
+        case 'read_state_updated':
           readState.applyRemoteRead(event.conversation_id);
+          for (const messageId of event.message_ids) {
+            messages.markRead(messageId);
+          }
           break;
       }
     },

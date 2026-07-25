@@ -33,14 +33,16 @@ vi.mock('../api', async () => {
     ...actual,
     createApi: () => ({
       channels: {
-        listMessages: vi.fn().mockResolvedValue([]),
-        listReplies: vi.fn().mockResolvedValue([]),
+        listMessages: vi.fn().mockResolvedValue({ items: [], has_more_older: false, has_more_newer: false }),
+        listReplies: vi.fn().mockResolvedValue({ items: [], has_more_older: false, has_more_newer: false }),
         postMessage: vi.fn().mockResolvedValue({}),
+        markRead: vi.fn().mockResolvedValue(undefined),
       },
       directMessages: {
         list: vi.fn().mockResolvedValue([]),
-        listMessages: vi.fn().mockResolvedValue([]),
+        listMessages: vi.fn().mockResolvedValue({ items: [], has_more_older: false, has_more_newer: false }),
         postMessage: vi.fn().mockResolvedValue({}),
+        markRead: vi.fn().mockResolvedValue(undefined),
       },
       reactions: {
         add: mockAddReaction,
@@ -90,16 +92,26 @@ const mockMessage: Message = {
 const mockMessageState: MessagesState = {
   messages: [mockMessage],
   isLoading: false,
-  isLoadingMore: false,
+  isLoadingOlder: false,
+  isLoadingNewer: false,
   error: null,
-  hasMore: true,
+  hasMoreOlder: true,
+  hasMoreNewer: false,
+  unreadIds: new Set(),
+  lastAppendedId: null,
   refresh: vi.fn(),
-  loadMore: vi.fn().mockResolvedValue(undefined),
+  loadOlder: vi.fn().mockResolvedValue(undefined),
+  loadNewer: vi.fn().mockResolvedValue(undefined),
+  jumpToMessage: vi.fn().mockResolvedValue(undefined),
   sendMessage: vi.fn().mockResolvedValue(undefined),
   retryMessage: vi.fn().mockResolvedValue(undefined),
   loadThreadReplies: vi.fn().mockResolvedValue(undefined),
+  loadOlderReplies: vi.fn().mockResolvedValue(undefined),
+  loadNewerReplies: vi.fn().mockResolvedValue(undefined),
   threadReplies: [],
   threadRepliesLoading: false,
+  threadHasMoreOlder: true,
+  threadHasMoreNewer: false,
   reactions: {
     'msg-1': [
       {
@@ -115,6 +127,7 @@ const mockMessageState: MessagesState = {
   appendMessage: vi.fn(),
   updateMessage: vi.fn(),
   removeMessage: vi.fn(),
+  markRead: vi.fn(),
   editingMessage: null,
   startEdit: vi.fn(),
   cancelEdit: vi.fn(),
@@ -126,7 +139,10 @@ const mockSession = {
   user: { id: 'user-1', email: 'user@example.com', display_name: 'User', avatar_url: null, is_server_admin: false },
 };
 
-function renderPane(initialEntries = ['/org/org-1/channel/chan-1']) {
+function renderPane(
+  initialEntries = ['/org/org-1/channel/chan-1'],
+  messageState: MessagesState = mockMessageState,
+) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
       <SettingsProvider
@@ -184,7 +200,7 @@ function renderPane(initialEntries = ['/org/org-1/channel/chan-1']) {
                   refresh: vi.fn(),
                 }}
               >
-                <MessageProvider value={mockMessageState}>
+                <MessageProvider value={messageState}>
                   <PresenceProvider value={{ presence: {}, setUserPresence: vi.fn() }}>
                     <TypingProvider
                       value={{
@@ -225,17 +241,22 @@ describe('MessagePane', () => {
     expect(screen.getByText(/Hello everyone/i)).toBeInTheDocument();
   });
 
-  it('shows a load-more button when more history is available', () => {
-    renderPane();
-    expect(screen.getByRole('button', { name: /Load more history/i })).toBeInTheDocument();
+  it('shows an unread dot for an unread message from another user', () => {
+    const otherAuthorMessage: Message = { ...mockMessage, id: 'msg-2', author_id: 'user-2' };
+    const state: MessagesState = {
+      ...mockMessageState,
+      messages: [otherAuthorMessage],
+      unreadIds: new Set(['msg-2']),
+    };
+    renderPane(['/org/org-1/channel/chan-1'], state);
+    expect(screen.getByLabelText('Unread message')).toBeInTheDocument();
   });
 
-  it('loads more history when the button is clicked', async () => {
-    renderPane();
-    fireEvent.click(screen.getByRole('button', { name: /Load more history/i }));
-    await waitFor(() => {
-      expect(mockMessageState.loadMore).toHaveBeenCalled();
-    });
+  it("does not show an unread dot for the caller's own message", () => {
+    // mockMessage is authored by 'user-1', the same id as mockSession.user.id.
+    const state: MessagesState = { ...mockMessageState, unreadIds: new Set(['msg-1']) };
+    renderPane(['/org/org-1/channel/chan-1'], state);
+    expect(screen.queryByLabelText('Unread message')).not.toBeInTheDocument();
   });
 
   it('renders existing reactions', () => {

@@ -21,12 +21,25 @@
 
 ## Pagination
 
-- List endpoints use cursor-based pagination where order matters (messages).
-- Offset-based pagination is acceptable for stable lists (channels, members).
-- Standard query parameters:
-  - `limit`: number of items to return (default 20, max 100).
-  - `cursor`: opaque cursor for cursor pagination.
-  - `offset`: integer offset for offset pagination.
+- List endpoints use cursor-based pagination where order matters (messages
+  and thread replies). Offset-based pagination is used for stable lists
+  (channels, members) and for search/MCP results.
+- Message history/replies (`GET /channels/{id}/messages`,
+  `GET /direct_messages/{id}/messages`, `GET /messages/{id}/replies`) query
+  parameters:
+  - `limit`: number of items to return (default 50, max 100).
+  - `before_id`: return the messages immediately older than this message id.
+  - `after_id`: return the messages immediately newer than this message id.
+  - `around_id`: return messages centered on this message id, both
+    directions.
+  - None of the three: return the newest page.
+  - The server resolves an id to its internal `(created_at, id)` cursor;
+    clients never construct a cursor directly. See
+    `docs/ADR-016-Cursor-Based-Message-Pagination.md`.
+  - Responses are `{ items, has_more_older, has_more_newer }`, ascending
+    (oldest-first) order. `has_more_older`/`has_more_newer` are only
+    authoritative for the direction(s) actually requested.
+  - Standard offset-based query parameters elsewhere: `limit` and `offset`.
 
 ## Error Format
 

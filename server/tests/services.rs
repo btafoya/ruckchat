@@ -212,6 +212,7 @@ async fn services() -> Services {
                 messages: messages_for_files,
                 memberships: memberships.clone(),
                 settings: settings.clone(),
+                events: Arc::new(NoOpEventBus),
             },
             std::env::temp_dir().join(format!("ruckchat-test-{}", uuid::Uuid::new_v4())),
         ),
@@ -439,7 +440,7 @@ async fn message_post_edit_delete_and_history() {
         )
         .await
         .unwrap();
-    assert!(history.iter().any(|m| m.id == msg.id));
+    assert!(history.messages.iter().any(|m| m.id == msg.id));
 
     let edited = svc
         .messages
@@ -465,7 +466,7 @@ async fn message_post_edit_delete_and_history() {
         )
         .await
         .unwrap();
-    assert!(!history.iter().any(|m| m.id == msg.id));
+    assert!(!history.messages.iter().any(|m| m.id == msg.id));
 }
 
 #[tokio::test]
@@ -529,7 +530,7 @@ async fn direct_message_flow() {
         )
         .await
         .unwrap();
-    assert!(history.iter().any(|m| m.id == msg.id));
+    assert!(history.messages.iter().any(|m| m.id == msg.id));
 }
 
 #[tokio::test]

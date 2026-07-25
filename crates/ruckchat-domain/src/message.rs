@@ -1,5 +1,6 @@
 //! Message aggregate.
 
+use crate::File;
 use ruckchat_common::{Error, Result, time::OffsetDateTime, validation::MESSAGE_CONTENT_MAX_LEN};
 use ruckchat_id::{MessageId, UserId};
 use serde::{Deserialize, Serialize};
@@ -64,6 +65,9 @@ pub struct Message {
     /// Users explicitly mentioned in the message.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub mentioned_user_ids: Vec<UserId>,
+    /// Files attached to the message, populated when reading messages.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub attachments: Vec<File>,
     /// Timestamp when the message was created.
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
@@ -110,6 +114,7 @@ impl Message {
             author_display_name: None,
             content,
             mentioned_user_ids,
+            attachments: Vec::new(),
             created_at: now,
             updated_at: now,
             deleted_at: None,
