@@ -168,7 +168,7 @@ docker build -t ruckchat/server:latest .
 Or use the helper script:
 
 ```bash
-./scripts/build-server.sh
+./scripts/publish.sh --build-only vX.Y.Z
 ```
 
 Two Docker Compose files are provided:

@@ -16,7 +16,7 @@ RuckChat is a self-hosted team chat platform. The runtime stack is:
 This test plan applies to:
 
 - Local development builds before a commit.
-- Pre-release validation via `scripts/release.sh`.
+- Pre-release validation via `scripts/publish.sh`.
 - Production deployment smoke tests (Docker Compose).
 
 ## 2. Test Environments
@@ -477,7 +477,7 @@ APIs.
 ### 7.1 Build the server image
 
 ```bash
-./scripts/build-server.sh
+./scripts/publish.sh --build-only vX.Y.Z
 ```
 
 Expected result: the image `ruckchat-server:latest` is built with embedded Web
@@ -553,7 +553,7 @@ Run before tagging a release:
   `RUCKCHAT_TEST_ADMIN_DATABASE_URL` set.
 - [ ] `cd desktop && pnpm typecheck && pnpm test` passes.
 - [ ] `cd web && pnpm typecheck && pnpm test` passes.
-- [ ] `./scripts/build-server.sh` produces a server image.
+- [ ] `./scripts/publish.sh --build-only vX.Y.Z` produces a server image.
 - [ ] Server starts with a generated config and applies migrations.
 - [ ] Registration, login, channel creation, messaging, reactions, DM,
   WebSocket, file upload, and logout smoke tests pass.

@@ -56,5 +56,18 @@ futures-util = { version = "0.3.33", default-features = false, features = ["std"
 http-body-util = "0.1"
 bytes = "1"
 
+[package.metadata.deb]
+maintainer = "Brian Tafoya <btafoya@briantafoya.com>"
+copyright = "Copyright © 2026 Brian Tafoya"
+license-file = ["../LICENSE", "4"]
+extended-description = "RuckChat REST API, WebSocket, MCP, and Web UI server."
+depends = "$auto"
+section = "net"
+priority = "optional"
+assets = [
+    ["target/release/ruckchat-server", "usr/bin/ruckchat-server", "755"],
+    ["../README.md", "usr/share/doc/ruckchat-server/README", "644"],
+]
+
 [lints]
 workspace = true

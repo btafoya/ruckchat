@@ -161,21 +161,23 @@ Use the release automation script:
 
 ```bash
 # Preview the release without making changes
-./scripts/release.sh --dry-run v0.2.0
+./scripts/publish.sh --dry-run v0.2.0
 
 # Run the full release pipeline interactively
-./scripts/release.sh v0.2.0
+./scripts/publish.sh v0.2.0
 ```
 
 The script checks out `origin/main`, bumps version numbers in `Cargo.toml`,
 `desktop/package.json`, `web/package.json`, and `desktop/src-tauri/tauri.conf.json`,
 generates a `CHANGELOG.md` entry, runs `cargo fmt`/`clippy`/`test`, builds the
-server Docker image, builds desktop Tauri bundles for the current host (and
-attempts Windows/macOS cross-compilation when the Rust targets are installed),
-GPG-signs a commit and an annotated tag, and pushes both to `origin/main`.
-
-Pushing the tag triggers `.github/workflows/release.yml`, which publishes the
-server Docker image and builds cross-platform desktop installers.
+server Docker image and a `cargo-deb` `.deb` package, builds desktop Tauri
+bundles for the current host (and attempts Windows/macOS cross-compilation
+when the Rust targets are installed), GPG-signs a commit and an annotated
+tag, and pushes both to `origin/main` — then pushes the Docker image to GHCR
+and creates the GitHub Release itself, uploading the `.deb` and every desktop
+bundle it built. There is no CI publish step; `scripts/publish.sh` is the
+sole release pipeline. See `--help` for flags like `--build-only` and
+`--publish-only`.
 
 ## API
 

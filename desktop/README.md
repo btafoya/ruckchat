@@ -24,16 +24,18 @@ Installers are produced under `src-tauri/target/release/bundle/`.
 
 ## Release builds
 
-Pushing a Git tag matching `v*` triggers `.github/workflows/release.yml`, which
-builds cross-platform installers:
+`./scripts/publish.sh vX.Y.Z` (run from the repository root) builds desktop
+installers for the host platform and cross-compiles for any other platform
+whose Rust target is installed locally:
 
-- Linux: `.deb` and AppImage on `ubuntu-22.04`
-- macOS: `.dmg` on `macos-latest`
-- Windows: `.msi` and NSIS on `windows-latest`
+- Linux: `.deb` and AppImage
+- macOS: `.dmg` (requires an installed `*-apple-darwin` Rust target)
+- Windows: `.msi` and NSIS (requires the `x86_64-pc-windows-msvc` Rust target)
 
-The workflow uses `tauri-apps/tauri-action` and attaches the bundles to a GitHub
-release named after the tag. Unsigned installers are produced unless repository
-secrets for code signing are configured.
+The script GPG-signs and pushes the release tag, then attaches every bundle it
+built to a GitHub release named after the tag via the `gh` CLI. There is no CI
+publish step. Unsigned installers are produced unless code-signing secrets are
+configured locally.
 
 Generate application icons before producing release installers:
 

@@ -14,8 +14,8 @@ into concrete deliverables:
 1. Define a versioned migration snapshot format for domain data.
 2. Add a server CLI that exports and imports that snapshot idempotently.
 3. Provide a production Docker image for the server.
-4. Provide a GitHub Actions workflow that builds cross-platform desktop
-   installers on version tags.
+4. Provide a script that builds cross-platform desktop installers and
+   publishes releases on version tags.
 5. Update packaging, migration, and operations documentation.
 
 We needed to decide:
@@ -73,15 +73,28 @@ counts without writing anything.
   `HEALTHCHECK` probes `GET /` so orchestrators can detect a healthy container.
 - A `docker-compose.yml` orchestrates PostgreSQL 17 and the server, mounting
   `ruckchat.yaml` plus named volumes for uploaded files and plugins.
-- A `scripts/build-server.sh` script builds the Web UI assets, regenerates SQLx
-  offline query data, and builds the Docker image in one step.
+- A single `scripts/publish.sh` script builds the Web UI assets, regenerates
+  SQLx offline query data, and builds the Docker image (`--build-only` runs
+  just this step).
 
-### Desktop CI packaging
+### Desktop and release packaging
 
-A `.github/workflows/release.yml` workflow triggers on `v*` tags and builds
-Tauri bundles on `ubuntu-22.04` (`.deb` + AppImage), `macos-latest` (`.dmg`),
-and `windows-latest` (`.msi` + NSIS). The workflow uses `tauri-apps/tauri-action`
-to build installers and attach them to a GitHub release named after the tag.
+`scripts/publish.sh` is the sole release pipeline: it bumps versions,
+generates a `CHANGELOG.md` entry, runs `cargo fmt`/`clippy`/`test`, builds the
+server Docker image and a `cargo-deb` `.deb` package, builds Tauri desktop
+bundles for the host platform (cross-compiling to any additional Rust targets
+that happen to be installed locally), commits and GPG-signs the release,
+pushes the tag, then publishes the Docker image to GHCR (`:VERSION` and
+`:latest`) and creates the GitHub Release — uploading the server `.deb` and
+every desktop bundle it built — via the `gh` CLI. `--dry-run`, `--build-only`,
+`--publish-only`, `--no-build`, `--no-publish`, and `--no-desktop` gate which
+phases run. This replaces the former split across
+`scripts/release.sh`/`scripts/build-server.sh` and a
+`.github/workflows/release.yml` CI job that rebuilt the Docker image and
+created the release via `tauri-apps/tauri-action`; that workflow only ever
+built Linux bundles on self-hosted runners (no genuine macOS/Windows CI
+builds remained) and duplicated work `publish.sh` now does locally, so it was
+removed rather than kept in parallel.
 
 ## Consequences
 
@@ -91,8 +104,8 @@ to build installers and attach them to a GitHub release named after the tag.
   a single JSON file.
 - Docker deployment is first-class and reproducible, with no runtime dependency
   on a build-time database.
-- Desktop releases are automated and produce platform installers on every
-  version tag.
+- Desktop releases are produced by a single script invocation, alongside the
+  server Docker image, `.deb` package, and GitHub Release in one pipeline.
 - SQLx offline metadata makes CI and Docker builds deterministic.
 
 ### Negative
@@ -106,6 +119,9 @@ to build installers and attach them to a GitHub release named after the tag.
   the UI requires rebuilding the image.
 - macOS and Windows installers are unsigned until code-signing secrets are added
   to the repository. Users may see gatekeeper/smart-screen warnings.
+- Cross-platform desktop bundles now depend on the operator's local machine
+  having the relevant Rust cross-compilation targets installed; there is no
+  longer a CI job that guarantees native macOS/Windows builds.
 
 ## Implementation
 
@@ -120,10 +136,9 @@ to build installers and attach them to a GitHub release named after the tag.
 - `.dockerignore` — excludes build artifacts, dependencies, and secrets while
   keeping `web/dist/` and `.sqlx/` available for the build context.
 - `docker-compose.yml` — PostgreSQL 17 + server with health checks and volumes.
-- `scripts/build-server.sh` — builds web assets, refreshes `.sqlx/`, and builds
-  the Docker image.
-- `.github/workflows/release.yml` — cross-platform Tauri release builds on `v*`
-  tags.
+- `scripts/publish.sh` — builds web assets, refreshes `.sqlx/`, builds the
+  Docker image and `.deb` package, builds desktop bundles, bumps versions,
+  tags, and publishes to GHCR and GitHub Releases.
 - `book/014-Deployment.md`, `book/015-Migration.md`, `book/016-Operations.md`,
   `server/README.md`, `desktop/README.md` — updated with packaging, migration,
   and release instructions.

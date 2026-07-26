@@ -109,16 +109,20 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   JSON domain-data export/import with idempotent `ON CONFLICT DO NOTHING`
   semantics and a dry-run mode. The repository includes a multi-stage `Dockerfile`
   using SQLx offline mode, a runtime `docker-compose.yml` with PostgreSQL 17, a
-  `docker-compose.build.yml` for source builds, a `scripts/build-server.sh` helper,
-  and a `.github/workflows/release.yml` workflow that publishes the server Docker
-  image and builds cross-platform Tauri desktop installers on `v*` tags.
+  `docker-compose.build.yml` for source builds, and a `scripts/publish.sh`
+  helper that builds the server Docker image and publishes releases.
 - RocketChat → RuckChat migration tool: standalone `rocketchat2ruckchat` binary
   crate in `crates/rocketchat2ruckchat/` with RocketChat and RuckChat REST clients,
   a SQLite mapping store, deterministic UUIDv5 transforms, file/emoji upload
   pipeline, dry-run, and interactive prompts.
-- `scripts/release.sh vX.Y.Z` automates the release pipeline: version bumps,
-  CHANGELOG generation, validation checks, local server and desktop builds,
-  GPG-signed commit/tag, and push.
+- `scripts/publish.sh vX.Y.Z` automates the full release pipeline: version
+  bumps, CHANGELOG generation, validation checks, local server and desktop
+  builds, GPG-signed commit/tag/push, and publishing the Docker image to
+  GHCR and the GitHub Release with all built assets. Replaces the former
+  `scripts/release.sh` / `scripts/build-server.sh` split and the
+  `.github/workflows/release.yml` CI publish job, which is retired; the
+  legacy scripts are kept as `scripts/release-old.sh` /
+  `scripts/build-server-old.sh` for reference.
 - Phase 14 (Web UI Admin Panel): server-wide `users.is_server_admin` flag,
   database-backed `server_settings` with YAML override precedence, append-only
   `audit_log`, server-admin impersonation, server admin REST endpoints under
@@ -238,8 +242,11 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
 | `cargo run -p rocketchat2ruckchat -- --config migration.yaml --apply` | Apply a RocketChat → RuckChat migration |
 | `cargo run -p rocketchat2ruckchat -- --interactive` | Run the migration tool with interactive prompts |
 | `cargo sqlx prepare --workspace` | Generate SQLx offline metadata for Docker builds |
-| `./scripts/build-server.sh` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image |
-| `./scripts/release.sh vX.Y.Z` | Automate a release: bump versions, run checks/builds, tag, sign, and push |
+| `./scripts/publish.sh --dry-run vX.Y.Z` | Print the full release plan without executing it |
+| `./scripts/publish.sh vX.Y.Z` | Full release: bump versions, run checks/builds, tag, sign, push, and publish to GHCR/GitHub |
+| `./scripts/publish.sh --no-confirm vX.Y.Z-rc.1` | Full release without interactive confirmation prompts |
+| `./scripts/publish.sh --build-only` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image/`.deb`/desktop bundles only |
+| `./scripts/publish.sh --publish-only vX.Y.Z` | Publish previously built artifacts (Docker image, `.deb`, desktop bundles) without rebuilding |
 | `./scripts/server.sh start` | Start the server and PostgreSQL via Docker Compose (pre-built image; always recreates) |
 | `./scripts/server.sh start --build` | Rebuild the server image from source (`docker-compose.build.yml`) and start it; always recompiles, even if a `root-server` image already exists |
 | `./scripts/server.sh stop` | Stop and remove the Docker Compose stack |
@@ -411,9 +418,10 @@ root/
 - `Dockerfile` — Multi-stage SQLx-offline server image build.
 - `docker-compose.yml` — PostgreSQL 17 + server orchestration.
 - `scripts/server.sh` — Start, stop, restart, and inspect the Docker Compose stack.
-- `scripts/build-server.sh` — Build Web UI assets, refresh `.sqlx/`, and build the Docker image.
-- `scripts/release.sh` — Automate `vx.x.x` releases: bump versions, run checks/builds, generate CHANGELOG, GPG-sign commit/tag, and push.
-- `.github/workflows/release.yml` — Cross-platform Tauri desktop installer releases on `v*` tags.
+- `scripts/publish.sh` — Flag-driven release pipeline: bump versions, run
+  checks/builds, generate CHANGELOG, GPG-sign commit/tag/push, build the
+  Docker image, `.deb` package, and desktop bundles, and publish to GHCR and
+  GitHub Releases.
 - `docs/ADR-003-Shared-Crates.md`, `docs/ADR-004-Migrations.md`,
   `docs/ADR-005-Domain-Crate.md`, `docs/ADR-006-WebSocket-Real-Time-Events.md`,
   `docs/ADR-007-MCP-Server.md`, `docs/ADR-008-Desktop-Client.md`,
@@ -597,15 +605,16 @@ Or use the equivalent CodeGraph MCP server action.
 
 ## Release Workflow
 
-Use `scripts/release.sh` to create a release:
+Use `scripts/publish.sh` to create a release:
 
 ```bash
-./scripts/release.sh --dry-run v0.2.0
-./scripts/release.sh v0.2.0
+./scripts/publish.sh --dry-run v0.2.0
+./scripts/publish.sh v0.2.0
 ```
 
-The script expects a GPG signing key (`git config user.signingkey`) and operates
-on `origin/main`. It will:
+The script expects a GPG signing key (`git config user.signingkey`) and a
+`gh` CLI authenticated with `gh auth login`; it operates on `origin/main`.
+It will:
 
 1. Validate the requested `vx.x.x` (or `vx.x.x-<prerelease>`) tag.
 2. Bump versions in `Cargo.toml`, `desktop/package.json`, `web/package.json`,
@@ -613,14 +622,23 @@ on `origin/main`. It will:
 3. Generate a `CHANGELOG.md` entry from commits since the last tag.
 4. Run `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features`,
    and `cargo test --workspace`.
-5. Build the server Docker image via `scripts/build-server.sh`.
+5. Build the server Docker image and a `cargo-deb` `.deb` package.
 6. Build desktop Tauri bundles for the host OS and cross-compile for
    Windows/macOS when the Rust targets are installed.
 7. Commit and GPG-sign as `Brian Tafoya <btafoya@briantafoya.com>`, create an
    annotated GPG-signed tag, and push both to `origin/main`.
+8. Push the Docker image to GHCR (`:VERSION` and `:latest`) and create the
+   GitHub Release, uploading the server `.deb` and every desktop bundle built.
 
-Pushing the tag triggers `.github/workflows/release.yml`, which publishes the
-server image and builds cross-platform desktop installers.
+Other flags: `--build-only` (steps 5–6 only, no bump/commit/tag/publish),
+`--publish-only` (steps 8 only, for retrying a failed publish against
+already-built artifacts and an already-tagged version), `--no-build`,
+`--no-publish`, `--no-checks`, `--no-bump`, `--no-desktop`, and `--no-confirm`.
+Run `./scripts/publish.sh --help` for the full list.
+
+There is no CI publish job — `scripts/publish.sh` is the sole release
+pipeline and publishes GHCR and GitHub Release artifacts directly from the
+machine it runs on.
 
 ## Gotchas
 
@@ -658,8 +676,10 @@ server image and builds cross-platform desktop installers.
   `migration <version> was previously applied but is missing in the resolved
   migrations` — the mirror image of the missing-migration error the stale
   image itself causes when it's the older side. After a source-build restart
-  that applied new migrations, run `./scripts/build-server.sh` to refresh
-  `ruckchat-server:latest` too before switching back to the plain path.
+  that applied new migrations, run `./scripts/publish.sh --build-only vX.Y.Z`
+  to refresh `ruckchat-server:latest` too before switching back to the plain
+  path (`build_server_image` always tags both `ruckchat-server:${VERSION}`
+  and `ruckchat-server:latest` locally).
 
 - WebSocket event payload tags: the shared `ServerEvent` enum uses serde
   `rename_all = "snake_case"`, so emitted JSON tags are `message_created`,

@@ -79,7 +79,7 @@ RUCKCHAT_VERSION=0.1.0 docker compose up -d
 Build the server image first:
 
 ```bash
-./scripts/build-server.sh
+./scripts/publish.sh --build-only vX.Y.Z
 ```
 
 Or build manually after compiling the Web UI assets and refreshing SQLx offline
@@ -159,9 +159,10 @@ v1 scales vertically. Horizontal scaling is not supported because WebSocket stat
 ## Desktop and Mobile Distribution
 
 - Desktop clients are released through GitHub releases as platform installers.
-  Pushing a tag matching `v*` triggers `.github/workflows/release.yml`, which
-  builds `.deb`/AppImage for Linux, `.dmg` for macOS, and `.msi`/NSIS for
-  Windows and attaches the installers to a GitHub release.
+  `./scripts/publish.sh vX.Y.Z` builds `.deb`/AppImage for Linux (and `.dmg`
+  for macOS / `.msi`/NSIS for Windows when the matching Rust cross-compile
+  targets are installed locally), tags and pushes the release, and attaches
+  the installers to a GitHub release itself — there is no CI publish step.
 - Web UI assets are built into the server image at the same revision as the
   server binary. For deployments that serve the Web UI from the server binary,
   no separate frontend release is required.
