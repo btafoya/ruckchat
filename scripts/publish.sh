@@ -20,7 +20,7 @@ set -euo pipefail
 #   --no-build     Skip local builds (Web UI, SQLx prepare, Docker, cargo-deb,
 #                  desktop bundles). Implies no local artifacts are produced.
 #   --no-publish   Skip GHCR push and GitHub Release upload.
-#   --publish-only Equivalent to --no-build --publish; publish existing artifacts.
+#   --publish-only Skip bump/build; publish existing artifacts for an already-tagged version.
 #   --build-only   Run only the build steps; do not bump, commit, tag, or publish.
 #   --no-desktop   Skip desktop frontend deps and desktop bundle builds/uploads.
 #   -h, --help     Show this help message.
@@ -28,7 +28,7 @@ set -euo pipefail
 # Examples:
 #   ./scripts/publish.sh --dry-run v0.3.0
 #   ./scripts/publish.sh v0.3.0
-#   ./scripts/publish.sh --no-build --publish v0.3.0
+#   ./scripts/publish.sh --publish-only v0.3.0
 #   ./scripts/publish.sh --build-only v0.3.0
 #   ./scripts/publish.sh --no-desktop v0.3.0
 
@@ -71,7 +71,7 @@ Options:
   --no-bump      Skip modifying version files and CHANGELOG.md.
   --no-build     Skip local builds (Web UI, SQLx, Docker, cargo-deb, desktop).
   --no-publish   Skip GHCR push and GitHub Release upload.
-  --publish-only Equivalent to --no-build --publish; publish existing artifacts.
+  --publish-only Skip bump/build; publish existing artifacts for an already-tagged version.
   --build-only   Run only builds; do not bump, commit, tag, or publish.
   --no-desktop   Skip desktop frontend deps and desktop bundle builds/uploads.
   -h, --help     Show this help message.
@@ -79,7 +79,7 @@ Options:
 Examples:
   $0 --dry-run v0.3.0
   $0 v0.3.0
-  $0 --no-build --publish v0.3.0
+  $0 --publish-only v0.3.0
   $0 --build-only v0.3.0
   $0 --no-desktop v0.3.0
 USAGE
