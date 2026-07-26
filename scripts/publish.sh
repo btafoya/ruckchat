@@ -225,6 +225,11 @@ require_gh() {
         echo "The 'gh' CLI is not authenticated. Run 'gh auth login' first." >&2
         exit 1
     fi
+    if ! gh auth status 2>&1 | grep -q "write:packages"; then
+        echo "The 'gh' CLI token is missing the 'write:packages' scope needed to push to GHCR." >&2
+        echo "Run: gh auth refresh -h github.com -s write:packages,read:packages" >&2
+        exit 1
+    fi
 }
 
 ensure_clean_tree() {
@@ -651,11 +656,24 @@ is_prerelease() {
     [[ "${stripped}" == *-* ]]
 }
 
+docker_login_ghcr() {
+    log "Logging in to ghcr.io..."
+    if [[ "${DRY_RUN}" == "1" ]]; then
+        echo "[dry-run] gh auth token | docker login ghcr.io -u <gh-user> --password-stdin"
+        return 0
+    fi
+    local gh_user
+    gh_user="$(gh api user --jq '.login')"
+    gh auth token | docker login ghcr.io -u "${gh_user}" --password-stdin
+}
+
 publish_docker_image() {
     if [[ "${NO_PUBLISH}" == "1" ]]; then
         log "Skipping Docker image publish (--no-publish)."
         return 0
     fi
+
+    docker_login_ghcr
 
     local owner image_base version_tag latest_tag
     owner="$(ghcr_owner)"
