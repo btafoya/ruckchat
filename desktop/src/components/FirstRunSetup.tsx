@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type JSX } from 'react';
 import { ApiClient } from '../api/client';
+import { ApiError } from '../api/error';
 import { useSettingsContext } from '../context';
 import type { ThemePreference } from '../hooks/useSettings';
 
@@ -18,6 +19,20 @@ function normalizeUrl(url: string): string {
   return trimmed.replace(/\/$/, '');
 }
 
+function formatSetupError(err: unknown): string {
+  if (err instanceof ApiError) {
+    const detail = err.body?.error;
+    return `Server responded with HTTP ${err.status}${detail ? `: ${detail}` : ''}.`;
+  }
+  if (err instanceof TypeError) {
+    return `Network error while contacting the server: ${err.message}`;
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return 'Could not reach a RuckChat server at this URL.';
+}
+
 export function FirstRunSetup(): JSX.Element {
   const {
     apiUrl,
@@ -29,7 +44,7 @@ export function FirstRunSetup(): JSX.Element {
     setServerUrlConfigured,
   } = useSettingsContext();
 
-  const [url, setUrl] = useState(apiUrl);
+  const [url, setUrl] = useState('');
   const [selectedTheme, setSelectedTheme] = useState<ThemePreference>(theme);
   const [enableNotifications, setEnableNotifications] = useState(notificationsEnabled);
   const [error, setError] = useState<string | null>(null);
@@ -66,11 +81,7 @@ export function FirstRunSetup(): JSX.Element {
         setNotificationsEnabled(enableNotifications);
         setServerUrlConfigured(true);
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? `Could not reach a RuckChat server at this URL: ${err.message}`
-            : 'Could not reach a RuckChat server at this URL.',
-        );
+        setError(formatSetupError(err));
       } finally {
         setIsSubmitting(false);
       }
