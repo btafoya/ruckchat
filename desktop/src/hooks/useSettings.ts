@@ -10,6 +10,7 @@ export interface Settings {
   notificationsEnabled: boolean;
   theme: ThemePreference;
   sidebarCollapsed: boolean;
+  serverUrlConfigured: boolean;
 }
 
 export interface SettingsState extends Settings {
@@ -19,6 +20,7 @@ export interface SettingsState extends Settings {
   setNotificationsEnabled: (enabled: boolean) => void;
   setTheme: (theme: ThemePreference) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setServerUrlConfigured: (configured: boolean) => void;
   reset: () => void;
 }
 
@@ -36,7 +38,7 @@ function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) {
-      return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system', sidebarCollapsed: false };
+      return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system', sidebarCollapsed: false, serverUrlConfigured: false };
     }
     const parsed = JSON.parse(raw) as unknown;
     if (typeof parsed === 'object' && parsed !== null) {
@@ -50,12 +52,13 @@ function loadSettings(): Settings {
         notificationsEnabled: typeof settings.notificationsEnabled === 'boolean' ? settings.notificationsEnabled : true,
         theme,
         sidebarCollapsed: typeof settings.sidebarCollapsed === 'boolean' ? settings.sidebarCollapsed : false,
+        serverUrlConfigured: typeof settings.serverUrlConfigured === 'boolean' ? settings.serverUrlConfigured : false,
       };
     }
   } catch {
     // ignore corrupted storage
   }
-  return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system', sidebarCollapsed: false };
+  return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system', sidebarCollapsed: false, serverUrlConfigured: false };
 }
 
 function saveSettings(settings: Settings): void {
@@ -118,8 +121,16 @@ export function useSettings(): SettingsState {
     });
   }, []);
 
+  const setServerUrlConfigured = useCallback((configured: boolean) => {
+    setSettings((prev) => {
+      const next = { ...prev, serverUrlConfigured: configured };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
   const reset = useCallback(() => {
-    const next = { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system' as const, sidebarCollapsed: false };
+    const next = { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system' as const, sidebarCollapsed: false, serverUrlConfigured: false };
     setSettings(next);
     saveSettings(next);
   }, []);
@@ -133,8 +144,9 @@ export function useSettings(): SettingsState {
       setNotificationsEnabled,
       setTheme,
       setSidebarCollapsed,
+      setServerUrlConfigured,
       reset,
     }),
-    [settings, isLoading, resolvedTheme, setApiUrl, setNotificationsEnabled, setTheme, setSidebarCollapsed, reset],
+    [settings, isLoading, resolvedTheme, setApiUrl, setNotificationsEnabled, setTheme, setSidebarCollapsed, setServerUrlConfigured, reset],
   );
 }

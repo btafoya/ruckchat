@@ -1,6 +1,7 @@
 export { AuthForm } from './AuthForm';
 export { AuthScreen } from './AuthScreen';
 export { Composer } from './Composer';
+export { FirstRunSetup } from './FirstRunSetup';
 export { MessagePane } from './MessagePane';
 export { OrgHome } from './OrgHome';
 export { OrgIndex } from './OrgIndex';

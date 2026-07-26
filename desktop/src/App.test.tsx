@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import App from './App';
 
 const mockListOrganizations = vi.fn().mockResolvedValue({ items: [] });
@@ -29,8 +29,31 @@ vi.mock('./api', async () => {
   };
 });
 
+const SETTINGS_KEY = 'ruckchat_settings';
+
 describe('App', () => {
-  it('renders the sign-in screen when not authenticated', async () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('renders the first-run setup screen when no server URL is configured', async () => {
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Welcome to RuckChat/i })).toBeInTheDocument();
+    });
+  });
+
+  it('renders the sign-in screen when the server URL is already configured', async () => {
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({
+        apiUrl: 'http://localhost:3000',
+        notificationsEnabled: true,
+        theme: 'system',
+        sidebarCollapsed: false,
+        serverUrlConfigured: true,
+      }),
+    );
     render(<App />);
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Sign in to RuckChat/i })).toBeInTheDocument();
