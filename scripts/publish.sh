@@ -178,15 +178,6 @@ parse_args() {
         echo "Conflict: --build-only and --no-build cannot be used together." >&2
         exit 1
     fi
-    if [[ "${BUILD_ONLY}" == "1" && "${NO_PUBLISH}" == "0" ]]; then
-        echo "Conflict: --build-only implies no publishing; do not use with publishing." >&2
-        exit 1
-    fi
-    if [[ "${BUILD_ONLY}" == "1" && "${NO_BUMP}" == "0" ]]; then
-        echo "Conflict: --build-only implies no version bump; use --no-bump or --build-only alone." >&2
-        exit 1
-    fi
-
     if [[ "${NO_BUILD}" == "1" && "${NO_PUBLISH}" == "1" && "${BUILD_ONLY}" == "0" ]]; then
         log "Warning: --no-build and --no-publish together mean nothing will be built or published."
     fi
