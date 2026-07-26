@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faAnglesLeft, faAnglesRight } from '@fortawesome/free-solid-svg-icons';
 import { createApi } from '../api';
 import type { Channel } from '../api';
 import {
@@ -161,7 +163,7 @@ export function Sidebar({
               onClick={onToggleCollapse}
               className="text-xs text-text-muted hover:text-text"
             >
-              {isNarrow ? '»' : '«'}
+              <FontAwesomeIcon icon={isNarrow ? faAnglesRight : faAnglesLeft} />
             </button>
           )}
           {mobileOpen && (
