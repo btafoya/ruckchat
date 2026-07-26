@@ -23,6 +23,8 @@ set -euo pipefail
 #   --publish-only Skip bump/build; publish existing artifacts for an already-tagged version.
 #   --build-only   Run only the build steps; do not bump, commit, tag, or publish.
 #   --no-desktop   Skip desktop frontend deps and desktop bundle builds/uploads.
+#   --no-cleanup   Skip the post-run build cleanup step.
+#   --cleanup-only Run only the build cleanup step, then exit. No version required.
 #   -h, --help     Show this help message.
 #
 # Examples:
@@ -31,6 +33,7 @@ set -euo pipefail
 #   ./scripts/publish.sh --publish-only v0.3.0
 #   ./scripts/publish.sh --build-only v0.3.0
 #   ./scripts/publish.sh --no-desktop v0.3.0
+#   ./scripts/publish.sh --cleanup-only
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -51,6 +54,8 @@ NO_BUILD=0
 NO_PUBLISH=0
 BUILD_ONLY=0
 NO_DESKTOP=0
+NO_CLEANUP=0
+CLEANUP_ONLY=0
 
 VERSION=""
 
@@ -74,6 +79,8 @@ Options:
   --publish-only Skip bump/build; publish existing artifacts for an already-tagged version.
   --build-only   Run only builds; do not bump, commit, tag, or publish.
   --no-desktop   Skip desktop frontend deps and desktop bundle builds/uploads.
+  --no-cleanup   Skip the post-run build cleanup step.
+  --cleanup-only Run only the build cleanup step, then exit. No version required.
   -h, --help     Show this help message.
 
 Examples:
@@ -82,6 +89,7 @@ Examples:
   $0 --publish-only v0.3.0
   $0 --build-only v0.3.0
   $0 --no-desktop v0.3.0
+  $0 --cleanup-only
 USAGE
 }
 
@@ -140,6 +148,12 @@ parse_args() {
             --no-desktop)
                 NO_DESKTOP=1
                 ;;
+            --no-cleanup)
+                NO_CLEANUP=1
+                ;;
+            --cleanup-only)
+                CLEANUP_ONLY=1
+                ;;
             -h|--help)
                 usage
                 exit 0
@@ -161,13 +175,13 @@ parse_args() {
         shift
     done
 
-    if [[ -z "${VERSION}" ]]; then
+    if [[ -z "${VERSION}" && "${CLEANUP_ONLY}" == "0" ]]; then
         echo "Missing version argument." >&2
         usage >&2
         exit 1
     fi
 
-    if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+    if [[ -n "${VERSION}" && ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
         echo "Invalid version format: ${VERSION}" >&2
         echo "Expected vX.Y.Z or vX.Y.Z-<prerelease>, e.g. v0.2.0 or v1.0.0-rc.1" >&2
         exit 1
@@ -180,6 +194,14 @@ parse_args() {
     fi
     if [[ "${NO_BUILD}" == "1" && "${NO_PUBLISH}" == "1" && "${BUILD_ONLY}" == "0" ]]; then
         log "Warning: --no-build and --no-publish together mean nothing will be built or published."
+    fi
+    if [[ "${CLEANUP_ONLY}" == "1" && "${NO_CLEANUP}" == "1" ]]; then
+        echo "Conflict: --cleanup-only and --no-cleanup cannot be used together." >&2
+        exit 1
+    fi
+    if [[ "${CLEANUP_ONLY}" == "1" && "${BUILD_ONLY}" == "1" ]]; then
+        echo "Conflict: --cleanup-only and --build-only cannot be used together." >&2
+        exit 1
     fi
 }
 
@@ -522,6 +544,43 @@ build_all() {
     build_desktop_bundles
 }
 
+cleanup_docker_cache() {
+    log "Pruning Docker build cache and dangling images..."
+    run docker builder prune -f
+    run docker image prune -f
+}
+
+cleanup_pnpm_node() {
+    log "Pruning pnpm store and removing node_modules..."
+    run pnpm store prune
+    run rm -rf "${PROJECT_ROOT}/desktop/node_modules"
+    run rm -rf "${PROJECT_ROOT}/web/node_modules"
+}
+
+cleanup_artifacts() {
+    log "Removing local build artifacts (already uploaded)..."
+    run rm -f "${PROJECT_ROOT}"/target/debian/*.deb
+    run rm -rf "${PROJECT_ROOT}/target/release/bundle"
+    run rm -rf "${PROJECT_ROOT}/web/dist"
+}
+
+cleanup_build() {
+    local scope="$1"
+
+    if [[ "${NO_CLEANUP}" == "1" ]]; then
+        log "Skipping build cleanup (--no-cleanup)."
+        return 0
+    fi
+
+    log "Running build cleanup (${scope})..."
+    cleanup_docker_cache
+    cleanup_pnpm_node
+
+    if [[ "${scope}" == "full" ]]; then
+        cleanup_artifacts
+    fi
+}
+
 commit_and_tag() {
     local version="$1"
     local commit_sign_flags=()
@@ -735,6 +794,7 @@ confirm_release_plan() {
     echo "  Commit/tag:   $([[ ${NO_BUMP} == 1 ]] && echo skip || echo yes)"
     echo "  Push:         $([[ ${NO_BUMP} == 1 ]] && echo skip || echo yes)"
     echo "  Publish:      $([[ ${NO_PUBLISH} == 1 ]] && echo skip || echo yes)"
+    echo "  Cleanup:      $([[ ${NO_CLEANUP} == 1 ]] && echo skip || echo full)"
     echo
     read -r -p "Proceed? [y/N] " response
     case "${response}" in
@@ -751,6 +811,12 @@ main() {
     cd "${PROJECT_ROOT}"
 
     parse_args "$@"
+
+    if [[ "${CLEANUP_ONLY}" == "1" ]]; then
+        cleanup_build "full"
+        log "Cleanup complete."
+        exit 0
+    fi
 
     if [[ "${DRY_RUN}" == "0" && "${BUILD_ONLY}" == "0" && "${NO_BUMP}" == "0" ]]; then
         require_gpg
@@ -772,6 +838,7 @@ main() {
     build_all
 
     if [[ "${BUILD_ONLY}" == "1" ]]; then
+        cleanup_build "cache-only"
         log "Build-only mode complete."
         exit 0
     fi
@@ -786,6 +853,7 @@ main() {
         confirm_publish
         publish_docker_image
         publish_github_release
+        cleanup_build "full"
     fi
 
     log "Publish ${VERSION} complete."

@@ -247,6 +247,8 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
 | `./scripts/publish.sh --no-confirm vX.Y.Z-rc.1` | Full release without interactive confirmation prompts |
 | `./scripts/publish.sh --build-only` | Build Web UI assets, refresh `.sqlx/`, and build the server Docker image/`.deb`/desktop bundles only |
 | `./scripts/publish.sh --publish-only vX.Y.Z` | Publish previously built artifacts (Docker image, `.deb`, desktop bundles) without rebuilding |
+| `./scripts/publish.sh --cleanup-only` | Prune Docker build cache/images, pnpm store, `node_modules`, and local build artifacts; no version required |
+| `./scripts/publish.sh --no-cleanup vX.Y.Z` | Full release without the post-run build cleanup step |
 | `./scripts/server.sh start` | Start the server and PostgreSQL via Docker Compose (pre-built image; always recreates) |
 | `./scripts/server.sh start --build` | Rebuild the server image from source (`docker-compose.build.yml`) and start it; always recompiles, even if a `root-server` image already exists |
 | `./scripts/server.sh stop` | Stop and remove the Docker Compose stack |
@@ -629,10 +631,19 @@ It will:
    annotated GPG-signed tag, and push both to `origin/main`.
 8. Push the Docker image to GHCR (`:VERSION` and `:latest`) and create the
    GitHub Release, uploading the server `.deb` and every desktop bundle built.
+9. Clean up: prune Docker build cache/images and the pnpm store, remove
+   `desktop/node_modules` and `web/node_modules`, and delete the local
+   `.deb`, desktop bundles, and `web/dist` now that they're uploaded.
 
-Other flags: `--build-only` (steps 5–6 only, no bump/commit/tag/publish),
-`--publish-only` (steps 8 only, for retrying a failed publish against
-already-built artifacts and an already-tagged version), `--no-build`,
+`--build-only` (steps 5–6, no bump/commit/tag/publish) runs a reduced
+cleanup afterward — Docker/pnpm pruning only, since the `.deb`/bundles are
+kept on disk for a later `--publish-only` run to upload. `--cleanup-only`
+runs step 9 alone, standalone, with no version argument required.
+`--no-cleanup` skips step 9 entirely, on any invocation that would
+otherwise run it (including after `--publish-only`).
+
+Other flags: `--publish-only` (step 8 only, for retrying a failed publish
+against already-built artifacts and an already-tagged version), `--no-build`,
 `--no-publish`, `--no-checks`, `--no-bump`, `--no-desktop`, and `--no-confirm`.
 Run `./scripts/publish.sh --help` for the full list.
 
