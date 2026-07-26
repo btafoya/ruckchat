@@ -63,7 +63,14 @@ export class ApiClient {
       init.body = JSON.stringify(options.body);
     }
 
-    const response = await fetch(url, init);
+    const fetchImpl =
+      typeof globalThis !== 'undefined' &&
+      '__RUCKCHAT_FETCH__' in globalThis &&
+      typeof (globalThis as unknown as Record<string, typeof fetch>).__RUCKCHAT_FETCH__ === 'function'
+        ? (globalThis as unknown as Record<string, typeof fetch>).__RUCKCHAT_FETCH__
+        : fetch;
+
+    const response = await fetchImpl(url, init);
     if (!response.ok) {
       throw new ApiError(response.status, await parseErrorBody(response));
     }

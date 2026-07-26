@@ -8,5 +8,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.addEventListener('error', function (event) {
+        console.error('Uncaught error:', event.error);
+        var root = document.getElementById('root');
+        if (root) {
+          root.innerHTML = '<div style="padding:1rem;font-family:system-ui,sans-serif"><h1 style="color:#ef4444">RuckChat failed to start</h1><pre style="white-space:pre-wrap">' + (event.error ? (event.error.stack || event.error.message) : String(event.message || event)) + '</pre></div>';
+        }
+      });
+    </script>
   </body>
 </html>

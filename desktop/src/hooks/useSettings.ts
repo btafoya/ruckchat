@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_API_URL } from '../config';
+import { DEFAULT_API_URL, IS_WEB_BUILD } from '../config';
 
 const SETTINGS_KEY = 'ruckchat_settings';
 
@@ -38,7 +38,13 @@ function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) {
-      return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system', sidebarCollapsed: false, serverUrlConfigured: false };
+      return {
+        apiUrl: DEFAULT_API_URL,
+        notificationsEnabled: true,
+        theme: 'system',
+        sidebarCollapsed: false,
+        serverUrlConfigured: IS_WEB_BUILD,
+      };
     }
     const parsed = JSON.parse(raw) as unknown;
     if (typeof parsed === 'object' && parsed !== null) {
@@ -52,13 +58,20 @@ function loadSettings(): Settings {
         notificationsEnabled: typeof settings.notificationsEnabled === 'boolean' ? settings.notificationsEnabled : true,
         theme,
         sidebarCollapsed: typeof settings.sidebarCollapsed === 'boolean' ? settings.sidebarCollapsed : false,
-        serverUrlConfigured: typeof settings.serverUrlConfigured === 'boolean' ? settings.serverUrlConfigured : false,
+        serverUrlConfigured:
+          typeof settings.serverUrlConfigured === 'boolean' ? settings.serverUrlConfigured : IS_WEB_BUILD,
       };
     }
   } catch {
     // ignore corrupted storage
   }
-  return { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system', sidebarCollapsed: false, serverUrlConfigured: false };
+  return {
+    apiUrl: DEFAULT_API_URL,
+    notificationsEnabled: true,
+    theme: 'system',
+    sidebarCollapsed: false,
+    serverUrlConfigured: IS_WEB_BUILD,
+  };
 }
 
 function saveSettings(settings: Settings): void {
@@ -130,7 +143,13 @@ export function useSettings(): SettingsState {
   }, []);
 
   const reset = useCallback(() => {
-    const next = { apiUrl: DEFAULT_API_URL, notificationsEnabled: true, theme: 'system' as const, sidebarCollapsed: false, serverUrlConfigured: false };
+    const next = {
+      apiUrl: DEFAULT_API_URL,
+      notificationsEnabled: true,
+      theme: 'system' as const,
+      sidebarCollapsed: false,
+      serverUrlConfigured: IS_WEB_BUILD,
+    };
     setSettings(next);
     saveSettings(next);
   }, []);

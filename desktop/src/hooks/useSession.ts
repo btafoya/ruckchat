@@ -25,7 +25,7 @@ export function useSession(): SessionState {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { apiUrl, setTheme } = useSettingsContext();
+  const { apiUrl, serverUrlConfigured, setTheme } = useSettingsContext();
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
 
   const applyServerTheme = useCallback(
@@ -43,8 +43,10 @@ export function useSession(): SessionState {
 
     async function restore() {
       const token = localStorage.getItem(TOKEN_KEY);
-      if (!token) {
-        setIsLoading(false);
+      if (!token || !serverUrlConfigured) {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -69,7 +71,7 @@ export function useSession(): SessionState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [api, serverUrlConfigured]);
 
   const login = useCallback(
     async (request: LoginRequest) => {

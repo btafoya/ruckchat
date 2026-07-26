@@ -1,7 +1,7 @@
 {
   "name": "ruckchat-desktop",
   "private": true,
-  "version": "0.2.1-alpha-r2",
+  "version": "0.2.1-alpha-r3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,9 +16,12 @@
   },
   "dependencies": {
     "@farscrl/tiptap-extension-spellchecker": "^2.0.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^3.5.0",
     "@tauri-apps/api": "^2.5.0",
     "@tauri-apps/plugin-deep-link": "^2.2.1",
     "@tauri-apps/plugin-dialog": "^2.2.1",
+    "@tauri-apps/plugin-http": "^2.5.9",
     "@tauri-apps/plugin-notification": "^2.2.2",
     "@tauri-apps/plugin-shell": "^2.2.1",
     "@tiptap/core": "^3.28.0",
@@ -31,8 +34,6 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.7.0",
-    "@fortawesome/free-solid-svg-icons": "^6.7.2",
-    "@fortawesome/react-fontawesome": "^3.5.0",
     "tippy.js": "^6.3.7"
   },
   "devDependencies": {

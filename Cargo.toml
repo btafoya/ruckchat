@@ -3,7 +3,7 @@ members = ["server", "crates/ruckchat-id", "crates/ruckchat-config", "crates/ruc
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1-alpha-r2"
+version = "0.2.1-alpha-r3"
 edition = "2024"
 rust-version = "1.94.0"
 license = "MIT"
@@ -18,10 +18,8 @@ uuid = { version = "1", features = ["v4", "serde"] }
 time = { version = "0.3", features = ["serde", "formatting", "parsing", "serde-human-readable"] }
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "time", "migrate", "macros"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-tokio-postgres = "0.7"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-config = "0.15"
 secrecy = { version = "0.10", features = ["serde"] }
 regex = "1"
 once_cell = "1"
