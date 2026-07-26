@@ -1,5 +1,52 @@
 # Changelog
 
+## [v0.2.2-beta-v1] - 2026-07-26
+
+- Fix publish.sh usage text referencing nonexistent --publish flag
+- Fix publish.sh --build-only requiring redundant flags
+- Add unified publish.sh release script
+- Allow desktop app to fetch arbitrary HTTP/HTTPS origins via tauri-plugin-http
+- Fix desktop first-run setup to require explicit server URL and report concrete errors
+- Add desktop first-run server URL setup and fix Web UI loading regression
+- Add first-run server URL setup screen for desktop app
+- Use Font Awesome icons for sidebar collapse/expand toggle
+- Add server admin promotion/demotion confirmation and admin-list demote action
+- Complete Phase 7: fix duplicate sends, add message delete, remove composer preview
+- Implement Phase 6 home and user profile (ISSUES15, ISSUES16, ISSUES17)
+- Implement Phase 5 shell and navigation (ISSUES12, ISSUES13, ISSUES14)
+- docs: add ISSUES10-21 task files and update workflow with Phases 5-8
+- docs: update CLAUDE.md with read-state hooks, cursor pagination, and WebSocket serde gotchas
+- Fix WebSocket real-time delivery and cross-conversation message leakage
+- Latest issues found
+- Add message editing, global search, and server-side read tracking
+- Upload images inline in the composer instead of linking by URL
+- Add formatting toolbar and inline image support to composer
+- Fix theme selection not applying by sharing settings via context
+- Complete Phase 4 admin UI polish and add Web UI Playwright e2e suite
+- Record Phase 3 completion commit hash in WORKFLOW.md
+- Complete Phase 3: conversation discovery (auto-redirect, channel CRUD, DMs)
+- Decouple host port from container bind port for domain-based base_url
+- Force-reload open tabs when a new service worker version activates
+- Document stale pre-built image gotcha after a source-build restart
+- Fix Docker Compose source-build rebuild and port mismatch
+- Implement server-side spell-checker for Tiptap composer (Phase 2 finish)
+- Update Phase 2 issue docs for completed mentions and planned spell-checker work
+- Implement @mention support and Tiptap composer for Phase 2
+- Update issue workflow status for completed Phase 1
+- Add light/dark theme and user registration gate setting
+- Issues found during human testing
+- Add service worker cache busting to Web UI deploys and update issue tracker
+- Issues found during human testing
+- Fix chat message persistence and author display name in Web UI
+- Add create-user and add-admin actions to Web UI Admin Panel
+- Implement Web UI Admin Panel (Phase 14)
+- Fix Web UI stylesheet by adding Tailwind source directive for shared desktop components
+- Bind server to 0.0.0.0 from base_url port and default to local Docker image
+- Add test plan and align Docker Compose host port with container port
+- Fix web UI runtime errors and timestamp serialization
+- Fix Docker healthcheck and compose port alignment for non-default base_url
+- Add Docker Compose server wrapper script
+
 ## [v0.2.1-alpha-r2] - 2026-07-23
 
 - Fix release.sh local-ahead check when origin/main is behind

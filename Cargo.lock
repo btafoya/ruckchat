@@ -4455,7 +4455,7 @@ dependencies = [
 
 [[package]]
 name = "rocketchat2ruckchat"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "clap",
  "console",
@@ -4521,7 +4521,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-common"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "once_cell",
  "regex",
@@ -4533,7 +4533,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-config"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "ruckchat-common",
  "ruckchat-id",
@@ -4547,7 +4547,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-desktop"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "serde",
  "serde_json",
@@ -4562,7 +4562,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-domain"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "async-trait",
  "ruckchat-common",
@@ -4576,7 +4576,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-id"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "serde",
  "serde_json",
@@ -4586,7 +4586,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-migrations"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "sqlx",
  "tokio",
@@ -4595,7 +4595,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-plugin-sdk"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "ruckchat-common",
  "ruckchat-domain",
@@ -4607,7 +4607,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-server"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "argon2",
  "async-trait",
@@ -4652,7 +4652,7 @@ dependencies = [
 
 [[package]]
 name = "ruckchat-spelling"
-version = "0.2.1-alpha-r3"
+version = "0.2.2-beta-v1"
 dependencies = [
  "spellbook",
  "tracing",
