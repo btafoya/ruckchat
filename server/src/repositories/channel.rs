@@ -24,8 +24,8 @@ impl ChannelRepositorySqlx {
 impl ChannelRepository for ChannelRepositorySqlx {
     async fn create(&self, channel: &Channel) -> Result<()> {
         let result = sqlx::query!(
-            "INSERT INTO channels (id, organization_id, name, topic, purpose, is_private, is_archived, created_by, created_at, archived_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            "INSERT INTO channels (id, organization_id, name, topic, purpose, is_private, is_archived, created_by, created_at, archived_at, parent_channel_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              ON CONFLICT (organization_id, name) DO NOTHING",
             channel.id.as_uuid(),
             channel.organization_id.as_uuid(),
@@ -37,6 +37,7 @@ impl ChannelRepository for ChannelRepositorySqlx {
             channel.created_by.as_uuid(),
             channel.created_at,
             channel.archived_at,
+            channel.parent_channel_id.map(|id| id.as_uuid()),
         )
         .execute(&self.pool)
         .await
@@ -53,7 +54,7 @@ impl ChannelRepository for ChannelRepositorySqlx {
     async fn update(&self, channel: &Channel) -> Result<()> {
         let rows = sqlx::query!(
             "UPDATE channels
-             SET name = $2, topic = $3, purpose = $4, is_private = $5, is_archived = $6, archived_at = $7
+             SET name = $2, topic = $3, purpose = $4, is_private = $5, is_archived = $6, archived_at = $7, parent_channel_id = $8
              WHERE id = $1",
             channel.id.as_uuid(),
             channel.name,
@@ -62,6 +63,7 @@ impl ChannelRepository for ChannelRepositorySqlx {
             channel.is_private,
             channel.archived_at.is_some(),
             channel.archived_at,
+            channel.parent_channel_id.map(|id| id.as_uuid()),
         )
         .execute(&self.pool)
         .await
@@ -76,7 +78,7 @@ impl ChannelRepository for ChannelRepositorySqlx {
     async fn by_id(&self, id: ChannelId) -> Result<Option<Channel>> {
         let row = sqlx::query_as!(
             ChannelRow,
-            "SELECT id, organization_id, name, topic, purpose, is_private, created_by, created_at, archived_at FROM channels WHERE id = $1",
+            "SELECT id, organization_id, name, topic, purpose, is_private, created_by, created_at, archived_at, parent_channel_id FROM channels WHERE id = $1",
             id.as_uuid()
         )
         .fetch_optional(&self.pool)
@@ -89,7 +91,7 @@ impl ChannelRepository for ChannelRepositorySqlx {
     async fn list_by_organization(&self, organization_id: OrganizationId) -> Result<Vec<Channel>> {
         let rows = sqlx::query_as!(
             ChannelRow,
-            "SELECT id, organization_id, name, topic, purpose, is_private, created_by, created_at, archived_at FROM channels WHERE organization_id = $1 ORDER BY name",
+            "SELECT id, organization_id, name, topic, purpose, is_private, created_by, created_at, archived_at, parent_channel_id FROM channels WHERE organization_id = $1 ORDER BY name",
             organization_id.as_uuid()
         )
         .fetch_all(&self.pool)
@@ -111,6 +113,7 @@ struct ChannelRow {
     created_by: uuid::Uuid,
     created_at: time::OffsetDateTime,
     archived_at: Option<time::OffsetDateTime>,
+    parent_channel_id: Option<uuid::Uuid>,
 }
 
 fn into_channel(row: ChannelRow) -> Channel {
@@ -124,6 +127,7 @@ fn into_channel(row: ChannelRow) -> Channel {
         created_by: ruckchat_id::UserId::from_uuid(row.created_by),
         created_at: row.created_at,
         archived_at: row.archived_at,
+        parent_channel_id: row.parent_channel_id.map(ChannelId::from_uuid),
     }
 }
 

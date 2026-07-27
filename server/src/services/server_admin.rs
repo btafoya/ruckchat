@@ -30,6 +30,10 @@ pub struct ServerAdminServiceDeps {
     pub auth: AuthService,
     /// Audit service.
     pub audit: AuditService,
+    /// Email client for password-reset delivery. `None` when Postmark isn't
+    /// configured; `reset_password` falls back to returning the plaintext
+    /// password without sending email.
+    pub email: Option<ruckchat_email::EmailClient>,
 }
 
 /// Server-wide administration operations.
@@ -247,13 +251,26 @@ impl ServerAdminService {
         user.password_hash = hash;
         user.updated_at = ruckchat_common::time::OffsetDateTime::now_utc();
         self.deps.users.update(&user).await?;
+
+        let email_sent = if let Some(email) = &self.deps.email {
+            match email.send_password_reset(&user.email, &new_password).await {
+                Ok(()) => true,
+                Err(err) => {
+                    tracing::warn!(%err, user_id = %user.id, "failed to send password reset email");
+                    false
+                }
+            }
+        } else {
+            false
+        };
+
         self.audit(
             caller_id,
             None,
             "user.password_reset",
             "user",
             Some(user.id.as_uuid()),
-            None,
+            Some(serde_json::json!({ "email_sent": email_sent })),
             None,
         )
         .await?;

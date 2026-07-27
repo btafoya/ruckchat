@@ -2953,6 +2953,13 @@ components:
           type: string
           format: date-time
           nullable: true
+        parent_channel_id:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+          description: >-
+            Set when this channel originated as a RocketChat discussion
+            linked to a parent room. Storage only; no UI or authorization
+            logic reads this field yet.
 
     ChannelList:
       type: object

@@ -123,10 +123,26 @@ removed rather than kept in parallel.
   having the relevant Rust cross-compilation targets installed; there is no
   longer a CI job that guarantees native macOS/Windows builds.
 
+## Update: shared `ruckchat-migrate` crate
+
+The snapshot types, export query, idempotent import, and dry-run accounting
+originally in `server/src/migrate.rs` were extracted verbatim into
+`crates/ruckchat-migrate` so the standalone `rocketchat2ruckchat` migration
+tool (see `docs/DESIGN-RocketChat-Migration.md`) can call `import()` directly
+against its own `PgPool`, writing straight to a target RuckChat Postgres
+database without going through the REST admin-import endpoint or a running
+`ruckchat-server` process. `ruckchat-server`'s own CLI (`migrate export`/
+`migrate import`) and the `POST /api/v1/admin/organizations/:id/import`
+endpoint are unchanged — both now depend on `ruckchat-migrate` instead of a
+local module. `MigrationData`'s `Channel` entries also gained a
+`parent_channel_id` field (nullable, storage-only) to preserve RocketChat
+discussion → parent-room links during that migration.
+
 ## Implementation
 
-- `server/src/migrate.rs` — snapshot types, export query, idempotent import, and
-  dry-run accounting.
+- `crates/ruckchat-migrate/src/lib.rs` — snapshot types, export query,
+  idempotent import, and dry-run accounting (moved from
+  `server/src/migrate.rs`).
 - `server/src/main.rs` — `clap` subcommands: `run` (default),
   `migrate export --output PATH`, and `migrate import --input PATH --dry-run`.
 - `server/tests/migrate.rs` — integration tests for export shape, idempotent

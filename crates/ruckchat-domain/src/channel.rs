@@ -31,6 +31,10 @@ pub struct Channel {
     /// Timestamp when the channel was archived, if applicable.
     #[serde(with = "time::serde::rfc3339::option")]
     pub archived_at: Option<OffsetDateTime>,
+    /// Parent channel, set when this channel originated as a RocketChat
+    /// discussion linked to a parent room.
+    #[serde(default)]
+    pub parent_channel_id: Option<ChannelId>,
 }
 
 impl Channel {
@@ -63,6 +67,7 @@ impl Channel {
             created_by,
             created_at: now,
             archived_at: None,
+            parent_channel_id: None,
         })
     }
 

@@ -46,6 +46,20 @@ pub struct AppConfig {
     /// Server-wide soft settings overrides.
     #[serde(default)]
     pub server_settings: ServerSettingsConfig,
+    /// Postmark email sending configuration. Absent disables email sending;
+    /// password resets fall back to their pre-Postmark behavior.
+    #[serde(default)]
+    pub email: Option<EmailConfig>,
+}
+
+/// Postmark email sending configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct EmailConfig {
+    /// Postmark server API token.
+    pub server_token: String,
+    /// From address used for all outgoing email.
+    pub from_address: String,
 }
 
 /// MCP endpoint configuration.
@@ -482,6 +496,13 @@ server_settings:
   # allow_registration: true
   # spelling_enabled: true
   # spelling_default_language: "en-US"
+
+# Transactional email via Postmark. Omit this section entirely to disable
+# email sending; password resets keep returning the temporary password in
+# their API response instead.
+# email:
+#   server_token: ""
+#   from_address: "no-reply@example.com"
 
 # Placeholders for future phases. These keys are ignored today.
 # retention:

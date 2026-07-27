@@ -9,7 +9,7 @@ use ruckchat_domain::{
     FileRepository, MessageRepository, OrganizationMembershipRepository, OrganizationRepository,
     OrganizationSettingsRepository, ReactionRepository, UserRepository,
 };
-use ruckchat_server::migrate::{self, ImportCounts, MigrationData};
+use ruckchat_migrate::{self as migrate, ImportCounts, MigrationData};
 use ruckchat_server::repositories::{
     ChannelMembershipRepositorySqlx, ChannelRepositorySqlx,
     DirectMessageConversationRepositorySqlx, FileRepositorySqlx, MessageRepositorySqlx,

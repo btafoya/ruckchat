@@ -1,0 +1,23 @@
+[package]
+name = "ruckchat-email"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Transactional email sending for RuckChat via Postmark."
+readme = "README.md"
+keywords = ["ruckchat", "chat", "email"]
+categories = ["email"]
+
+[dependencies]
+postmark = { version = "2", features = ["reqwest"] }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

@@ -6,7 +6,8 @@
 
 use clap::{Parser, Subcommand};
 use ruckchat_config::{AppConfig, ConfigError, DatabaseConfig, default_config_path};
-use ruckchat_server::{connect_database, handlers::router, migrate, state::AppState};
+use ruckchat_migrate as migrate;
+use ruckchat_server::{connect_database, handlers::router, state::AppState};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use tokio::net::TcpListener;

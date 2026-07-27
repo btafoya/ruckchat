@@ -1,467 +1,383 @@
-# Design: RocketChat → RuckChat Migration Tool
+# Design: RocketChat → RuckChat Migration Tool (v2 — Mongo-sourced, DB-to-DB)
+
+## Status
+
+This supersedes the original REST-based design. Its Phase A (admin import API,
+`MigrationData` v2) and Phase B (`rocketchat2ruckchat` standalone tool) were
+already implemented (`2747e15`, "Add admin import API and MigrationData v2 for
+RocketChat migration (Phase A)") as a fully REST-based pipeline: RocketChat
+REST client → transform → RuckChat admin REST import endpoint. This document
+replaces that transport on **both** ends: source becomes a restored RocketChat
+MongoDB dump read directly; target becomes a direct PostgreSQL write reusing
+the existing transactional import logic. Nothing about `ruckchat-server`'s own
+export/import CLI or its `POST /api/v1/admin/organizations/:id/import`
+endpoint changes — they stay, unused by this tool, for their existing
+backup/restore purpose.
 
 ## Scope
 
-Build a standalone, API-driven migration tool (`rocketchat2ruckchat`) that copies a complete RocketChat workspace into a target RuckChat organization. Because RuckChat v1 does not expose every concept required for a faithful migration, the design extends the server with admin import endpoints rather than touching the database directly.
-
-## Goals
-
-1. Migrate users, rooms (channels/groups/DMs/teams/discussions), messages, reactions, files, roles, permissions, and custom emoji from RocketChat to RuckChat.
-2. Keep the migration tool standalone and REST-API-only.
-3. Support re-runs: idempotent updates, resumption, and a persistent source→target ID mapping.
+1. Migrate users, channels (public/private/DM), messages, reactions, files,
+   and custom emoji from a **restored RocketChat mongodump** into a RuckChat
+   organization by writing directly to RuckChat's PostgreSQL database.
+2. Reuse `server/src/migrate.rs`'s transactional, idempotent
+   `MigrationData`/`import()`/`validate()` logic rather than reimplementing it
+   — extracted into a shared crate (see below) so both `ruckchat-server` and
+   `rocketchat2ruckchat` depend on the same code.
+3. Support re-runs: idempotent `ON CONFLICT DO NOTHING` writes (inherited from
+   the shared import logic) plus the existing SQLite `rocket_id → ruckchat_id`
+   mapping store for resumability.
 4. Default to dry-run; writes require `--apply`.
-5. Provide interactive prompts for credentials, inaccessible rooms, and conflicts.
+5. Interactive prompts for the source dump path, target Postgres connection,
+   target organization, and conflicts.
 
 ## Non-goals
 
-- Real-time synchronization or continuous bridge mode.
-- Migrating ephemeral runtime state (sessions, Web Push subscriptions, plugin state).
-- Converting RocketChat apps, integrations, or Livechat/Omnichannel data.
-- Modifying RuckChat schema outside normal migrations and documented endpoints.
+- Live or replica-set Mongo connections — source is always a locally restored
+  `mongorestore` target, never a running production `mongod`.
+- Roles, permissions, and Teams migration. RocketChat's permission model is
+  global (no per-organization scoping) and this and most instances carry only
+  built-in roles; RuckChat's authorization is still hardcoded, so migrating
+  the matrix has no enforcement value today. Teams migration is dropped for
+  the same "can't validate against real data" reason — no instance surveyed
+  has any Teams rooms. **The existing `organization_roles` / `permissions` /
+  `role_permissions` / `teams` / `team_memberships` / `team_rooms` schema,
+  `MigrationData` fields, and org-admin UI (`OrgAdminRoles.tsx`,
+  `OrgAdminTeams.tsx`) are untouched** — they're independently-shipped
+  org-admin features, not migration-only scaffolding, so `transform.rs`
+  simply never populates those `MigrationData` arrays.
+- System messages (RocketChat `t` values other than `null`: `au`, `uj`,
+  `command`, `message_pinned`, `room_changed_privacy`, `r`,
+  `discussion-created`, `livechat-close`/`livechat-started`,
+  `livechat_navigation_history`). RuckChat has no system-message concept
+  (`Message.author_id` is a required real user, no `is_system`/`message_type`
+  discriminator exists), and these would import as plain, unstyled chat text
+  indistinguishable from real conversation. Skipped entirely.
+- Omnichannel/Livechat rooms (`rocketchat_room.t == "l"`), real-time sync,
+  session/token/2FA migration.
+- Non-GridFS file storage. RocketChat supports GridFS, AmazonS3, GoogleStorage,
+  and FileSystem backends (`apps/meteor/server/lib/media/file-upload/config/`);
+  this tool only reads GridFS-backed files (`store` field starting with
+  `GridFS:`). A file whose `store` isn't GridFS is skipped and reported, not
+  silently dropped.
+- Real password migration. RocketChat's `services.password.bcrypt` hashes are
+  bcrypt; RuckChat's `hash_password`/`verify_password`
+  (`server/src/services/auth.rs`) are Argon2. A bcrypt string doesn't even
+  parse as a valid Argon2 PHC hash, so copying it verbatim breaks login
+  outright. No hash is carried over — see **Password handling** below.
 
-## High-level architecture
+## Why this changes
+
+Switching the source from RocketChat's REST API to its Mongo dump, and the
+target from RuckChat's REST admin-import endpoint to a direct Postgres write,
+isn't a client swap — three things become possible that weren't before:
+
+- **Byte-level file access.** RocketChat's REST API never exposes raw upload
+  bytes in bulk; direct GridFS reads stream them straight out of the dump
+  (`rocketchat_uploads.{files,chunks}`, `rocketchat_avatars.{files,chunks}`,
+  etc. — confirmed present in a real dump).
+- **No HTTP transport limits.** The current REST admin-import endpoint takes
+  one JSON body per call; a 100k+ message workspace risks hitting body-size or
+  timeout limits (flagged as an open risk in v1). Writing directly through
+  `migrate::import`'s existing `sqlx::Transaction` has no such ceiling.
+- **No running server required.** Neither RocketChat nor `ruckchat-server`
+  needs to be a live process during migration — only a restored Mongo dump and
+  a reachable Postgres connection string.
+
+The tradeoff, accepted per the brainstorm discussion: schema-version coupling
+to a specific RocketChat release (this design was validated against migration
+version 335) and no service-layer authorization on the write side — but
+`migrate::import` already bypasses that layer today for its existing
+export/import use case, so this isn't new risk, just reused risk.
+
+## Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                         rocketchat2ruckchat                         │
-│  (standalone Rust binary, interactive or config-driven, dry-run)    │
-└──────────────┬──────────────────────────────────────┬───────────────┘
-               │ reads                                │ writes
-               ▼                                      ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                         rocketchat2ruckchat                           │
+│        (standalone Rust binary, interactive or config-driven)         │
+└───────────────┬─────────────────────────────────────┬─────────────────┘
+                │ reads (mongodb driver)              │ writes (sqlx)
+                ▼                                      ▼
 ┌──────────────────────────┐              ┌────────────────────────────┐
-│   RocketChat REST API    │              │   RuckChat REST API          │
-│   (PAT or user/password) │              │   (session cookie)           │
-└──────────────┬───────────┘              └──────────────┬─────────────┘
-               │                                          │
-               │  SQLite mapping table                     │
-               │  rocket_id → ruckchat_id                 │
-               │                                          │
-               ▼                                          ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      RuckChat server extensions                     │
-│  Admin import endpoints that accept a normalized snapshot and       │
-│  write it idempotently through the existing service/repository layer. │
-└─────────────────────────────────────────────────────────────────────┘
+│  Restored RocketChat      │              │   RuckChat PostgreSQL       │
+│  mongodump (local mongod) │              │   (direct connection)       │
+└──────────────┬────────────┘              └──────────────┬─────────────┘
+               │                                            │
+               │  SQLite mapping table                      │
+               │  rocket_id → ruckchat_id                   │
+               │                                            │
+               ▼                                            ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                       crates/ruckchat-migrate                         │
+│   MigrationData, export()/import()/validate() — extracted from        │
+│   server/src/migrate.rs, unchanged in logic, shared by both            │
+│   ruckchat-server (CLI export/import, admin REST endpoint) and         │
+│   rocketchat2ruckchat (this tool).                                     │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
-## Key design decision: snapshot import endpoint
+Also needed on the target side: the tool writes uploaded file bytes directly
+to RuckChat's configured upload directory (`server/src/services/file.rs`
+writes files as `<upload_dir>/<file_uuid>`, flat, no extension in the path —
+confirmed: local-disk-only, no S3 support on the RuckChat side). The tool's
+config must therefore include that same directory path so migrated files land
+where `FileService` expects to find them, mirroring the `files.storage_path`
+rows it inserts via `ruckchat-migrate`.
 
-Instead of adding dozens of individual admin CRUD endpoints for roles, permissions, emoji, teams, historical messages, and password hashes, the server exposes a single authenticated admin endpoint:
+## Crate restructuring: extract `ruckchat-migrate`
 
-```
-POST /api/v1/admin/organizations/:id/import
-```
+Move `server/src/migrate.rs` (currently ~1500 lines: `MigrationData`,
+`ImportCounts`, `export()`, `import()`, `validate()`, all `export_*`/`import_*`
+helpers and row structs) into a new `crates/ruckchat-migrate` library crate,
+depending only on `ruckchat-domain`, `ruckchat-id`, `ruckchat-common`, `sqlx`,
+`serde`, `uuid`, `time`. `server/src/lib.rs` and `server/src/main.rs` switch
+from `mod migrate;` to `ruckchat_migrate::{...}`; the admin import handler and
+CLI `migrate export`/`migrate import` commands are otherwise unchanged.
+`rocketchat2ruckchat` adds this crate as a dependency and calls
+`ruckchat_migrate::import(&target_pool, &data, dry_run)` directly, building
+its own `MigrationData` from Mongo instead of RocketChat REST JSON.
 
-It accepts a versioned `MigrationData` JSON payload that mirrors the internal export format in `server/src/migrate.rs`, extended with the missing categories. The server validates the caller has `Owner` or `Admin` role on the target organization and writes the snapshot idempotently through the existing service and repository layer. This reuses the existing transaction-based import logic and avoids duplicating validation rules in the standalone tool.
+This is a mechanical move, not a rewrite of the import logic itself — the
+transactional/idempotent behavior, `validate()`'s referential-integrity
+checks, and `ON CONFLICT DO NOTHING` semantics carry over verbatim.
 
-The standalone tool’s main job is therefore:
+## Schema change: `parent_channel_id`
 
-1. Read RocketChat via its REST API.
-2. Normalize RocketChat concepts into RuckChat `MigrationData`.
-3. Optionally download and re-upload file bytes.
-4. Call `POST /api/v1/admin/organizations/:id/import` with `--apply`, or report the computed snapshot in dry-run mode.
-
-## Phase sequence
-
-This work is too large for a single implementation pass. Sequence it as:
-
-1. **Phase A — Extend `MigrationData` and import endpoint**
-   - Add database migrations for roles, permissions, custom emoji, teams, and team memberships.
-   - Add domain entities, repository traits, services, and handlers.
-   - Extend `server/src/migrate.rs` `MigrationData` and import logic to cover the new categories.
-   - Add `POST /api/v1/admin/organizations/:id/import` and supporting list endpoints.
-   - Update OpenAPI.
-
-2. **Phase B — Build `rocketchat2ruckchat`**
-   - Create a new Rust binary crate outside the main workspace or as a workspace member that does not depend on server internals.
-   - Implement RocketChat client, RuckChat client, mapping store, pipeline, dry-run, and interactive prompts.
-
-## Phase A: RuckChat server extensions
-
-### Database migrations
-
-#### 1. Custom organization roles
+RocketChat discussions are rooms with a real parent-room link (`prid`), but
+`channels` has no parent-channel concept. Add one:
 
 ```sql
-CREATE TABLE organization_roles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    description TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (organization_id, name)
-);
+-- migrations/migrations/<timestamp>_channel_parent.up.sql
+ALTER TABLE channels ADD COLUMN parent_channel_id UUID REFERENCES channels(id) ON DELETE SET NULL;
 ```
-
-#### 2. Permission matrix
-
-RuckChat currently hard-codes permissions in `server/src/services/authorization.rs`. For migration we need a stored mapping so custom RocketChat roles can be preserved.
-
-```sql
-CREATE TABLE permissions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    key TEXT NOT NULL,          -- e.g. 'manage_channels'
-    description TEXT,
-    UNIQUE (organization_id, key)
-);
-
-CREATE TABLE organization_role_permissions (
-    role_id UUID NOT NULL REFERENCES organization_roles(id) ON DELETE CASCADE,
-    permission_id UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
-    PRIMARY KEY (role_id, permission_id)
-);
-```
-
-Seed the built-in `owner`/`admin`/`member` roles as implicit rows, or treat them as special-cased defaults when no custom role exists.
-
-#### 3. Custom emoji
-
-```sql
-CREATE TABLE custom_emoji (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    shortcode TEXT NOT NULL,    -- without colons, e.g. 'partyparrot'
-    file_id UUID NOT NULL REFERENCES files(id),
-    created_by UUID NOT NULL REFERENCES users(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (organization_id, shortcode)
-);
-```
-
-#### 4. Teams
-
-```sql
-CREATE TABLE teams (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    description TEXT,
-    created_by UUID NOT NULL REFERENCES users(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (organization_id, name)
-);
-
-CREATE TABLE team_memberships (
-    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'leader', 'member')),
-    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (team_id, user_id)
-);
-
-CREATE TABLE team_rooms (
-    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-    channel_id UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
-    added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (team_id, channel_id)
-);
-```
-
-#### 5. User `active` / `deactivated_at`
-
-RocketChat deleted users should become deactivated, not removed. Add a nullable `deactivated_at` column to `users` (or `is_active` boolean) and expose it in the domain model.
-
-```sql
-ALTER TABLE users ADD COLUMN deactivated_at TIMESTAMPTZ;
-```
-
-### Domain entities (`ruckchat-domain`)
-
-Add new aggregates:
-
-- `OrganizationRole` — id, organization_id, name, description.
-- `Permission` — id, organization_id, key, description.
-- `OrganizationRolePermission` — role_id, permission_id.
-- `CustomEmoji` — id, organization_id, shortcode, file_id, created_by.
-- `Team` — id, organization_id, name, description, created_by.
-- `TeamMembership` — team_id, user_id, role, joined_at.
-- `TeamRoom` — team_id, channel_id, added_at.
-
-Extend existing aggregates:
-
-- `User` — add `deactivated_at: Option<OffsetDateTime>`.
-- `Channel` — already has `archived_at` for archived rooms.
-- `Message` — already has `deleted_at` for deleted messages.
-
-Add repository traits in `crates/ruckchat-domain/src/repositories.rs` for each new aggregate.
-
-### Service layer (`server/src/services`)
-
-Create `AdminService` (or extend `OrganizationService`) that:
-
-- Verifies the caller is an `Owner` or `Admin` of the target organization.
-- Validates the incoming `MigrationData` snapshot.
-- Writes users, org settings, roles, permissions, emoji, teams, channels, memberships, DMs, messages, reactions, files, and message-file links idempotently inside a SQLx transaction.
-- For users: create or update by email; if a pre-hashed password is provided, store it verbatim (requires a new admin-only create-user path that bypasses normal hashing).
-- For messages: create or update by ID, preserving original `created_at`, `updated_at`, `deleted_at`, `parent_id`, and `author_id`. This bypasses normal authorship/time validation and is restricted to the admin import endpoint.
-
-### REST handlers
-
-New admin routes under `/api/v1/admin`:
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST   | `/admin/organizations/:id/import` | Import a `MigrationData` snapshot |
-| GET    | `/admin/organizations/:id/import/status/:job_id` | (optional) async import progress |
-| GET    | `/admin/organizations/:id/roles` | List custom roles |
-| POST   | `/admin/organizations/:id/roles` | Create custom role |
-| GET    | `/admin/organizations/:id/permissions` | List permissions |
-| GET    | `/admin/organizations/:id/emoji` | List custom emoji |
-| POST   | `/admin/organizations/:id/emoji` | Create custom emoji |
-| GET    | `/admin/organizations/:id/teams` | List teams |
-| POST   | `/admin/organizations/:id/teams` | Create team |
-
-The migration tool only needs the import endpoint. The others are exposed for day-to-day admin UI parity.
-
-### `MigrationData` extension
-
-Extend the existing `server/src/migrate.rs` `MigrationData` struct:
 
 ```rust
-pub struct MigrationData {
-    pub version: u16,                         // bump to 2
-    pub exported_at: OffsetDateTime,
-    pub users: Vec<User>,                     // extended with deactivated_at
-    pub organizations: Vec<Organization>,
-    pub organization_memberships: Vec<OrganizationMembership>,
-    pub organization_settings: Vec<OrganizationSettings>,
-    pub organization_roles: Vec<OrganizationRole>,
-    pub permissions: Vec<Permission>,
-    pub role_permissions: Vec<OrganizationRolePermission>,
-    pub custom_emoji: Vec<CustomEmoji>,
-    pub teams: Vec<Team>,
-    pub team_memberships: Vec<TeamMembership>,
-    pub team_rooms: Vec<TeamRoom>,
-    pub channels: Vec<Channel>,
-    pub channel_memberships: Vec<ChannelMembership>,
-    pub direct_message_conversations: Vec<DirectMessageConversation>,
-    pub messages: Vec<MigrationMessage>,
-    pub reactions: Vec<Reaction>,
-    pub files: Vec<File>,
-    pub message_files: Vec<MessageFileLink>,
+// crates/ruckchat-domain/src/channel.rs
+pub struct Channel {
+    // ...existing fields...
+    /// Parent channel, set when this channel originated as a RocketChat discussion.
+    pub parent_channel_id: Option<ChannelId>,
 }
 ```
 
-Version 1 readers can ignore the new fields. The import endpoint accepts both versions and maps them into the new schema.
+`ruckchat-migrate`'s `ChannelRow`/`into_channel`/`import_channels` gain the
+column. **No UI or authorization logic reads this field yet** — it's storage
+only, so the relationship survives structurally without pretending to be
+finished. TODO for a later phase: desktop/web UI to surface parent/child
+channel navigation, and any authorization implications of nested channels.
 
-## Phase B: `rocketchat2ruckchat` standalone tool
+## Password handling
 
-### Crate structure
+RocketChat's bcrypt hash cannot become a working RuckChat Argon2 hash — a
+bcrypt string doesn't even parse as a valid Argon2 PHC hash, so copying it
+verbatim breaks login outright, not just weakens it. Instead, at
+user-creation time `transform.rs` generates a real, usable, random temporary
+password, hashes it the same way RuckChat's own signup flow does
+(`hash_password`), and — per **Email support** below — emails it directly to
+the user when `--send-emails` is passed. This supersedes an earlier draft of
+this design that generated an unusable, never-communicated placeholder hash
+relying on a post-migration admin action per user; that doesn't scale past a
+handful of users, so credential delivery is now built into the migration tool
+itself instead.
 
-Create `tools/rocketchat2ruckchat/` or `crates/rocketchat2ruckchat/` as a workspace member. It must not import `ruckchat-server` internals; it may import `ruckchat-common` and `ruckchat-domain` only for shared DTO types if those crates remain dependency-light. If that creates coupling, define local DTOs that mirror `MigrationData`.
+## Email support (Postmark)
 
-```text
-crates/rocketchat2ruckchat/
-├── Cargo.toml
-└── src/
-    ├── main.rs
-    ├── config.rs          // CLI + YAML + interactive prompts
-    ├── rocket_chat/
-    │   ├── client.rs      // reqwest wrapper
-    │   ├── auth.rs
-    │   ├── models.rs      // RocketChat response structs
-    │   └── pagination.rs
-    ├── ruckchat/
-    │   ├── client.rs      // reqwest wrapper with cookie jar
-    │   ├── auth.rs
-    │   └── models.rs      // RuckChat request/response structs
-    ├── mapping.rs         // SQLite mapping store
-    ├── pipeline.rs        // ordered migration stages
-    ├── transform.rs       // RocketChat → MigrationData
-    ├── dry_run.rs         // report generation
-    ├── interactive.rs     // prompt helpers
-    └── report.rs
+Adding Postmark support (`postmark` crate v2.0.1, reqwest-backed, builder-style
+client/request API) is now in scope, motivated directly by the password
+problem above: RuckChat has **no email-sending capability of any kind**
+today — confirmed by reading `server/src/services/server_admin.rs:236`
+(`reset_password` generates a plaintext temporary password and returns it in
+the JSON response with no delivery mechanism at all) and
+`server/src/services/auth.rs`'s `register`/`login` (no verification or
+forgot-password email flow exists either).
+
+This becomes a new general-purpose crate, `crates/ruckchat-email`, not a
+one-off inside the migration tool:
+
+```rust
+// crates/ruckchat-email/src/lib.rs (sketch)
+pub struct EmailConfig {
+    pub server_token: String,
+    pub from_address: String,
+}
+
+pub struct EmailClient { /* wraps postmark::api::client::PostmarkClient */ }
+
+impl EmailClient {
+    pub fn new(config: &EmailConfig) -> Self { /* ... */ }
+
+    /// Sends a migrated user their real temporary password.
+    pub async fn send_migration_credentials(
+        &self,
+        to: &str,
+        temp_password: &str,
+    ) -> Result<(), EmailError> { /* inline HTML/text body, no Postmark template */ }
+
+    /// Sends a server-admin-triggered password reset.
+    pub async fn send_password_reset(
+        &self,
+        to: &str,
+        temp_password: &str,
+    ) -> Result<(), EmailError> { /* ... */ }
+}
 ```
 
-### Configuration
+Bodies are composed inline in Rust (`api::Body::text`/`html`), not via
+Postmark's server-side template feature — no Postmark-dashboard dependency,
+copy changes go through a normal code deploy.
+
+**`ruckchat-server` integration**: `ruckchat.yaml` gains an optional `email:`
+section (`server_token`, `from_address`). When absent, email sending is a
+no-op — `reset_password` keeps returning the plaintext password in its
+response exactly as it does today (unchanged, graceful degradation, not a
+hard error). When present, `server_admin.rs`'s `reset_password` additionally
+calls `send_password_reset` after hashing; a failed send does **not** fail
+the whole request (the password is still returned in the response as a
+fallback) — it's recorded via the existing audit log alongside the
+`user.password_reset` entry.
+
+**`rocketchat2ruckchat` integration**: the tool's own config gains the same
+`email:` section (its own copy, not read from the target's `ruckchat.yaml` —
+the tool doesn't assume filesystem access to that file). A new `--send-emails`
+flag (meaningful only alongside `--apply`) triggers
+`send_migration_credentials` per migrated user immediately after the `users`
+pipeline stage writes them. Without `--send-emails`, `--apply` still writes
+everything and generates real usable passwords, but doesn't contact anyone —
+letting an operator commit the data migration before deciding to notify
+users, since these are two different kinds of consequence (a Postgres write
+you can inspect/undo vs. an email you can't unsend).
+
+Individual send failures don't abort the run: they're collected into the
+migration report (`credential_emails: { sent, failed: [{email, error}] }`) so
+the admin can follow up on just the handful that bounced, rather than the
+whole migration failing over a few bad addresses.
+
+## File storage
+
+- **Source**: read bytes directly from Mongo GridFS buckets. Each upload
+  document's `store` field (e.g. `"GridFS:Uploads"`) maps to a known bucket
+  prefix — `rocketchat_uploads`, `rocketchat_avatars`, `rocketchat_userDataFiles`,
+  `custom_sounds`, `assets` were all observed as real GridFS bucket pairs
+  (`<prefix>.files`/`<prefix>.chunks`) in a live dump. Use the official
+  `mongodb` driver crate's GridFS bucket API keyed by that prefix.
+- **Target**: write bytes to the directory configured in RuckChat's own
+  `ruckchat.yaml` (`uploads.directory` or equivalent — the tool's config must
+  be told this same path), naming each file by its newly generated file UUID,
+  matching `FileService::store`'s existing convention exactly. Then insert the
+  `files` row (via `ruckchat-migrate`) with that `storage_path`.
+- Files whose `store` isn't GridFS-prefixed are skipped and counted separately
+  in the dry-run/apply report, not silently dropped.
+- Custom emoji image storage bucket naming is unconfirmed — no custom emoji
+  existed in the surveyed dump. Verify against a real custom-emoji-populated
+  dump during implementation before assuming it shares the generic uploads
+  bucket.
+
+## Configuration (replaces the v1 YAML)
 
 ```yaml
 source:
-  url: https://rocketchat.example.com
-  auth:
-    pat:
-      user_id: abc123
-      auth_token: xyz789
-    # OR
-    # login:
-    #   username: admin
-    #   password: ""
+  mongo_uri: mongodb://localhost:27017
+  database: rocketchat
 
 target:
-  url: http://localhost:3000
-  auth:
-    login:
-      email: admin@example.com
-      password: ""
+  database_url: postgres://ruckchat:ruckchat@localhost/ruckchat
   organization_id: 00000000-0000-0000-0000-000000000000
+  upload_directory: /var/lib/ruckchat/uploads   # must match ruckchat.yaml
+
+email:
+  server_token: <postmark-server-token>
+  from_address: no-reply@example.com
 
 options:
   scope:
     - users
-    - rooms
+    - channels
     - messages
     - reactions
     - files
-    - roles
-    - permissions
     - emoji
-    - teams
   map_existing_users: true
   deactivate_deleted_users: true
   archive_deleted_rooms: true
-  skip_deleted_messages: true
   dry_run: true
 
 mapping_store: ./rocketchat2ruckchat.mapping.sqlite
 ```
 
-Missing values trigger interactive prompts.
+All RocketChat/RuckChat REST auth sections (PAT, login, session cookie) are
+removed — there is no HTTP client on either side anymore except the direct
+Postmark API call for credential emails.
 
-### Authentication
+## Pipeline stages (revised)
 
-- **RocketChat**: try PAT first; if login credentials are supplied, call `POST /api/v1/login` and use the returned `authToken`/`userId`.
-- **RuckChat**: call `POST /api/v1/auth/login`, store the `ruckchat_session` cookie in a cookie jar, and reuse it for all subsequent requests.
+Same ordered/resumable/checkpointed structure as v1, source and target swapped:
 
-### Mapping table
+1. `source_inventory` — `count()` per Mongo collection for the dry-run report.
+2. `users` — read `users`; map-or-create by email; `deactivated_at` set when
+   `active: false`; generate a real usable temporary password and hash it
+   (see **Password handling**). If `--send-emails`, email it via
+   `ruckchat-email` immediately after the row is written.
+3. `channels` — read `rocketchat_room`, filtering out `t: "l"` (livechat).
+   `c`/`p` → channel; `d` → DM conversation; a room with `prid` set → channel
+   with `parent_channel_id` pointing at the mapped parent.
+4. `channel_memberships` — from `rocketchat_subscription`.
+5. `messages` — per-room cursor pagination on `(rid, ts, _id)` (matches the
+   existing `rid_1_ts_1__updatedAt_1` index); only `t: null` documents import,
+   every other `t` value is skipped and counted.
+6. `threads` — resolve `tmid` to the mapped parent `MessageId`.
+7. `reactions` — extract each message's embedded `{":emoji:": {usernames}}`
+   map and resolve each username against the user map.
+8. `files` — GridFS stream to the target upload directory; non-GridFS `store`
+   values are skipped and reported.
+9. `custom_emoji` — as `files`, plus a `custom_emoji` row per shortcode.
 
-A SQLite database with tables:
+Removed from v1: `organization_roles`, `custom_emoji`'s permission gating,
+`teams`, `room_memberships`-for-teams, `pins_and_stars` (already deferred in
+v1, stays deferred).
 
-```sql
-CREATE TABLE user_map (rocket_id TEXT PRIMARY KEY, ruckchat_id TEXT, email TEXT, action TEXT);
-CREATE TABLE room_map (rocket_id TEXT PRIMARY KEY, ruckchat_id TEXT, rocket_type TEXT, ruckchat_type TEXT);
-CREATE TABLE message_map (rocket_id TEXT PRIMARY KEY, ruckchat_id TEXT);
-CREATE TABLE file_map (rocket_id TEXT PRIMARY KEY, ruckchat_id TEXT, storage_path TEXT);
-CREATE TABLE reaction_map (rocket_message_id TEXT, rocket_emoji TEXT, ruckchat_message_id TEXT, PRIMARY KEY (rocket_message_id, rocket_emoji));
-CREATE TABLE checkpoints (stage TEXT PRIMARY KEY, last_id TEXT, completed_at TEXT);
-```
+## Dependency changes (`crates/rocketchat2ruckchat/Cargo.toml`)
 
-### Pipeline stages
+- Remove: `reqwest` (cookies/json/stream/multipart) — no more RocketChat or
+  RuckChat HTTP clients.
+- Add: `mongodb` (async, GridFS support), `bson`, `sqlx` (`postgres`,
+  `runtime-tokio`, `macros` — matching `ruckchat-server`'s existing setup),
+  `ruckchat-migrate = { path = "../ruckchat-migrate" }`,
+  `ruckchat-email = { path = "../ruckchat-email" }`.
+- Keep: `rusqlite` (mapping store), `dialoguer`/`console` (interactive
+  prompts — target-organization selection becomes a direct `SELECT` against
+  the target Postgres pool instead of a REST call), `clap`, `tokio`.
+- `tokio-util` (`io-util`) was likely only needed for streaming REST download
+  bodies — re-evaluate during implementation; GridFS's async stream may cover
+  the same need without it.
 
-Execute in dependency order. Each stage is resumable from the checkpoint.
-
-1. `source_inventory` — list users, rooms, teams, emoji, roles from RocketChat.
-2. `users` — create or map to existing RuckChat users.
-3. `organization_roles` — create custom roles and permissions.
-4. `custom_emoji` — upload emoji images (or map to existing emoji).
-5. `teams` — create teams and attach members.
-6. `rooms` — create channels, groups, DMs, discussions. Archive where needed.
-7. `room_memberships` — add members to channels/groups/teams.
-8. `messages` — paginate room history, transform, and post in batches via `/admin/import`.
-9. `threads` — resolve `tmid` to RuckChat `parent_id` using `message_map`.
-10. `reactions` — migrate reactions using emoji mapping.
-11. `files` — download from RocketChat and upload to RuckChat, then attach to messages.
-12. `pins_and_stars` — migrate pinned/starred state if target API supports it.
-
-### Dry-run logic
-
-- Build the full `MigrationData` snapshot in memory.
-- Compare against the mapping table to classify each entity as `create`, `update`, or `skip`.
-- Do not call any mutating endpoint unless `--apply` is passed.
-- Print a report:
-
-```text
-Dry-run report for RocketChat → RuckChat
-==========================================
-Users:            342 create, 18 update, 0 skip
-Channels:         56 create, 2 update, 0 skip
-Direct messages:  89 create, 0 update, 0 skip
-Teams:            12 create, 0 update, 0 skip
-Messages:         142,380 create, 1,204 update, 0 skip
-Reactions:        8,921 create, 0 update, 0 skip
-Files:            4,102 create, 0 update, 0 skip
-Custom emoji:     24 create, 0 update, 0 skip
-Roles:            7 create, 0 update, 0 skip
-
-Run with --apply to write these changes.
-```
-
-### Interactive prompts
-
-When config is incomplete or `--interactive` is set:
-
-- Source URL and credentials
-- Target URL and credentials
-- Target organization selection
-- Action for each inaccessible room: `skip`, `retry with elevation`, `abort`
-- Confirmation before `--apply`
-
-### Report
-
-At the end of an applied run, write a JSON report:
-
-```json
-{
-  "started_at": "2026-07-23T12:00:00Z",
-  "completed_at": "2026-07-23T12:34:56Z",
-  "source_url": "https://rocketchat.example.com",
-  "target_url": "http://localhost:3000",
-  "counts": {
-    "users": { "created": 342, "updated": 18, "skipped": 0, "failed": 0 },
-    "channels": { "created": 56, "updated": 2, "skipped": 0, "failed": 0 },
-    "messages": { "created": 142380, "updated": 1204, "skipped": 0, "failed": 3 }
-  },
-  "mapping_store": "./rocketchat2ruckchat.mapping.sqlite",
-  "failures": [
-    { "stage": "files", "rocket_id": "abc", "error": "upload too large" }
-  ]
-}
-```
-
-## RocketChat → RuckChat mapping
-
-| RocketChat concept | RuckChat target | Notes |
-|--------------------|-----------------|-------|
-| User               | `users`         | Map by email; preserve `username` as `display_name` prefix if unique; migrate `status` separately via presence API if desired. |
-| Deleted user       | `users` with `deactivated_at` | Cannot log in, but messages retain authorship. |
-| Role               | `organization_roles` + `permissions` | Built-in RocketChat roles (`admin`, `moderator`, `user`, `guest`, `bot`) map to RuckChat built-ins where possible; custom roles become `organization_roles`. |
-| Permission         | `permissions` + `role_permissions` | Store key names; actual enforcement in RuckChat may lag until authz layer is made dynamic. |
-| Public channel     | `channels` (is_private=false) | RocketChat `channels.*` endpoints. |
-| Private group      | `channels` (is_private=true) | RocketChat `groups.*` endpoints. |
-| Direct message     | `direct_message_conversations` | Resolve pairwise/triplet members. |
-| Team               | `teams` + `team_rooms` + `team_memberships` | RocketChat `teams.*` endpoints. |
-| Discussion         | `channels` (topic = parent name) | Discussions are modeled as regular channels. |
-| Message            | `messages`      | Preserve original timestamp, author, edits, deletion, thread parent. |
-| Thread             | `messages` with `parent_id` | Use `tmid` from RocketChat. |
-| Reaction           | `reactions`     | Map emoji shortcodes through `custom_emoji` table. |
-| File upload        | `files` + `message_files` | Download bytes, upload to RuckChat file endpoint, attach to message. |
-| Custom emoji       | `custom_emoji`  | Upload image file and map shortcode. |
-| Pinned message     | (deferred)      | RuckChat has no pin concept yet; report as skipped or store metadata. |
-| Starred message    | (deferred)      | RuckChat has no star concept yet; report as skipped. |
-
-## Rate limiting and backpressure
-
-- Respect RocketChat `x-ratelimit-*` headers. Use exponential backoff on `429`.
-- Respect RuckChat rate limits. The import endpoint may be expensive; for large instances, make it async with a status endpoint.
-- Stream file downloads/uploads to avoid loading large files into memory.
-
-## Security
-
-- Never log RocketChat or RuckChat credentials.
-- Use HTTPS for production source/target URLs; warn if plain HTTP is used.
-- Store the mapping SQLite file with restrictive permissions (`0o600`).
-- RuckChat import endpoint requires `Owner` or `Admin` role.
-
-## Risks and mitigations
+## Risks and mitigations (revised)
 
 | Risk | Mitigation |
 |------|------------|
-| Password hashes incompatible | Admin import endpoint accepts pre-hashed passwords only when the algorithm matches; otherwise users must reset passwords. |
-| Large message history | Paginate RocketChat history and batch import calls. Consider async import endpoint for >100k messages. |
-| File storage path mismatch | Download and re-upload file bytes rather than trusting `storage_path`. |
-| Inaccessible rooms | Interactive prompt; default to skip with report. |
-| Duplicate usernames/emails | Map to existing user by email; rename only if configured. |
-| Schema drift | Keep the tool versioned and tied to `MigrationData` version. |
+| Emailing hundreds of real users is irreversible | `--send-emails` is a separate, explicit flag from `--apply` — data can be migrated and inspected before anyone is contacted. |
+| Individual credential emails fail (bad address, Postmark error) | Continue the run; collect failures in the migration report (`credential_emails.failed`) rather than aborting or silently dropping them. |
+| Schema-version drift (validated against migration version 335) | Read the dump's `migrations` collection `version` field at startup; warn/abort on an unexpected version rather than silently misreading fields. |
+| Custom emoji GridFS bucket naming unconfirmed | Verify against a real dump with custom emoji before shipping that stage; don't assume the generic uploads bucket. |
+| Non-GridFS file storage instances | Explicit skip + report, not a silent gap — matches the "error clearly" decision from requirements discovery. |
+| `parent_channel_id` has no UI/authorization consumer yet | Documented as storage-only with a follow-up TODO, not represented as a finished feature. |
+| Postmark not yet configured on a given server | Email calls no-op gracefully; `reset_password` keeps returning the plaintext password as it does today, so nothing regresses for servers without Postmark set up. |
 
-## Open questions remaining
+## Follow-ups explicitly out of scope for this design
 
-1. Should the import endpoint be synchronous or asynchronous with a job status endpoint? (Recommendation: synchronous up to a configurable timeout/size, then queue.)
-2. Should the standalone tool live inside the workspace or in a separate repository? (Recommendation: inside the workspace as `crates/rocketchat2ruckchat` for CI coordination, but publishable as its own binary.)
-3. Does RuckChat want to adopt dynamic authorization based on `role_permissions`, or only store the matrix for migration parity? (Recommendation: store first; enforce later in a separate phase.)
-4. How are RocketChat `@all`/`@here` mentions and custom user groups mapped? (Recommendation: convert to plain text mentions; skip user groups.)
+- Updating `docs/ADR-012-Migration-and-Packaging.md` to describe the new
+  `ruckchat-migrate` crate extraction, and likely a new ADR for
+  `ruckchat-email`/Postmark as a new external dependency — do this alongside
+  implementation, not as part of this design.
+- Desktop/web UI and any authorization changes to surface `parent_channel_id`.
+- Any future decision to migrate roles/permissions/Teams if a real instance
+  using them becomes available for testing.
+- Further email use cases beyond credential delivery and admin password
+  resets (self-service forgot-password, signup verification, org-invite
+  emails) — `ruckchat-email` is built general-purpose, but wiring it into
+  those flows is separate follow-up work, not part of this migration task.
 
 ## Next step
 
-`/sc:implement` Phase A (server extensions) first, then Phase B (standalone tool).
+`/sc:implement`: extract `ruckchat-migrate`, add the `parent_channel_id`
+migration, then rewrite `rocketchat2ruckchat`'s source/target/transform/pipeline
+modules per this design.

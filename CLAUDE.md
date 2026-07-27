@@ -111,10 +111,29 @@ Phases 1–12 and Phase 14 (Web UI Admin Panel) are complete. Phase 13 (Mobile/F
   using SQLx offline mode, a runtime `docker-compose.yml` with PostgreSQL 17, a
   `docker-compose.build.yml` for source builds, and a `scripts/publish.sh`
   helper that builds the server Docker image and publishes releases.
-- RocketChat → RuckChat migration tool: standalone `rocketchat2ruckchat` binary
-  crate in `crates/rocketchat2ruckchat/` with RocketChat and RuckChat REST clients,
-  a SQLite mapping store, deterministic UUIDv5 transforms, file/emoji upload
-  pipeline, dry-run, and interactive prompts.
+- RocketChat → RuckChat migration tool (`docs/DESIGN-RocketChat-Migration.md`):
+  standalone `rocketchat2ruckchat` binary crate in `crates/rocketchat2ruckchat/`,
+  redesigned to read a restored RocketChat MongoDB dump directly (`mongodb`
+  driver, GridFS bytes read directly from the `.chunks` collections) and write
+  straight to a target RuckChat PostgreSQL database — no RocketChat/RuckChat
+  REST clients, no running `ruckchat-server` process on either end. Target
+  writes go through the new shared `crates/ruckchat-migrate` crate (the
+  transactional, idempotent import logic extracted verbatim from the former
+  `server/src/migrate.rs`, also used by `ruckchat-server`'s own `migrate`
+  CLI and admin import endpoint). Roles/permissions/Teams migration and
+  RocketChat system messages are out of scope (see the design doc's
+  non-goals); RocketChat discussions preserve their parent-room link via a
+  new `channels.parent_channel_id` column. A SQLite mapping store, dry-run
+  default, and interactive prompts are retained. Migrated users get real
+  temporary passwords, optionally emailed via `--send-emails`
+  (`docs/ADR-018-Transactional-Email.md`).
+- Transactional email (`docs/ADR-018-Transactional-Email.md`): new
+  `crates/ruckchat-email` crate wraps the Postmark API (`postmark` crate) as
+  `EmailClient`, configured via an optional `email:` section in
+  `ruckchat.yaml`. `ServerAdminService::reset_password` sends the new
+  password by email when configured, falling back to today's
+  plaintext-in-response behavior when it isn't. Used by both
+  `ruckchat-server` and the RocketChat migration tool above.
 - `scripts/publish.sh vX.Y.Z` automates the full release pipeline: version
   bumps, CHANGELOG generation, validation checks, local server and desktop
   builds, GPG-signed commit/tag/push, and publishing the Docker image to
@@ -432,7 +451,18 @@ root/
   `docs/ADR-013-Web-UI-Admin-Panel.md`, `docs/ADR-014-Spell-Checker.md`,
   `docs/ADR-015-Search-And-Read-State.md`,
   `docs/ADR-016-Cursor-Based-Message-Pagination.md`,
-  `docs/ADR-017-Server-Stored-Theme-Preference.md` — Active ADRs.
+  `docs/ADR-017-Server-Stored-Theme-Preference.md`,
+  `docs/ADR-018-Transactional-Email.md` — Active ADRs.
+- `docs/DESIGN-RocketChat-Migration.md` — Mongo-sourced, DB-to-DB RocketChat
+  migration tool design (v2).
+- `crates/ruckchat-migrate/src/lib.rs` — Shared `MigrationData`/`import()`/
+  `export()`, used by `ruckchat-server`'s CLI/admin endpoint and by
+  `rocketchat2ruckchat`.
+- `crates/ruckchat-email/src/lib.rs` — Postmark-backed `EmailClient`.
+- `crates/rocketchat2ruckchat/src/mongo_source.rs` — Direct MongoDB/GridFS
+  reader for a restored RocketChat dump.
+- `crates/rocketchat2ruckchat/src/target.rs` — Direct PostgreSQL writer
+  wrapping `ruckchat-migrate`.
 
 ## Environment
 

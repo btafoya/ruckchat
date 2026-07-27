@@ -3914,6 +3914,8 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             archived_at?: string | null;
+            /** @description Set when this channel originated as a RocketChat discussion linked to a parent room. Storage only; no UI or authorization logic reads this field yet. */
+            parent_channel_id?: components["schemas"]["Uuid"];
         };
         ChannelList: {
             items: components["schemas"]["Channel"][];

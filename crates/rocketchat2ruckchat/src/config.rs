@@ -13,15 +13,21 @@ use crate::interactive;
 /// Command-line arguments.
 #[derive(Debug, Clone, Parser)]
 #[command(name = "rocketchat2ruckchat")]
-#[command(about = "Migrate a RocketChat workspace to a RuckChat organization")]
+#[command(about = "Migrate a RocketChat MongoDB dump into a RuckChat organization")]
 pub struct Cli {
     /// Path to a YAML configuration file.
     #[arg(short, long)]
     pub config: Option<PathBuf>,
 
-    /// Actually write changes to the target RuckChat server.
+    /// Actually write changes to the target RuckChat database.
     #[arg(long)]
     pub apply: bool,
+
+    /// Email each migrated user their temporary password. Only meaningful
+    /// alongside `--apply`; sending is a separate, explicit action from
+    /// writing data since it cannot be undone.
+    #[arg(long)]
+    pub send_emails: bool,
 
     /// Always prompt for missing values even when a config file is supplied.
     #[arg(long)]
@@ -36,68 +42,67 @@ pub struct Cli {
     pub mapping_store: Option<PathBuf>,
 }
 
-/// Source RocketChat configuration.
+/// Source MongoDB configuration.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct SourceConfig {
-    /// RocketChat base URL.
-    pub url: String,
-    /// Authentication method.
-    pub auth: RocketAuthConfig,
+    /// Connection string for the restored RocketChat MongoDB dump.
+    #[serde(default)]
+    pub mongo_uri: String,
+    /// Database name within the Mongo connection.
+    #[serde(default = "default_mongo_database")]
+    pub database: String,
 }
 
-/// RocketChat authentication variants.
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct RocketAuthConfig {
-    /// Personal access token authentication.
-    pub pat: Option<RocketPatAuth>,
-    /// Username/password authentication.
-    pub login: Option<RocketLoginAuth>,
-}
-
-/// RocketChat personal access token credentials.
-#[derive(Debug, Clone, Deserialize)]
-pub struct RocketPatAuth {
-    /// RocketChat user identifier.
-    pub user_id: String,
-    /// RocketChat personal access token.
-    pub auth_token: String,
-}
-
-/// RocketChat username/password credentials.
-#[derive(Debug, Clone, Deserialize)]
-pub struct RocketLoginAuth {
-    /// RocketChat username.
-    pub username: String,
-    /// RocketChat password.
-    pub password: String,
+fn default_mongo_database() -> String {
+    "rocketchat".into()
 }
 
 /// Target RuckChat configuration.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
 pub struct TargetConfig {
-    /// RuckChat base URL.
-    pub url: String,
-    /// Authentication method.
-    pub auth: RuckAuthConfig,
-    /// Target organization identifier.
+    /// PostgreSQL connection string for the target RuckChat database.
+    pub database_url: String,
+    /// Target organization identifier. May already exist (its row is left
+    /// untouched, `ON CONFLICT DO NOTHING`) or be created fresh.
     pub organization_id: Uuid,
+    /// Organization display name, used only if `organization_id` doesn't
+    /// already exist.
+    pub organization_name: String,
+    /// Organization slug, used only if `organization_id` doesn't already
+    /// exist.
+    pub organization_slug: String,
+    /// Email identifying the migration's fallback/owner identity. Matched
+    /// against existing target users by email first; a fresh account is
+    /// created only when no match exists.
+    pub admin_email: String,
+    /// Directory RuckChat stores uploaded file bytes in. Must match the
+    /// target server's `ruckchat.yaml` `files.directory`.
+    pub upload_directory: String,
 }
 
-/// RuckChat authentication variants.
+impl Default for TargetConfig {
+    fn default() -> Self {
+        Self {
+            database_url: String::new(),
+            organization_id: Uuid::nil(),
+            organization_name: "Migrated Organization".into(),
+            organization_slug: "migrated".into(),
+            admin_email: String::new(),
+            upload_directory: String::new(),
+        }
+    }
+}
+
+/// Postmark configuration for migration credential emails.
 #[derive(Debug, Clone, Default, Deserialize)]
-pub struct RuckAuthConfig {
-    /// Email/password login.
+pub struct EmailConfig {
+    /// Postmark server API token.
     #[serde(default)]
-    pub login: RuckLoginAuth,
-}
-
-/// RuckChat email/password credentials.
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct RuckLoginAuth {
-    /// User email.
-    pub email: String,
-    /// User password.
-    pub password: String,
+    pub server_token: String,
+    /// From address used for credential emails.
+    #[serde(default)]
+    pub from_address: String,
 }
 
 /// Migration options.
@@ -108,12 +113,10 @@ pub struct OptionsConfig {
     pub scope: Vec<String>,
     /// Map existing RuckChat users by email when possible.
     pub map_existing_users: bool,
-    /// Mark deleted RocketChat users as deactivated.
+    /// Mark deactivated/inactive RocketChat users as deactivated.
     pub deactivate_deleted_users: bool,
-    /// Archive rooms that were deleted in RocketChat.
+    /// Archive rooms that were archived in RocketChat.
     pub archive_deleted_rooms: bool,
-    /// Skip messages that were deleted in RocketChat.
-    pub skip_deleted_messages: bool,
     /// Default to dry-run unless overridden.
     pub dry_run: bool,
 }
@@ -131,19 +134,15 @@ impl Default for OptionsConfig {
         Self {
             scope: vec![
                 "users".into(),
-                "rooms".into(),
+                "channels".into(),
                 "messages".into(),
                 "reactions".into(),
                 "files".into(),
-                "roles".into(),
-                "permissions".into(),
                 "emoji".into(),
-                "teams".into(),
             ],
             map_existing_users: true,
             deactivate_deleted_users: true,
             archive_deleted_rooms: true,
-            skip_deleted_messages: true,
             dry_run: true,
         }
     }
@@ -154,6 +153,7 @@ impl Default for OptionsConfig {
 struct FileConfig {
     source: Option<SourceConfig>,
     target: Option<TargetConfig>,
+    email: Option<EmailConfig>,
     #[serde(default)]
     options: OptionsConfig,
     mapping_store: Option<PathBuf>,
@@ -162,16 +162,20 @@ struct FileConfig {
 /// Fully resolved, ready-to-run configuration.
 #[derive(Debug, Clone)]
 pub struct ResolvedConfig {
-    /// RocketChat source configuration.
+    /// Source MongoDB configuration.
     pub source: SourceConfig,
-    /// RuckChat target configuration.
+    /// Target RuckChat configuration.
     pub target: TargetConfig,
+    /// Postmark configuration, if credential emails are wanted.
+    pub email: Option<EmailConfig>,
     /// Migration options.
     pub options: OptionsConfig,
     /// Path to the SQLite mapping store.
     pub mapping_store: PathBuf,
     /// True when `--apply` was supplied and this run may write data.
     pub apply: bool,
+    /// True when migrated users should be emailed their credentials.
+    pub send_emails: bool,
 }
 
 impl ResolvedConfig {
@@ -197,6 +201,9 @@ pub fn resolve(cli: &Cli) -> Result<ResolvedConfig> {
     if interactive {
         interactive::prompt_source(&mut file.source)?;
         interactive::prompt_target(&mut file.target)?;
+        if cli.send_emails {
+            interactive::prompt_email(&mut file.email)?;
+        }
         if file.mapping_store.is_none() {
             let default = default_mapping_store();
             let path = interactive::prompt_mapping_store(default)?;
@@ -213,6 +220,19 @@ pub fn resolve(cli: &Cli) -> Result<ResolvedConfig> {
         .clone()
         .ok_or_else(|| Error::config("target configuration is required"))?;
 
+    if source.mongo_uri.is_empty() {
+        return Err(Error::config("source.mongo_uri is required"));
+    }
+    if target.database_url.is_empty() {
+        return Err(Error::config("target.database_url is required"));
+    }
+    if target.admin_email.is_empty() {
+        return Err(Error::config("target.admin_email is required"));
+    }
+    if target.upload_directory.is_empty() {
+        return Err(Error::config("target.upload_directory is required"));
+    }
+
     let mapping_store = cli
         .mapping_store
         .clone()
@@ -228,6 +248,10 @@ pub fn resolve(cli: &Cli) -> Result<ResolvedConfig> {
         warn!("--dry-run overrides --apply; no writes will occur");
     }
 
+    if cli.send_emails && !apply {
+        return Err(Error::config("--send-emails requires --apply"));
+    }
+
     let mut options = file.options;
     if cli.dry_run {
         options.dry_run = true;
@@ -236,9 +260,11 @@ pub fn resolve(cli: &Cli) -> Result<ResolvedConfig> {
     Ok(ResolvedConfig {
         source,
         target,
+        email: file.email,
         options,
         mapping_store,
         apply,
+        send_emails: cli.send_emails,
     })
 }
 
@@ -263,58 +289,44 @@ mod tests {
     fn options_default_includes_all_scopes() {
         let options = OptionsConfig::default();
         assert!(options.has_scope("users"));
-        assert!(options.has_scope("rooms"));
+        assert!(options.has_scope("channels"));
         assert!(options.has_scope("messages"));
+    }
+
+    fn sample_config(apply: bool, dry_run: bool) -> ResolvedConfig {
+        ResolvedConfig {
+            source: SourceConfig {
+                mongo_uri: "mongodb://localhost:27017".into(),
+                database: "rocketchat".into(),
+            },
+            target: TargetConfig {
+                database_url: "postgres://localhost/ruckchat".into(),
+                organization_id: Uuid::nil(),
+                organization_name: "Migrated Organization".into(),
+                organization_slug: "migrated".into(),
+                admin_email: "admin@example.com".into(),
+                upload_directory: "/tmp/uploads".into(),
+            },
+            email: None,
+            options: OptionsConfig {
+                dry_run,
+                ..OptionsConfig::default()
+            },
+            mapping_store: default_mapping_store(),
+            apply,
+            send_emails: false,
+        }
     }
 
     #[test]
     fn resolved_config_dry_run_without_apply() {
-        let config = ResolvedConfig {
-            source: SourceConfig {
-                url: "https://rc.example.com".into(),
-                auth: RocketAuthConfig::default(),
-            },
-            target: TargetConfig {
-                url: "http://localhost:3000".into(),
-                auth: RuckAuthConfig {
-                    login: RuckLoginAuth {
-                        email: "admin@example.com".into(),
-                        password: "secret".into(),
-                    },
-                },
-                organization_id: Uuid::nil(),
-            },
-            options: OptionsConfig::default(),
-            mapping_store: default_mapping_store(),
-            apply: false,
-        };
+        let config = sample_config(false, true);
         assert!(config.is_dry_run());
     }
 
     #[test]
     fn resolved_config_apply_overrides_default_dry_run() {
-        let config = ResolvedConfig {
-            source: SourceConfig {
-                url: "https://rc.example.com".into(),
-                auth: RocketAuthConfig::default(),
-            },
-            target: TargetConfig {
-                url: "http://localhost:3000".into(),
-                auth: RuckAuthConfig {
-                    login: RuckLoginAuth {
-                        email: "admin@example.com".into(),
-                        password: "secret".into(),
-                    },
-                },
-                organization_id: Uuid::nil(),
-            },
-            options: OptionsConfig {
-                dry_run: false,
-                ..OptionsConfig::default()
-            },
-            mapping_store: default_mapping_store(),
-            apply: true,
-        };
+        let config = sample_config(true, false);
         assert!(!config.is_dry_run());
     }
 }

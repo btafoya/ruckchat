@@ -2,7 +2,6 @@
 //!
 //! Operations in this module are restricted to organization owners and admins.
 
-use crate::migrate::{self, ImportCounts, MigrateError, MigrationData};
 use ruckchat_common::{Error, Result};
 use ruckchat_domain::{
     ChannelRepository, CustomEmoji, CustomEmojiRepository, Organization, OrganizationMembership,
@@ -12,6 +11,7 @@ use ruckchat_domain::{
     TeamRoom, TeamRoomRepository, UserRepository,
 };
 use ruckchat_id::{ChannelId, FileId, OrganizationId, TeamId, UserId};
+use ruckchat_migrate::{self as migrate, ImportCounts, MigrateError, MigrationData};
 use sqlx::PgPool;
 use std::sync::Arc;
 

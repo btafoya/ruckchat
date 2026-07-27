@@ -477,6 +477,14 @@ fn validate(data: &MigrationData) -> Result<()> {
                 channel.id, channel.created_by
             )));
         }
+        if let Some(parent_id) = channel.parent_channel_id
+            && !channel_ids.contains(&parent_id.as_uuid())
+        {
+            return Err(MigrateError::Validation(format!(
+                "channel {} references missing parent channel {}",
+                channel.id, parent_id
+            )));
+        }
     }
 
     for message in &data.messages {
@@ -631,7 +639,7 @@ async fn export_team_rooms(pool: &PgPool) -> Result<Vec<TeamRoom>> {
 async fn export_channels(pool: &PgPool) -> Result<Vec<Channel>> {
     let rows = sqlx::query_as!(
         ChannelRow,
-        "SELECT id, organization_id, name, topic, purpose, is_private, created_by, created_at, archived_at FROM channels ORDER BY created_at"
+        "SELECT id, organization_id, name, topic, purpose, is_private, created_by, created_at, archived_at, parent_channel_id FROM channels ORDER BY created_at"
     )
     .fetch_all(pool)
     .await?;
@@ -964,8 +972,8 @@ async fn import_channels(
     let mut inserted = 0;
     for channel in channels {
         let result = sqlx::query!(
-            "INSERT INTO channels (id, organization_id, name, topic, purpose, is_private, is_archived, created_by, created_at, archived_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            "INSERT INTO channels (id, organization_id, name, topic, purpose, is_private, is_archived, created_by, created_at, archived_at, parent_channel_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              ON CONFLICT (id) DO NOTHING",
             channel.id.as_uuid(),
             channel.organization_id.as_uuid(),
@@ -977,6 +985,7 @@ async fn import_channels(
             channel.created_by.as_uuid(),
             channel.created_at,
             channel.archived_at,
+            channel.parent_channel_id.map(|id| id.as_uuid()),
         )
         .execute(&mut **tx)
         .await?;
@@ -1363,6 +1372,7 @@ struct ChannelRow {
     created_by: Uuid,
     created_at: OffsetDateTime,
     archived_at: Option<OffsetDateTime>,
+    parent_channel_id: Option<Uuid>,
 }
 
 fn into_channel(row: ChannelRow) -> Channel {
@@ -1376,6 +1386,7 @@ fn into_channel(row: ChannelRow) -> Channel {
         created_by: UserId::from_uuid(row.created_by),
         created_at: row.created_at,
         archived_at: row.archived_at,
+        parent_channel_id: row.parent_channel_id.map(ruckchat_id::ChannelId::from_uuid),
     }
 }
 

@@ -1,9 +1,5 @@
 //! Error type for the migration tool.
 
-use std::path::PathBuf;
-
-use reqwest::StatusCode;
-
 /// A unified error returned by the migration tool.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -27,27 +23,21 @@ pub enum Error {
     #[error("mapping store error: {0}")]
     MappingStore(#[from] rusqlite::Error),
 
-    /// RocketChat API failure.
-    #[error("rocketchat api error: {message} (status {status:?})")]
-    RocketChat {
-        /// HTTP status code, if one was returned.
-        status: Option<StatusCode>,
-        /// Human-readable message.
-        message: String,
-    },
+    /// MongoDB source failure.
+    #[error("mongodb error: {0}")]
+    Mongo(#[from] mongodb::error::Error),
 
-    /// RuckChat API failure.
-    #[error("ruckchat api error: {message} (status {status:?})")]
-    RuckChat {
-        /// HTTP status code, if one was returned.
-        status: Option<StatusCode>,
-        /// Human-readable message.
-        message: String,
-    },
+    /// PostgreSQL target failure.
+    #[error("postgres error: {0}")]
+    Postgres(#[from] sqlx::Error),
 
-    /// HTTP request failed.
-    #[error("http error: {0}")]
-    Http(#[from] reqwest::Error),
+    /// The shared migrate crate rejected the snapshot or import.
+    #[error("migrate error: {0}")]
+    Migrate(#[from] ruckchat_migrate::MigrateError),
+
+    /// Sending a credential email failed.
+    #[error("email error: {0}")]
+    Email(#[from] ruckchat_email::EmailError),
 
     /// Invalid input from the operator.
     #[error("input error: {0}")]
@@ -73,24 +63,6 @@ impl Error {
         Self::Config(message.into())
     }
 
-    /// Creates a RocketChat API error from an optional status and message.
-    #[must_use]
-    pub fn rocketchat(status: Option<StatusCode>, message: impl Into<String>) -> Self {
-        Self::RocketChat {
-            status,
-            message: message.into(),
-        }
-    }
-
-    /// Creates a RuckChat API error from an optional status and message.
-    #[must_use]
-    pub fn ruckchat(status: Option<StatusCode>, message: impl Into<String>) -> Self {
-        Self::RuckChat {
-            status,
-            message: message.into(),
-        }
-    }
-
     /// Creates a transform error.
     #[must_use]
     pub fn transform(message: impl Into<String>) -> Self {
@@ -106,8 +78,3 @@ impl Error {
 
 /// Result alias for the migration tool.
 pub type Result<T> = std::result::Result<T, Error>;
-
-/// Errors that can occur while resolving a file path.
-#[derive(Debug, thiserror::Error)]
-#[error("path not found: {0}")]
-pub struct PathError(pub PathBuf);

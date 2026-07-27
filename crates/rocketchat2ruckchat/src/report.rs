@@ -2,12 +2,11 @@
 
 use std::path::PathBuf;
 
+use ruckchat_migrate::{ImportCounts, MigrationData};
 use serde::Serialize;
 
 use crate::config::ResolvedConfig;
 use crate::error::Result;
-use crate::ruckchat::client::MigrationData;
-use crate::ruckchat::models::ImportResponse;
 
 /// Summary of a migration run.
 #[derive(Debug, Clone, Serialize, Default)]
@@ -22,6 +21,9 @@ pub struct Report {
     pub skipped: usize,
     /// Snapshot row counts by category.
     pub counts: SnapshotCounts,
+    /// Outcome of each migration-credential email send attempted, if
+    /// `--send-emails` was supplied.
+    pub credential_emails: CredentialEmailSummary,
 }
 
 /// Per-category counts from the produced snapshot.
@@ -30,11 +32,6 @@ pub struct SnapshotCounts {
     users: usize,
     organizations: usize,
     memberships: usize,
-    roles: usize,
-    permissions: usize,
-    grants: usize,
-    teams: usize,
-    team_memberships: usize,
     channels: usize,
     channel_memberships: usize,
     direct_messages: usize,
@@ -44,28 +41,47 @@ pub struct SnapshotCounts {
     emoji: usize,
 }
 
+/// Outcome of a single migration-credential email send.
+#[derive(Debug, Clone, Serialize)]
+pub struct CredentialEmailOutcome {
+    /// Recipient address.
+    pub email: String,
+    /// Error message, if the send failed.
+    pub error: Option<String>,
+}
+
+/// Summary of every migration-credential email send attempted.
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct CredentialEmailSummary {
+    /// Number of emails sent successfully.
+    pub sent: usize,
+    /// Recipients whose send failed, with the error message.
+    pub failed: Vec<CredentialEmailOutcome>,
+}
+
 impl Report {
-    /// Builds a report from the run configuration, snapshot, and import response.
+    /// Builds a report from the run configuration, snapshot, import result,
+    /// and credential-email outcomes.
     #[must_use]
     pub fn from_run(
         config: &ResolvedConfig,
         data: &MigrationData,
-        response: ImportResponse,
+        counts: ImportCounts,
+        credential_emails: Vec<CredentialEmailOutcome>,
     ) -> Self {
+        let (sent, failed): (Vec<_>, Vec<_>) = credential_emails
+            .into_iter()
+            .partition(|o| o.error.is_none());
+
         Self {
             dry_run: config.is_dry_run(),
             apply: config.apply,
-            inserted: response.inserted,
-            skipped: response.skipped,
+            inserted: counts.inserted,
+            skipped: counts.skipped,
             counts: SnapshotCounts {
                 users: data.users.len(),
                 organizations: data.organizations.len(),
                 memberships: data.organization_memberships.len(),
-                roles: data.organization_roles.len(),
-                permissions: data.permissions.len(),
-                grants: data.role_permissions.len(),
-                teams: data.teams.len(),
-                team_memberships: data.team_memberships.len(),
                 channels: data.channels.len(),
                 channel_memberships: data.channel_memberships.len(),
                 direct_messages: data.direct_message_conversations.len(),
@@ -74,6 +90,10 @@ impl Report {
                 files: data.files.len(),
                 emoji: data.custom_emoji.len(),
             },
+            credential_emails: CredentialEmailSummary {
+                sent: sent.len(),
+                failed,
+            },
         }
     }
 }
@@ -81,6 +101,10 @@ impl Report {
 /// Writes a report to a JSON file next to the mapping store.
 ///
 /// The default file name is `<mapping-store-stem>.report.json`.
+///
+/// # Errors
+///
+/// Returns [`crate::error::Error::Io`] when the report cannot be written.
 pub fn write(config: &ResolvedConfig, report: &Report) -> Result<PathBuf> {
     let mut path = config.mapping_store.clone();
     let stem = path
@@ -95,6 +119,10 @@ pub fn write(config: &ResolvedConfig, report: &Report) -> Result<PathBuf> {
 }
 
 /// Writes a report and returns the resulting path.
+///
+/// # Errors
+///
+/// Returns [`crate::error::Error::Io`] when the report cannot be written.
 pub fn write_report(config: &ResolvedConfig, report: &Report) -> Result<PathBuf> {
     write(config, report)
 }

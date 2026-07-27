@@ -19,15 +19,22 @@ path = "src/main.rs"
 ruckchat-common = { path = "../ruckchat-common" }
 ruckchat-domain = { path = "../ruckchat-domain" }
 ruckchat-id = { path = "../ruckchat-id" }
+ruckchat-migrate = { path = "../ruckchat-migrate" }
+ruckchat-email = { path = "../ruckchat-email" }
 
+argon2 = "0.5"
 clap = { version = "4", features = ["derive"] }
 console = "0.15"
 dialoguer = "0.11"
-reqwest = { version = "0.12", features = ["cookies", "json", "stream", "multipart"] }
+futures-util = "0.3"
+hex = "0.4"
+mongodb = "3"
+rand = "0.8"
 rusqlite = { version = "0.32", features = ["bundled"] }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml = "0.9"
+sqlx = { workspace = true }
 thiserror.workspace = true
 time.workspace = true
 tokio.workspace = true

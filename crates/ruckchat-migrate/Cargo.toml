@@ -1,0 +1,29 @@
+[package]
+name = "ruckchat-migrate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Idempotent, versioned export/import of RuckChat domain data."
+readme = "README.md"
+keywords = ["ruckchat", "chat", "migration"]
+categories = ["data-structures"]
+
+[dependencies]
+ruckchat-id = { path = "../ruckchat-id" }
+ruckchat-common = { path = "../ruckchat-common" }
+ruckchat-domain = { path = "../ruckchat-domain" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true, features = ["fs"] }
+uuid = { workspace = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

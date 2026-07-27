@@ -1,150 +1,87 @@
-//! Orchestrates the end-to-end migration from RocketChat to RuckChat.
+//! Orchestrates the end-to-end migration from a RocketChat MongoDB dump to a
+//! RuckChat PostgreSQL database.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use reqwest::Url;
-use ruckchat_domain::CustomEmoji;
-use ruckchat_id::{CustomEmojiId, OrganizationId, UserId};
+use ruckchat_domain::{CustomEmoji, File as RuckFile};
+use ruckchat_email::EmailClient;
+use ruckchat_id::{FileId, MessageId, OrganizationId, UserId};
+use ruckchat_migrate::{MessageFileLink, MigrationData};
 use time::OffsetDateTime;
 use tracing::{info, warn};
 
 use crate::config::ResolvedConfig;
 use crate::error::Result;
 use crate::mapping::MappingStore;
-use crate::report::{Report, write_report};
-use crate::rocket_chat::client::{RocketChatClient, attachment_url_and_meta, normalize_url};
-use crate::rocket_chat::models::RocketMessage;
-use crate::ruckchat::client::{MigrationData, RuckChatClient};
-use crate::ruckchat::models::FileResponse;
-use crate::transform::{
-    RocketChatSource, build_migration_data, id_for, sanitize_channel_name, user_id_for_email,
-};
+use crate::mongo_source::{MongoSource, RocketMessageFileRef};
+use crate::report::{CredentialEmailOutcome, Report, write_report};
+use crate::target::PostgresTarget;
+use crate::transform::{MongoSourceData, TempPasswords, build_migration_data, id_for};
 
 /// Runs the migration and returns the path to the generated report.
 pub async fn run(config: &ResolvedConfig) -> Result<PathBuf> {
     let mapping = MappingStore::open(&config.mapping_store)?;
-    let rocket = RocketChatClient::new(&config.source.url, &config.source.auth).await?;
-    let ruck = RuckChatClient::new(&config.target.url, &config.target.auth).await?;
+    let source_db = MongoSource::connect(&config.source.mongo_uri, &config.source.database).await?;
+    let target_db =
+        PostgresTarget::connect(&config.target.database_url, &config.target.upload_directory)
+            .await?;
 
-    let target_org = target_org_meta(&config.target.url);
-    let admin_user_id = user_id_for_email(&config.target.auth.login.email);
+    if let Some(version) = source_db.migration_version().await? {
+        info!(version, "source RocketChat schema migration version");
+    }
 
-    let source = inventory_source(config, &rocket, &mapping, target_org).await?;
+    let existing_users_by_email = target_db.existing_users_by_email().await?;
 
-    let mut data = build_migration_data(config, &mapping, &source)?;
+    let source = inventory_source(config, &source_db, &mapping).await?;
+    let (mut data, temp_passwords) =
+        build_migration_data(config, &mapping, &source, &existing_users_by_email)?;
 
     if config.has_scope("emoji") {
-        upload_emoji(
-            config,
-            &rocket,
-            &ruck,
-            &mapping,
-            admin_user_id,
-            &source,
-            &mut data,
-        )
-        .await?;
+        upload_emoji(config, &source_db, &target_db, &mapping, &mut data).await?;
     }
 
     if config.has_scope("files") {
-        upload_message_files(
-            config,
-            &rocket,
-            &ruck,
-            &mapping,
-            admin_user_id,
-            &source,
-            &mut data,
-        )
-        .await?;
+        upload_message_files(&source_db, &target_db, &mapping, &source, &mut data).await?;
     }
 
-    let response = ruck
-        .import_snapshot(
-            OrganizationId::from_uuid(config.target.organization_id),
-            &data,
-            config.is_dry_run(),
-        )
-        .await?;
-
+    let counts = target_db.import(&data, config.is_dry_run()).await?;
     mapping.put_checkpoint("import", None)?;
 
-    let report = Report::from_run(config, &data, response);
-    write_report(config, &report)
-}
+    let credential_emails = if config.send_emails && !config.is_dry_run() {
+        send_credential_emails(config, &temp_passwords, &data).await
+    } else {
+        Vec::new()
+    };
 
-fn target_org_meta(url: &str) -> (String, String) {
-    let host = Url::parse(url)
-        .ok()
-        .and_then(|u| u.host_str().map(String::from))
-        .unwrap_or_else(|| "migrated".into());
-    let slug = sanitize_channel_name(&host);
-    (host, slug)
+    let report = Report::from_run(config, &data, counts, credential_emails);
+    write_report(config, &report)
 }
 
 async fn inventory_source(
     config: &ResolvedConfig,
-    rocket: &RocketChatClient,
+    db: &MongoSource,
     mapping: &MappingStore,
-    target_org: (String, String),
-) -> Result<RocketChatSource> {
-    let mut source = RocketChatSource {
-        target_org_name: target_org.0,
-        target_org_slug: target_org.1,
-        users: Vec::new(),
-        rooms: Vec::new(),
-        messages: HashMap::new(),
-        roles: Vec::new(),
-        emoji: Vec::new(),
-        teams: Vec::new(),
-        team_members: HashMap::new(),
-    };
+) -> Result<MongoSourceData> {
+    let mut source = MongoSourceData::default();
 
     if config.has_scope("users") {
         info!("inventory: users");
-        source.users = rocket.list_users().await?;
+        source.users = db.list_users().await?;
         mapping.put_checkpoint("users", None)?;
     }
 
-    if config.has_scope("rooms") {
-        info!("inventory: rooms");
-        let mut rooms = Vec::new();
-        rooms.extend(rocket.list_channels().await?);
-        rooms.extend(rocket.list_groups().await?);
-        rooms.extend(rocket.list_ims().await?);
-        source.rooms = rooms;
-        mapping.put_checkpoint("rooms", None)?;
-    }
-
-    if config.has_scope("roles") {
-        info!("inventory: roles");
-        source.roles = rocket.list_roles().await?;
-        mapping.put_checkpoint("roles", None)?;
-    }
-
-    if config.has_scope("emoji") {
-        info!("inventory: emoji");
-        source.emoji = rocket.list_emoji().await?;
-        mapping.put_checkpoint("emoji", None)?;
-    }
-
-    if config.has_scope("teams") {
-        info!("inventory: teams");
-        source.teams = rocket.list_teams().await?;
-        mapping.put_checkpoint("teams", None)?;
+    if config.has_scope("channels") {
+        info!("inventory: rooms and subscriptions");
+        source.rooms = db.list_rooms().await?;
+        source.subscriptions = db.list_subscriptions().await?;
+        mapping.put_checkpoint("channels", None)?;
     }
 
     if config.has_scope("messages") && !source.rooms.is_empty() {
         info!("inventory: messages");
         for room in &source.rooms {
-            let messages = match room.room_type.as_str() {
-                "c" => rocket.channel_history(&room.id).await,
-                "p" | "v" => rocket.group_history(&room.id).await,
-                "d" | "l" => rocket.im_history(&room.id).await,
-                _ => continue,
-            };
-            match messages {
+            match db.list_messages_for_room(&room.id).await {
                 Ok(list) => {
                     mapping.put_checkpoint("messages", Some(&room.id))?;
                     source.messages.insert(room.id.clone(), list);
@@ -161,56 +98,63 @@ async fn inventory_source(
 
 async fn upload_emoji(
     config: &ResolvedConfig,
-    rocket: &RocketChatClient,
-    ruck: &RuckChatClient,
+    source_db: &MongoSource,
+    target_db: &PostgresTarget,
     mapping: &MappingStore,
-    created_by: UserId,
-    source: &RocketChatSource,
     data: &mut MigrationData,
 ) -> Result<()> {
-    info!(count = source.emoji.len(), "uploading custom emoji");
     let org_id = OrganizationId::from_uuid(config.target.organization_id);
+    let created_by = data.organizations[0].owner_id;
+    let emoji_list = source_db.list_custom_emoji().await?;
+    info!(count = emoji_list.len(), "migrating custom emoji");
 
-    for emoji in &source.emoji {
+    for emoji in &emoji_list {
         if mapping.get_emoji(&emoji.id)?.is_some() {
             continue;
         }
 
-        let extension = emoji.extension.clone().unwrap_or_else(|| "png".into());
-        let url = format!("/emoji-custom/{}.{}", emoji.name, extension);
-        let filename = format!("{}.{extension}", emoji.name);
-        let mime = format!("image/{extension}");
-        let full_url = normalize_url(&url, &config.source.url);
-
-        let response = match rocket.download_file(&full_url).await {
-            Ok((r, _)) => r,
-            Err(e) => {
-                warn!(shortcode = %emoji.name, error = %e, "emoji download failed");
-                continue;
-            }
-        };
-        let bytes = match response.bytes().await {
-            Ok(b) => b.to_vec(),
-            Err(e) => {
-                warn!(shortcode = %emoji.name, error = %e, "emoji download failed");
-                continue;
-            }
-        };
-        if bytes.is_empty() {
+        // RocketChat commonly reuses the custom-emoji document's own id as
+        // its upload id; this is unverified against real data (no instance
+        // surveyed had any custom emoji) so failures are reported, not
+        // silently swallowed. See docs/DESIGN-RocketChat-Migration.md.
+        let Some(upload) = source_db.find_upload(&emoji.id).await? else {
+            warn!(shortcode = %emoji.name, "no matching upload found for custom emoji; skipping");
             continue;
-        }
-
-        let file = match upload_bytes(ruck, org_id, created_by, &filename, &mime, bytes).await {
-            Ok(f) => f,
-            Err(e) => {
-                warn!(shortcode = %emoji.name, error = %e, "emoji upload failed");
-                continue;
-            }
         };
-        let file_id = file.id;
-        data.files.push(file);
+        let Some(bytes) = source_db
+            .download_gridfs_bytes(&upload.store, &upload.id)
+            .await?
+        else {
+            warn!(shortcode = %emoji.name, store = %upload.store, "custom emoji is not GridFS-backed; skipping");
+            continue;
+        };
 
-        let emoji_id = CustomEmojiId::from_uuid(id_for("emoji", &emoji.id));
+        let file_id = FileId::from_uuid(id_for("file", &upload.id));
+        let storage_path = target_db.write_file_bytes(file_id, &bytes).await?;
+        let extension = emoji.extension.clone().unwrap_or_else(|| "png".into());
+
+        mapping.put_file(
+            &upload.id,
+            &file_id.as_uuid().to_string(),
+            Some(&storage_path),
+            "create",
+        )?;
+        data.files.push(RuckFile {
+            id: file_id,
+            organization_id: org_id,
+            uploaded_by: created_by,
+            file_name: format!("{}.{extension}", emoji.name),
+            mime_type: upload
+                .content_type
+                .clone()
+                .unwrap_or_else(|| format!("image/{extension}")),
+            size_bytes: i64::try_from(bytes.len()).unwrap_or(i64::MAX),
+            storage_path,
+            thumbnail_path: None,
+            created_at: OffsetDateTime::now_utc(),
+        });
+
+        let emoji_id = ruckchat_id::CustomEmojiId::from_uuid(id_for("emoji", &emoji.id));
         mapping.put_emoji(
             &emoji.id,
             &emoji_id.as_uuid().to_string(),
@@ -231,55 +175,47 @@ async fn upload_emoji(
 }
 
 async fn upload_message_files(
-    config: &ResolvedConfig,
-    rocket: &RocketChatClient,
-    ruck: &RuckChatClient,
+    source_db: &MongoSource,
+    target_db: &PostgresTarget,
     mapping: &MappingStore,
-    default_uploader: UserId,
-    source: &RocketChatSource,
+    source: &MongoSourceData,
     data: &mut MigrationData,
 ) -> Result<()> {
-    info!("uploading message attachments");
-    let org_id = OrganizationId::from_uuid(config.target.organization_id);
+    let org_id = data.organizations[0].id;
+    let default_uploader = data.organizations[0].owner_id;
+    info!("migrating message attachments");
+
+    let author_by_message: HashMap<MessageId, UserId> =
+        data.messages.iter().map(|m| (m.id, m.author_id)).collect();
 
     for messages in source.messages.values() {
         for msg in messages {
-            let uploader =
-                lookup_user_by_rocket_id(&msg.user.id, source).unwrap_or(default_uploader);
-
-            for attachment in &msg.attachments {
-                let Some((url, filename, mime, _size)) =
-                    attachment_url_and_meta(attachment, &config.source.url)
-                else {
-                    continue;
-                };
-                process_file_download(
-                    rocket, ruck, mapping, org_id, uploader, msg, &url, &filename, &mime, data,
-                )
-                .await?;
+            if msg.system_type.is_some() {
+                continue;
             }
+            let Some(message_id) = mapping
+                .get_message(&msg.id)?
+                .and_then(|s| s.parse().ok())
+                .map(MessageId::from_uuid)
+            else {
+                continue;
+            };
+            let uploader = author_by_message
+                .get(&message_id)
+                .copied()
+                .unwrap_or(default_uploader);
 
-            if let Some(file) = &msg.file {
-                let url = format!(
-                    "/file-upload/{}/{}",
-                    file.id,
-                    file.name.clone().unwrap_or_default()
-                );
-                let filename = file.name.clone().unwrap_or_else(|| "attachment".into());
-                let mime = file
-                    .content_type
-                    .clone()
-                    .unwrap_or_else(|| "application/octet-stream".into());
-                process_file_download(
-                    rocket,
-                    ruck,
+            let refs: Vec<&RocketMessageFileRef> =
+                msg.file.iter().chain(msg.files.iter()).collect();
+            for file_ref in refs {
+                process_attachment(
+                    source_db,
+                    target_db,
                     mapping,
                     org_id,
                     uploader,
-                    msg,
-                    &normalize_url(&url, &config.source.url),
-                    &filename,
-                    &mime,
+                    message_id,
+                    &file_ref.id,
                     data,
                 )
                 .await?;
@@ -291,76 +227,113 @@ async fn upload_message_files(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn process_file_download(
-    rocket: &RocketChatClient,
-    ruck: &RuckChatClient,
+async fn process_attachment(
+    source_db: &MongoSource,
+    target_db: &PostgresTarget,
     mapping: &MappingStore,
     org_id: OrganizationId,
     uploaded_by: UserId,
-    msg: &RocketMessage,
-    url: &str,
-    filename: &str,
-    mime: &str,
+    message_id: MessageId,
+    upload_id: &str,
     data: &mut MigrationData,
 ) -> Result<()> {
-    let rocket_file_id = format!("{}-{}", msg.id, url);
-    if mapping.get_file(&rocket_file_id)?.is_some() {
+    if let Some(existing) = mapping.get_file(upload_id)? {
+        if let Ok(file_uuid) = existing.parse() {
+            data.message_files.push(MessageFileLink {
+                message_id,
+                file_id: FileId::from_uuid(file_uuid),
+            });
+        }
         return Ok(());
     }
 
-    let response = match rocket.download_file(url).await {
-        Ok((r, _)) => r,
-        Err(e) => {
-            warn!(url, error = %e, "file download failed");
-            return Ok(());
-        }
-    };
-    let bytes = match response.bytes().await {
-        Ok(b) => b.to_vec(),
-        Err(e) => {
-            warn!(url, error = %e, "file download failed");
-            return Ok(());
-        }
-    };
-    if bytes.is_empty() {
+    let Some(upload) = source_db.find_upload(upload_id).await? else {
+        warn!(upload_id, "referenced upload not found; skipping");
         return Ok(());
-    }
+    };
+    let Some(bytes) = source_db
+        .download_gridfs_bytes(&upload.store, &upload.id)
+        .await?
+    else {
+        warn!(upload_id, store = %upload.store, "file is not GridFS-backed; skipping");
+        return Ok(());
+    };
 
-    let file = upload_bytes(ruck, org_id, uploaded_by, filename, mime, bytes).await?;
+    let file_id = FileId::from_uuid(id_for("file", &upload.id));
+    let storage_path = target_db.write_file_bytes(file_id, &bytes).await?;
+
     mapping.put_file(
-        &rocket_file_id,
-        &file.id.as_uuid().to_string(),
-        Some(&file.storage_path),
+        upload_id,
+        &file_id.as_uuid().to_string(),
+        Some(&storage_path),
         "create",
     )?;
 
-    let message_id = id_for("message", &msg.id);
-    data.message_files
-        .push(crate::ruckchat::client::MessageFileLink {
-            message_id: ruckchat_id::MessageId::from_uuid(message_id),
-            file_id: file.id,
-        });
-    data.files.push(file);
+    data.files.push(RuckFile {
+        id: file_id,
+        organization_id: org_id,
+        uploaded_by,
+        file_name: upload.name.clone().unwrap_or_else(|| "attachment".into()),
+        mime_type: upload
+            .content_type
+            .clone()
+            .unwrap_or_else(|| "application/octet-stream".into()),
+        size_bytes: upload
+            .size
+            .unwrap_or_else(|| i64::try_from(bytes.len()).unwrap_or(i64::MAX)),
+        storage_path,
+        thumbnail_path: None,
+        created_at: OffsetDateTime::now_utc(),
+    });
+    data.message_files.push(MessageFileLink {
+        message_id,
+        file_id,
+    });
 
     Ok(())
 }
 
-async fn upload_bytes(
-    ruck: &RuckChatClient,
-    org_id: OrganizationId,
-    _uploaded_by: UserId,
-    filename: &str,
-    mime: &str,
-    bytes: Vec<u8>,
-) -> Result<ruckchat_domain::File> {
-    let resp: FileResponse = ruck.upload_file(org_id, filename, mime, bytes).await?;
-    ruck.get_file_metadata(resp.id).await
-}
+async fn send_credential_emails(
+    config: &ResolvedConfig,
+    temp_passwords: &TempPasswords,
+    data: &MigrationData,
+) -> Vec<CredentialEmailOutcome> {
+    let Some(email_config) = &config.email else {
+        warn!("--send-emails was set but no email configuration was provided; skipping");
+        return Vec::new();
+    };
+    let client = EmailClient::new(&ruckchat_email::EmailConfig {
+        server_token: email_config.server_token.clone(),
+        from_address: email_config.from_address.clone(),
+    });
 
-fn lookup_user_by_rocket_id(rocket_id: &str, source: &RocketChatSource) -> Option<UserId> {
-    source
+    let email_by_id: HashMap<UserId, &str> = data
         .users
         .iter()
-        .find(|u| u.id == rocket_id)
-        .and_then(|u| u.emails.first().map(|e| user_id_for_email(&e.address)))
+        .map(|u| (u.id, u.email.as_str()))
+        .collect();
+
+    let mut outcomes = Vec::with_capacity(temp_passwords.len());
+    for (user_id, temp_password) in temp_passwords {
+        let Some(&email) = email_by_id.get(user_id) else {
+            continue;
+        };
+        match client
+            .send_migration_credentials(email, temp_password)
+            .await
+        {
+            Ok(()) => outcomes.push(CredentialEmailOutcome {
+                email: email.to_string(),
+                error: None,
+            }),
+            Err(err) => {
+                warn!(email, error = %err, "failed to send migration credential email");
+                outcomes.push(CredentialEmailOutcome {
+                    email: email.to_string(),
+                    error: Some(err.to_string()),
+                });
+            }
+        }
+    }
+    outcomes
 }

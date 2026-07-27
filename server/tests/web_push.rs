@@ -36,6 +36,7 @@ async fn client_with_push(pool: sqlx::PgPool) -> (TestClient, String) {
         web: WebConfig::default(),
         web_push: push_config(),
         server_settings: ruckchat_config::ServerSettingsConfig::default(),
+        email: None,
     };
     let state = AppState::from_config(pool, &config);
     let client = TestClient::from_router(router(&config.web, &config.base_url).with_state(state));

@@ -5,7 +5,6 @@
 use crate::{
     Error,
     handlers::{auth::AuthUser, dto::ListResponse, dto::UserResponse},
-    migrate::MigrationData,
     state::AppState,
 };
 use axum::{
@@ -18,6 +17,7 @@ use ruckchat_id::{
     ChannelId, CustomEmojiId, FileId, OrganizationId, OrganizationRoleId, PermissionId, TeamId,
     UserId,
 };
+use ruckchat_migrate::MigrationData;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

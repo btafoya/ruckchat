@@ -158,6 +158,7 @@ impl AppState {
             &ruckchat_config::WebPushConfig::default(),
             &files_directory,
             ServerSettingsOverride::default(),
+            None,
         )
     }
 
@@ -184,6 +185,7 @@ impl AppState {
             &config.web_push,
             &config.files.directory,
             server_settings_overrides,
+            config.email.clone(),
         )
     }
 
@@ -198,7 +200,14 @@ impl AppState {
         web_push_config: &ruckchat_config::WebPushConfig,
         files_directory: &str,
         server_settings_overrides: ServerSettingsOverride,
+        email_config: Option<ruckchat_config::EmailConfig>,
     ) -> Self {
+        let email = email_config.map(|cfg| {
+            ruckchat_email::EmailClient::new(&ruckchat_email::EmailConfig {
+                server_token: cfg.server_token,
+                from_address: cfg.from_address,
+            })
+        });
         let users_repo = Arc::new(UserRepositorySqlx::new(pool.clone()));
         let sessions_repo = Arc::new(SessionRepositorySqlx::new(pool.clone()));
         let organizations_repo = Arc::new(OrganizationRepositorySqlx::new(pool.clone()));
@@ -407,6 +416,7 @@ impl AppState {
             server_settings: server_settings_repo.clone(),
             auth: auth.clone(),
             audit: audit.clone(),
+            email,
         });
 
         Self {
