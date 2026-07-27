@@ -19,3 +19,4 @@ desktop/dist/
 web/tests/.e2e-runtime/
 web/test-results/
 web/playwright-report/
+.mcp.json
